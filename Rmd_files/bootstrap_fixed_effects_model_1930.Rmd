@@ -1,0 +1,1196 @@
+---
+title: "Using bootstrap to compute standard errors of fixed effect model 1930"
+output: html_document
+---
+# Delete Workspace and load packages
+## Function to load necessary packages
+```{r}
+f_load_pk <- function() {
+  
+  # Pacman: packages manager. It does different things, here I use it to load multiple packages at the same time
+  library (pacman)
+  p_load(readxl,foreign,readstata13,data.table,plyr,dplyr,stringr,openxlsx,stringdist,reshape2,qdap,fst,ipumsr,tm,textreg,tmap,tmaptools,sf,leaflet,ipumsr)
+  p_load(tictoc)
+  
+  # Statistical packages
+  p_load(fastDummies,sandwich,lmtest,estimatr)
+  p_load(lfe)
+  p_load(weights)  # To perform weighted correlations
+  
+  #graphs
+  p_load(ggplot2,maps,ggthemes,sjPlot,sjmisc,sjlabelled,jtools,ggstance,broom.mixed)
+  p_load(ggpubr)   # Contains ggarrange, used to plot more than one grpah in the same figure
+  p_load(scales)   # Used in histogram to show percent format
+  
+  # Parallel
+  p_load(snow,iterators,doParallel)
+
+}
+```
+
+## Using function
+```{r}
+rm(list = setdiff(ls(),c(lsf.str(),"main_directory" )) )
+f_load_pk()
+```
+
+# Defining main and other directories
+```{r}
+main_directory <- "/Volumes/GoogleDrive/My Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/"
+```
+
+# 0 . Some functions
+## Function to export things to excel
+```{r}
+wrapper_Excel <- function(list_table,list_name,output) {
+  t <- createWorkbook()
+  for (i in 1:length(list_table)) {
+    addWorksheet(t, list_name[[i]])
+    writeData(t, list_name[[i]],list_table[[i]])
+  }
+  saveWorkbook(t, output,overwrite=TRUE)
+}
+```
+
+
+# 1. Regressions following Lin (2011) - At the countynhg_1910 level
+## 1.1. Call individual level data
+```{r}
+DT <-read_fst(paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1930_individual_data_x_countynhg_1910.fst"),as.data.table=TRUE)[occ1950_main!=979 & ind1950_main!=0 & perwt_1930 > 10000][,c("countynhg_1910","perwt_1930","sh_red_tit","occind","statefip","urban","male","lit","marst","race","wwages","mig_us","mig_ab","age_main","ind1950","ind1950_main","famsize","ownershp","m_mig_us","f_mig_us")][!is.na(lit)][order(countynhg_1910,occind)]
+```
+
+## 1.2. Creating dummy variables and county fixed effects
+```{r}
+# Change categorical variables to factors
+# Note: - using factors allows R to easily create dummies
+#       - We don't change binary variables, as they are already interpreted as Dummy variables  
+#       - We don't introduce statefip fixed effects because that would conflict with county FE
+cols <- c("race","marst","age_main","ind1950_main")
+
+# Dealing with dummies
+# option 1.: convert variables that are dummies to factors
+#            R can handle these factors in regressions. The problem is that we can't specify which one is the NULL category. This becomes problematic when we want to extract the county fixed effect.
+#DT[,(cols):=lapply(.SD,as.factor),.SDcols=cols]
+# option 2.: Create independent variable for each dummy variable
+DT <- dummy_cols(DT,select_columns = cols,remove_first_dummy = TRUE)
+
+# Immigrants parents
+DT[,imm_parents:=ifelse(m_mig_us==1 | f_mig_us==1,1,0)]
+
+```
+
+## 1.3 Creating some variables for regressions
+```{r}
+base_individual  <- c("male","race",grep("^age_main_[^1]",names(DT),value=TRUE),"wwages","urban")
+extra_individual <- c(grep("^marst_[^1]",names(DT),value=TRUE),"mig_us","mig_ab")
+other_individual <- c("famsize","ownershp","imm_parents")
+educ_main_vars        <- c("lit")
+ind1950_main_vars <- grep("^ind1950_main_",names(DT),value=TRUE)
+
+```
+
+## 1.4. First stage regression (following Lin (2011))
+*** TO-DO: Construct regressions for this part. The main problem is that the algorithm collapses when we include countynhg_1910 dummies
+### 1.4.1. Regression equations
+- None of the regressions include state fixed effects
+  - No individual controls
+  - Base individual
+  - Base individual + extra_individual                                            ".base.extra.no_new_sec.fst"
+  - Base individual + extra_individual + other_individual                         ".base.extra.other.no_new_sec.fst"
+  - Base individual + extra_individual + other_individual + lit                  ".base.extra.other.educ.no_new_sec.fst"
+  - Base individual + extra_individual + other_individual + lit + ind1950        ".base.extra.other.educ.ind1950.no_new_sec.fst"
+  - Base individual + extra_individual + other_individual + ind1950               ".base.extra.other.ind1950.no_new_sec.fst"
+  (***We use this one because in 1930 we don't have the same educ variable)
+  
+- Vectors a absorbs the county FE, while vector b computes them explicitly. We used vector b only with a reduced set of counties, because otherwise R collapses
+  
+```{r}
+a <-b <- vector(mode = "list")
+
+it <- 0
+for (i in c("sh_red_tit")) {
+  it <- it + 1
+  a[[it]] <- b[[it]] <- vector(mode = "list")
+  
+  # Absorbing county FE
+  ## No individual controls
+  a[[it]][[1]] <- as.formula(paste0(i," ~ -1 | countynhg_1910 | 0 | occind"))
+  # Base individual
+  a[[it]][[2]] <- as.formula(paste0(i," ~ ",paste0(base_individual,collapse=" + ")," | countynhg_1910 | 0 | occind"))
+  ## Base individual + extra_individual
+  a[[it]][[3]] <- as.formula(paste0(i," ~ ",paste0(base_individual,collapse=" + ")," + ",paste0(extra_individual,collapse=" + ")," | countynhg_1910 | 0 | occind"))
+  ## Base individual + extra_individual + other_individual 
+  a[[it]][[4]] <- as.formula(paste0(i," ~ ",paste0(base_individual,collapse=" + ")," + ",paste0(extra_individual,collapse=" + ")," + ",paste0(other_individual,collapse=" + ")," | countynhg_1910 | 0 | occind"))
+  ## Base individual + extra_individual + other_individual + educ
+  a[[it]][[5]] <- as.formula(paste0(i," ~ ",paste0(base_individual,collapse=" + ")," + ",paste0(extra_individual,collapse=" + ")," + ",paste0(other_individual,collapse=" + ")," + lit "," | countynhg_1910 | 0 | occind"))
+  ## Base individual + extra_individual + other_individual + educ + ind1950
+  a[[it]][[6]] <- as.formula(paste0(i," ~ ",paste0(base_individual,collapse=" + ")," + ",paste0(extra_individual,collapse=" + ")," + ",paste0(other_individual,collapse=" + ")," + lit "," + ",paste0(ind1950_main_vars,collapse=" + ")," | countynhg_1910 | 0 | occind"))
+  ## Base individual + extra_individual + other_individual + ind1950 
+  a[[it]][[7]] <- as.formula(paste0(i," ~ ",paste0(base_individual,collapse=" + ")," + ",paste0(extra_individual,collapse=" + ")," + ",paste0(other_individual,collapse=" + ")," + ",paste0(ind1950_main_vars,collapse=" + ")," | countynhg_1910 | 0 | occind"))
+  
+  # Not absorbing county FE
+  ## No individual controls
+  b[[it]][[1]] <- as.formula(paste0(i," ~ countynhg_1910 -1 | 0 | 0 | occind"))
+  ## Base individual
+  b[[it]][[2]] <- as.formula(paste0(i," ~ ",paste0(base_individual,collapse=" + ")," + countynhg_1910 -1 | 0 | 0 | occind"))
+  ## Base individual + extra_individual
+  b[[it]][[3]] <- as.formula(paste0(i," ~ ",paste0(base_individual,collapse=" + ")," + ",paste0(extra_individual,collapse=" + ")," + countynhg_1910 -1 | 0 | 0 | occind"))
+  ## Base individual + extra_individual + other_individual 
+  b[[it]][[4]] <- as.formula(paste0(i," ~ ",paste0(base_individual,collapse=" + ")," + ",paste0(extra_individual,collapse=" + ")," + ",paste0(other_individual,collapse=" + ")," + countynhg_1910 -1 | 0 | 0 | occind"))
+  ## Base individual + extra_individual + other_individual + educ
+  b[[it]][[5]] <- as.formula(paste0(i," ~ ",paste0(base_individual,collapse=" + ")," + ",paste0(extra_individual,collapse=" + ")," + ",paste0(other_individual,collapse=" + ")," + lit "," + countynhg_1910 -1 | 0 | 0 | occind"))
+  ## Base individual + extra_individual + other_individual + educ + ind1950
+  b[[it]][[6]] <- as.formula(paste0(i," ~ ",paste0(base_individual,collapse=" + ")," + ",paste0(extra_individual,collapse=" + ")," + ",paste0(other_individual,collapse=" + ")," + lit "," + ",paste0(ind1950_main_vars,collapse=" + ")," + countynhg_1910 -1 | 0 | 0 | occind"))
+  ## Base individual + extra_individual + other_individual + ind1950
+  b[[it]][[7]] <- as.formula(paste0(i," ~ ",paste0(base_individual,collapse=" + ")," + ",paste0(extra_individual,collapse=" + ")," + ",paste0(other_individual,collapse=" + ")," + ",paste0(ind1950_main_vars,collapse=" + ")," + countynhg_1910 -1 | 0 | 0 | occind"))
+}
+
+```
+TO-DO:
+- By bootstrap and rn, compute mean and standard deviation. 
+  - Compute the standard error of the beta coefficients
+  - Compute 95% confidence intervals
+- Rank coefficients, non-parametrically construct confidence intervals
+
+
+### 1.4.2. Testing Bootstrap regression (MULPTIPLE CORES, MC) 
+In the section I will test that my bootstrap algorithm gives similar results to one of the in-built functions in R. For that I need to reduce the number of regions used as fixed effects, since R collapses when I work with the whole set.
+#### 1.4.2.1 Coefficients using the Bootstrap methodology (MC)
+Here I will focus on the regression only with the base individual variables, dataset2 and method1
+
+##### Bootstrap Regressions
+```{r}
+# Bootstrap regressions
+cores <- detectCores() -1
+registerDoParallel(cores)
+
+bt <- 2000
+pop <- 100000
+
+## Selecting dataset of interest
+DT_res <- DT[perwt_1930 >= pop & !(ind1950 %in% c(376,377,466,556,606,667,668,816,856))]
+
+## FE variable has to be treated as a factor
+DT_res[, `:=` (countynhg_1910 = as.factor(countynhg_1910),occind = as.factor(occind)) ]
+
+## Getting the group variables (group variable has to be either a character or a factor)
+#* Note: We use this because we cluster the rrors at the occ1940 level
+clusters <- as.data.table(table(DT_res$occind))[,c(1)]
+
+t1 <- Sys.time()
+set.seed(123456)
+foreach (i=1:bt, .combine = "rbind") %dopar% {
+  # Samples from the vector clusters with replacement
+  units <- sample(clusters[[1]], size = length(clusters[[1]]), replace=T)
+  # Extract workers with the given variable in clusters.
+  #* Note: if one occind appears more than once, the workers will be repeated
+  DT_b <- DT_res[as.character(units), on = "occind",allow.cartesian=TRUE]
+  
+  A <- felm(a[[1]][[2]], data=DT_b)
+  # getfe(.) uses the return function from felm to create the vector of fixed effects
+  A_fe <- as.data.table(getfe(A)[c("idx","effect")])
+  setnames(A_fe,c(1,2),c("rn","coef"))
+  A <- as.data.table(A[c("coefficients","cse","se")],keep.rownames=TRUE)
+  setnames(A,c(1,2),c("rn","coef"))
+  A <- rbind(A,A_fe,fill=TRUE)
+} -> coef.parallel
+t2 <- Sys.time()
+t2 - t1 
+
+# Computing bootstrap estimations
+estimation.bootstrap_x_true <- coef.parallel[,.(coef.b=mean(coef),se.b=sd(coef,na.rm=TRUE),cse.mean=mean(cse,na.rm=TRUE),se.mean=mean(se,na.rm=TRUE)),by="rn"]
+
+```
+
+##### 1.4.2.2 Creating "TRUE" estimations and adding to bootstrap ones
+```{r}
+# Coefficients and cluster standard errors computed by felm
+# NOTE: We don't include a constant, this should be equivalent to the regression a[[2]], where no constant is introduced
+estimation.felm <-  felm(b[[1]][[2]], data=DT_res)
+  
+estimation.felm <- as.data.table(estimation.felm[c("coefficients","cse","se")],keep.rownames=TRUE)
+setnames(estimation.felm,c(1,2),c("rn","coef"))
+estimation.felm <- estimation.felm[,rn:=gsub("countynhg_1910","",rn)]
+  
+estimation.bootstrap_x_true <- merge(estimation.bootstrap_x_true,estimation.felm,by="rn")
+```
+
+### 1.4.3. Bootstrap regression (MULPTIPLE CORES) 
+#### 1. Excluding all new sectors
+##### Base
+```{r}
+cores <- detectCores() -1
+registerDoParallel(cores)
+
+it <- 0
+for (new_var in c("sh_red_tit")) {
+  it <- it + 1
+  # It takes aprox 8 secs for bt<-20
+  bt <- min((1.5*3600)/20*20,5000)
+  pop <- 10000
+  
+  # Selecting dataset of interest
+  DT_res <- DT[perwt_1930 >= pop & !(ind1950 %in% c(376,377,466,556,606,667,668,816,856))]
+  
+  # FE variable has to be treated as a factor
+  DT_res[, `:=` (countynhg_1910 = as.factor(countynhg_1910),occind = as.factor(occind)) ]
+  
+  # Getting the group variables (group variable has to be either a character or a factor)
+  clusters <- as.data.table(table(DT_res$occind))[,c(1)]
+  
+  t1 <- Sys.time()
+  set.seed(123456)
+  foreach (i=1:bt, .combine = "rbind") %dopar% {
+    units <- sample(clusters[[1]], size = nrow(clusters), replace=T)
+    DT_b <- DT_res[as.character(units), on = "occind",allow.cartesian=TRUE]
+    
+    A <- felm(a[[it]][[2]], data=DT_b)
+    # getfe(.) uses the return function from felm to create the vector of fixed effects
+    A_fe <- as.data.table(getfe(A)[c("idx","effect")])
+    setnames(A_fe,c(1,2),c("rn","coef"))
+    A <- as.data.table(A[c("coefficients","cse","se")],keep.rownames=TRUE)
+    setnames(A,c(1,2),c("rn","coef"))
+    A <- rbind(A,A_fe,fill=TRUE)
+  } -> coef.parallel
+  t2 <- Sys.time()
+  t2 - t1 
+  
+  write_fst(coef.parallel, paste0(main_directory,"R - Processing data/output/Rdata/coef_bootstrapset_1930_method_",new_var,".btrap.perwtge_",pop,".base.no_new_sec.fst"))
+  
+  # Creating "TRUE" estimations (without the standard errors for the county FE) and adding to the bootstrap ones
+  estimation.felm <-  felm(a[[it]][[2]], data=DT_res)
+  fe <- as.data.table(getfe(estimation.felm)[c("idx","effect")])
+  setnames(fe,c(1,2),c("rn","coef"))
+  obs <- data.table(rn="obs",coef=estimation.felm$N)
+  estimation.felm <- as.data.table(estimation.felm[c("coefficients","cse","se")],keep.rownames=TRUE)
+  setnames(estimation.felm,c(1,2),c("rn","coef"))
+  estimation.felm<- 
+    rbind(
+      estimation.felm,
+      fe,
+      obs,
+      fill=TRUE)
+  
+  estimation.bootstrap_x_true <- 
+    merge(
+      coef.parallel[,.(coef.b=mean(coef),se.b=sd(coef,na.rm=TRUE),cse.mean=mean(cse,na.rm=TRUE),se.mean=mean(se,na.rm=TRUE)),by="rn"],
+      estimation.felm,by="rn",all=TRUE
+    )
+  
+  write_fst(estimation.bootstrap_x_true, paste0(main_directory,"R - Processing data/output/Rdata/coef_final_1930_method_",new_var,".btrap.perwtge_",pop,".base.no_new_sec.fst"))
+  rm(coef.parallel,estimation.felm,fe,estimation.bootstrap_x_true)
+}
+
+```
+
+##### Base individual + extra_individual 
+```{r}
+cores <- detectCores() -1
+registerDoParallel(cores)
+
+it <- 0
+for (new_var in c("sh_red_tit")) {
+  it <- it + 1
+  # It takes aprox 10.78 secs for bt<-20
+  bt <- min((2*3600)/63*14,5000)
+  pop <- 10000
+  
+  # Selecting dataset of interest
+  DT_res <- DT[perwt_1930 >= pop & !(ind1950 %in% c(376,377,466,556,606,667,668,816,856))]
+  
+  # FE variable has to be treated as a factor
+  DT_res[, `:=` (countynhg_1910 = as.factor(countynhg_1910),occind = as.factor(occind)) ]
+  
+  # Getting the group variables (group variable has to be either a character or a factor)
+  clusters <- as.data.table(table(DT_res$occind))[,c(1)]
+  
+  t1 <- Sys.time()
+  set.seed(123456)
+  foreach (i=1:bt, .combine = "rbind") %dopar% {
+    units <- sample(clusters[[1]], size = nrow(clusters), replace=T)
+    DT_b <- DT_res[as.character(units), on = "occind",allow.cartesian=TRUE]
+    
+    A <- felm(a[[it]][[3]], data=DT_b)
+    # getfe(.) uses the return function from felm to create the vector of fixed effects
+    A_fe <- as.data.table(getfe(A)[c("idx","effect")])
+    setnames(A_fe,c(1,2),c("rn","coef"))
+    A <- as.data.table(A[c("coefficients","cse","se")],keep.rownames=TRUE)
+    setnames(A,c(1,2),c("rn","coef"))
+    A <- rbind(A,A_fe,fill=TRUE)
+  } -> coef.parallel
+  t2 <- Sys.time()
+  t2 - t1 
+  
+  write_fst(coef.parallel, paste0(main_directory,"R - Processing data/output/Rdata/coef_bootstrapset_1930_method_",new_var,".btrap.perwtge_",pop,".base.extra.no_new_sec.fst"))
+  
+  # Creating "TRUE" estimations (without the standard errors for the county FE) and adding to the bootstrap ones
+  estimation.felm <-  felm(a[[it]][[3]], data=DT_res)
+  fe <- as.data.table(getfe(estimation.felm)[c("idx","effect")])
+  setnames(fe,c(1,2),c("rn","coef"))
+  obs <- data.table(rn="obs",coef=estimation.felm$N)
+  estimation.felm <- as.data.table(estimation.felm[c("coefficients","cse","se")],keep.rownames=TRUE)
+  setnames(estimation.felm,c(1,2),c("rn","coef"))
+  estimation.felm<- 
+    rbind(
+      estimation.felm,
+      fe,
+      obs,
+      fill=TRUE)
+  
+  estimation.bootstrap_x_true <- 
+    merge(
+      coef.parallel[,.(coef.b=mean(coef),se.b=sd(coef,na.rm=TRUE),cse.mean=mean(cse,na.rm=TRUE),se.mean=mean(se,na.rm=TRUE)),by="rn"],
+      estimation.felm,by="rn",all=TRUE
+    )
+  
+  write_fst(estimation.bootstrap_x_true, paste0(main_directory,"R - Processing data/output/Rdata/coef_final_1930_method_",new_var,".btrap.perwtge_",pop,".base.extra.no_new_sec.fst"))
+  rm(coef.parallel,estimation.felm,fe,estimation.bootstrap_x_true)
+}
+```
+
+##### Base individual + extra_individual + other_individual
+```{r}
+tic()
+cores <- detectCores() -1
+registerDoParallel(cores)
+it <- 0
+for (new_var in c("sh_red_tit")) {
+  it <- it + 1
+  # It takes aprox 98 secs for bt<-20
+  bt <- min((2.5*3600)/120*20,5000)
+  pop <- 10000
+  
+  # Selecting dataset of interest
+  DT_res <- DT[perwt_1930 >= pop & !(ind1950 %in% c(376,377,466,556,606,667,668,816,856))]
+  
+  # FE variable has to be treated as a factor
+  DT_res[, `:=` (countynhg_1910 = as.factor(countynhg_1910),occind = as.factor(occind)) ]
+  
+  # Getting the group variables (group variable has to be either a character or a factor)
+  clusters <- as.data.table(table(DT_res$occind))[,c(1)]
+  
+  t1 <- Sys.time()
+  set.seed(123456)
+  foreach (i=1:bt, .combine = "rbind") %dopar% {
+    units <- sample(clusters[[1]], size = nrow(clusters), replace=T)
+    DT_b <- DT_res[as.character(units), on = "occind",allow.cartesian=TRUE]
+    
+    A <- felm(a[[it]][[4]], data=DT_b)
+    # getfe(.) uses the return function from felm to create the vector of fixed effects
+    A_fe <- as.data.table(getfe(A)[c("idx","effect")])
+    setnames(A_fe,c(1,2),c("rn","coef"))
+    A <- as.data.table(A[c("coefficients","cse","se")],keep.rownames=TRUE)
+    setnames(A,c(1,2),c("rn","coef"))
+    A <- rbind(A,A_fe,fill=TRUE)
+  } -> coef.parallel
+  t2 <- Sys.time()
+  t2 - t1 
+  
+  write_fst(coef.parallel, paste0(main_directory,"R - Processing data/output/Rdata/coef_bootstrapset_1930_method_",new_var,".btrap.perwtge_",pop,".base.extra.other.no_new_sec.fst"))
+  
+  # Creating "TRUE" estimations (without the standard errors for the county FE) and adding to the bootstrap ones
+  estimation.felm <-  felm(a[[it]][[4]], data=DT_res)
+  fe <- as.data.table(getfe(estimation.felm)[c("idx","effect")])
+  setnames(fe,c(1,2),c("rn","coef"))
+  obs <- data.table(rn="obs",coef=estimation.felm$N)
+  estimation.felm <- as.data.table(estimation.felm[c("coefficients","cse","se")],keep.rownames=TRUE)
+  setnames(estimation.felm,c(1,2),c("rn","coef"))
+  estimation.felm<- 
+    rbind(
+      estimation.felm,
+      fe,
+      obs,
+      fill=TRUE)
+  
+  estimation.bootstrap_x_true <- 
+    merge(
+      coef.parallel[,.(coef.b=mean(coef),se.b=sd(coef,na.rm=TRUE),cse.mean=mean(cse,na.rm=TRUE),se.mean=mean(se,na.rm=TRUE)),by="rn"],
+      estimation.felm,by="rn",all=TRUE
+    )
+  
+  write_fst(estimation.bootstrap_x_true, paste0(main_directory,"R - Processing data/output/Rdata/coef_final_1930_method_",new_var,".btrap.perwtge_",pop,".base.extra.other.no_new_sec.fst"))
+  rm(coef.parallel,estimation.felm,fe,estimation.bootstrap_x_true)
+}
+toc()
+```
+
+##### Base individual + extra_individual + other_individual + lit  
+```{r}
+tic()
+cores <- detectCores() -1
+registerDoParallel(cores)
+it <- 0
+for (new_var in c("sh_red_tit")) {
+  it <- it +1
+  # It takes aprox 14.5 secs for bt<-20
+  bt <- min((3*3600)/100*20,5000)
+  pop <- 10000
+  
+  # Selecting dataset of interest
+  DT_res <- DT[perwt_1930 >= pop & !(ind1950 %in% c(376,377,466,556,606,667,668,816,856))]
+  
+  # FE variable has to be treated as a factor
+  DT_res[, `:=` (countynhg_1910 = as.factor(countynhg_1910),occind = as.factor(occind)) ]
+  
+  # Getting the group variables (group variable has to be either a character or a factor)
+  clusters <- as.data.table(table(DT_res$occind))[,c(1)]
+  
+  t1 <- Sys.time()
+  set.seed(123456)
+  foreach (i=1:bt, .combine = "rbind") %dopar% {
+    units <- sample(clusters[[1]], size = nrow(clusters), replace=T)
+    DT_b <- DT_res[as.character(units), on = "occind",allow.cartesian=TRUE]
+    
+    A <- felm(a[[it]][[5]], data=DT_b)
+    # getfe(.) uses the return function from felm to create the vector of fixed effects
+    A_fe <- as.data.table(getfe(A)[c("idx","effect")])
+    setnames(A_fe,c(1,2),c("rn","coef"))
+    A <- as.data.table(A[c("coefficients","cse","se")],keep.rownames=TRUE)
+    setnames(A,c(1,2),c("rn","coef"))
+    A <- rbind(A,A_fe,fill=TRUE)
+  } -> coef.parallel
+  t2 <- Sys.time()
+  t2 - t1 
+  
+  write_fst(coef.parallel, paste0(main_directory,"R - Processing data/output/Rdata/coef_bootstrapset_1930_method_",new_var,".btrap.perwtge_",pop,".base.extra.other.educ.no_new_sec.fst"))
+  
+  # Creating "TRUE" estimations (without the standard errors for the county FE) and adding to the bootstrap ones
+  estimation.felm <-  felm(a[[it]][[5]], data=DT_res)
+  fe <- as.data.table(getfe(estimation.felm)[c("idx","effect")])
+  setnames(fe,c(1,2),c("rn","coef"))
+  obs <- data.table(rn="obs",coef=estimation.felm$N)
+  estimation.felm <- as.data.table(estimation.felm[c("coefficients","cse","se")],keep.rownames=TRUE)
+  setnames(estimation.felm,c(1,2),c("rn","coef"))
+  estimation.felm<- 
+    rbind(
+      estimation.felm,
+      fe,
+      obs,
+      fill=TRUE)
+  
+  estimation.bootstrap_x_true <- 
+    merge(
+      coef.parallel[,.(coef.b=mean(coef),se.b=sd(coef,na.rm=TRUE),cse.mean=mean(cse,na.rm=TRUE),se.mean=mean(se,na.rm=TRUE)),by="rn"],
+      estimation.felm,by="rn",all=TRUE
+    )
+  
+  write_fst(estimation.bootstrap_x_true, paste0(main_directory,"R - Processing data/output/Rdata/coef_final_1930_method_",new_var,".btrap.perwtge_",pop,".base.extra.other.educ.no_new_sec.fst"))
+  rm(coef.parallel,estimation.felm,fe,estimation.bootstrap_x_true)
+}
+toc()
+```
+
+##### Base individual + extra_individual + other_individual + lit + ind1950_main
+*** TO-DO: Redo this one!!!! I used the same name for the next one
+```{r}
+tic()
+cores <- detectCores() -1
+registerDoParallel(cores)
+it <- 0
+for (new_var in c("sh_red_tit")) {
+  it <- it +1
+  # It takes aprox 14.5 secs for bt<-20
+  bt <- min((3*3600)/140*20,5000)
+  pop <- 10000
+  
+  # Selecting dataset of interest
+  DT_res <- DT[perwt_1930 >= pop & !(ind1950 %in% c(376,377,466,556,606,667,668,816,856))]
+  
+  # FE variable has to be treated as a factor
+  DT_res[, `:=` (countynhg_1910 = as.factor(countynhg_1910),occind = as.factor(occind)) ]
+  
+  # Getting the group variables (group variable has to be either a character or a factor)
+  clusters <- as.data.table(table(DT_res$occind))[,c(1)]
+  
+  t1 <- Sys.time()
+  set.seed(123456)
+  foreach (i=1:bt, .combine = "rbind") %dopar% {
+    units <- sample(clusters[[1]], size = nrow(clusters), replace=T)
+    DT_b <- DT_res[as.character(units), on = "occind",allow.cartesian=TRUE]
+    
+    A <- felm(a[[it]][[6]], data=DT_b)
+    # getfe(.) uses the return function from felm to create the vector of fixed effects
+    A_fe <- as.data.table(getfe(A)[c("idx","effect")])
+    setnames(A_fe,c(1,2),c("rn","coef"))
+    A <- as.data.table(A[c("coefficients","cse","se")],keep.rownames=TRUE)
+    setnames(A,c(1,2),c("rn","coef"))
+    A <- rbind(A,A_fe,fill=TRUE)
+  } -> coef.parallel
+  t2 <- Sys.time()
+  t2 - t1 
+  
+  write_fst(coef.parallel, paste0(main_directory,"R - Processing data/output/Rdata/coef_bootstrapset_1930_method_",new_var,".btrap.perwtge_",pop,".base.extra.other.educ.ind1950.no_new_sec.fst"))
+  
+  # Creating "TRUE" estimations (without the standard errors for the county FE) and adding to the bootstrap ones
+  estimation.felm <-  felm(a[[it]][[6]], data=DT_res)
+  fe <- as.data.table(getfe(estimation.felm)[c("idx","effect")])
+  setnames(fe,c(1,2),c("rn","coef"))
+  obs <- data.table(rn="obs",coef=estimation.felm$N)
+  estimation.felm <- as.data.table(estimation.felm[c("coefficients","cse","se")],keep.rownames=TRUE)
+  setnames(estimation.felm,c(1,2),c("rn","coef"))
+  estimation.felm<- 
+    rbind(
+      estimation.felm,
+      fe,
+      obs,
+      fill=TRUE)
+  
+  estimation.bootstrap_x_true <- 
+    merge(
+      coef.parallel[,.(coef.b=mean(coef),se.b=sd(coef,na.rm=TRUE),cse.mean=mean(cse,na.rm=TRUE),se.mean=mean(se,na.rm=TRUE)),by="rn"],
+      estimation.felm,by="rn",all=TRUE
+    )
+  
+  write_fst(estimation.bootstrap_x_true, paste0(main_directory,"R - Processing data/output/Rdata/coef_final_1930_method_",new_var,".btrap.perwtge_",pop,".base.extra.other.educ.ind1950.no_new_sec.fst"))
+  rm(coef.parallel,estimation.felm,fe,estimation.bootstrap_x_true)
+}
+toc()
+```
+
+##### Base individual + extra_individual + other_individual + ind1950_main  
+```{r}
+tic()
+cores <- detectCores() -1
+registerDoParallel(cores)
+it <- 0
+for (new_var in c("sh_red_tit")) {
+  it <- it +1
+  # It takes aprox 14.5 secs for bt<-20
+  bt <- min((2.5*3600)/140*20,5000)
+  #bt <- 20
+  pop <- 10000
+  
+  # Selecting dataset of interest
+  DT_res <- DT[perwt_1930 >= pop & !(ind1950 %in% c(376,377,466,556,606,667,668,816,856))]
+  
+  # FE variable has to be treated as a factor
+  DT_res[, `:=` (countynhg_1910 = as.factor(countynhg_1910),occind = as.factor(occind)) ]
+  
+  # Getting the group variables (group variable has to be either a character or a factor)
+  clusters <- as.data.table(table(DT_res$occind))[,c(1)]
+  
+  t1 <- Sys.time()
+  set.seed(123456)
+  foreach (i=1:bt, .combine = "rbind") %dopar% {
+    units <- sample(clusters[[1]], size = nrow(clusters), replace=T)
+    DT_b <- DT_res[as.character(units), on = "occind",allow.cartesian=TRUE]
+    
+    A <- felm(a[[it]][[7]], data=DT_b)
+    # getfe(.) uses the return function from felm to create the vector of fixed effects
+    A_fe <- as.data.table(getfe(A)[c("idx","effect")])
+    setnames(A_fe,c(1,2),c("rn","coef"))
+    A <- as.data.table(A[c("coefficients","cse","se")],keep.rownames=TRUE)
+    setnames(A,c(1,2),c("rn","coef"))
+    A <- rbind(A,A_fe,fill=TRUE)
+  } -> coef.parallel
+  t2 <- Sys.time()
+  t2 - t1 
+  
+  write_fst(coef.parallel, paste0(main_directory,"R - Processing data/output/Rdata/coef_bootstrapset_1930_method_",new_var,".btrap.perwtge_",pop,".base.extra.other.ind1950.no_new_sec.fst"))
+  
+  # Creating "TRUE" estimations (without the standard errors for the county FE) and adding to the bootstrap ones
+  estimation.felm <-  felm(a[[it]][[7]], data=DT_res)
+  fe <- as.data.table(getfe(estimation.felm)[c("idx","effect")])
+  setnames(fe,c(1,2),c("rn","coef"))
+  obs <- data.table(rn="obs",coef=estimation.felm$N)
+  estimation.felm <- as.data.table(estimation.felm[c("coefficients","cse","se")],keep.rownames=TRUE)
+  setnames(estimation.felm,c(1,2),c("rn","coef"))
+  estimation.felm<- 
+    rbind(
+      estimation.felm,
+      fe,
+      obs,
+      fill=TRUE)
+  
+  estimation.bootstrap_x_true <- 
+    merge(
+      coef.parallel[,.(coef.b=mean(coef),se.b=sd(coef,na.rm=TRUE),cse.mean=mean(cse,na.rm=TRUE),se.mean=mean(se,na.rm=TRUE)),by="rn"],
+      estimation.felm,by="rn",all=TRUE
+    )
+  
+  write_fst(estimation.bootstrap_x_true, paste0(main_directory,"R - Processing data/output/Rdata/coef_final_1930_method_",new_var,".btrap.perwtge_",pop,".base.extra.other.ind1950.no_new_sec.fst"))
+  rm(coef.parallel,estimation.felm,fe,estimation.bootstrap_x_true)
+}
+toc()
+
+```
+
+#### 1. Excluding all new sectors
+##### Base
+```{r}
+cores <- detectCores() -1
+registerDoParallel(cores)
+
+it <- 0
+for (new_var in c("sh_red_tit")) {
+  it <- it + 1
+  # It takes aprox 8 secs for bt<-20
+  bt <- min((1.5*3600)/20*20,5000)
+  pop <- 10000
+  
+  # Selecting dataset of interest
+  DT_res <- DT[perwt_1930 >= pop ]
+  
+  # FE variable has to be treated as a factor
+  DT_res[, `:=` (countynhg_1910 = as.factor(countynhg_1910),occind = as.factor(occind)) ]
+  
+  # Getting the group variables (group variable has to be either a character or a factor)
+  clusters <- as.data.table(table(DT_res$occind))[,c(1)]
+  
+  t1 <- Sys.time()
+  set.seed(123456)
+  foreach (i=1:bt, .combine = "rbind") %dopar% {
+    units <- sample(clusters[[1]], size = nrow(clusters), replace=T)
+    DT_b <- DT_res[as.character(units), on = "occind",allow.cartesian=TRUE]
+    
+    A <- felm(a[[it]][[2]], data=DT_b)
+    # getfe(.) uses the return function from felm to create the vector of fixed effects
+    A_fe <- as.data.table(getfe(A)[c("idx","effect")])
+    setnames(A_fe,c(1,2),c("rn","coef"))
+    A <- as.data.table(A[c("coefficients","cse","se")],keep.rownames=TRUE)
+    setnames(A,c(1,2),c("rn","coef"))
+    A <- rbind(A,A_fe,fill=TRUE)
+  } -> coef.parallel
+  t2 <- Sys.time()
+  t2 - t1 
+  
+  write_fst(coef.parallel, paste0(main_directory,"R - Processing data/output/Rdata/coef_bootstrapset_1930_method_",new_var,".btrap.perwtge_",pop,".base.all.fst"))
+  
+  # Creating "TRUE" estimations (without the standard errors for the county FE) and adding to the bootstrap ones
+  estimation.felm <-  felm(a[[it]][[2]], data=DT_res)
+  fe <- as.data.table(getfe(estimation.felm)[c("idx","effect")])
+  setnames(fe,c(1,2),c("rn","coef"))
+  obs <- data.table(rn="obs",coef=estimation.felm$N)
+  estimation.felm <- as.data.table(estimation.felm[c("coefficients","cse","se")],keep.rownames=TRUE)
+  setnames(estimation.felm,c(1,2),c("rn","coef"))
+  estimation.felm<- 
+    rbind(
+      estimation.felm,
+      fe,
+      obs,
+      fill=TRUE)
+  
+  estimation.bootstrap_x_true <- 
+    merge(
+      coef.parallel[,.(coef.b=mean(coef),se.b=sd(coef,na.rm=TRUE),cse.mean=mean(cse,na.rm=TRUE),se.mean=mean(se,na.rm=TRUE)),by="rn"],
+      estimation.felm,by="rn",all=TRUE
+    )
+  
+  write_fst(estimation.bootstrap_x_true, paste0(main_directory,"R - Processing data/output/Rdata/coef_final_1930_method_",new_var,".btrap.perwtge_",pop,".base.all.fst"))
+  rm(coef.parallel,estimation.felm,fe,estimation.bootstrap_x_true)
+}
+
+```
+
+##### Base individual + extra_individual
+```{r}
+cores <- detectCores() -1
+registerDoParallel(cores)
+
+it <- 0
+for (new_var in c("sh_red_tit")) {
+  it <- it + 1
+  # It takes aprox 10.78 secs for bt<-20
+  bt <- min((2*3600)/63*20,5000)
+  pop <- 10000
+  
+  # Selecting dataset of interest
+  DT_res <- DT[perwt_1930 >= pop ]
+  
+  # FE variable has to be treated as a factor
+  DT_res[, `:=` (countynhg_1910 = as.factor(countynhg_1910),occind = as.factor(occind)) ]
+  
+  # Getting the group variables (group variable has to be either a character or a factor)
+  clusters <- as.data.table(table(DT_res$occind))[,c(1)]
+  
+  t1 <- Sys.time()
+  set.seed(123456)
+  foreach (i=1:bt, .combine = "rbind") %dopar% {
+    units <- sample(clusters[[1]], size = nrow(clusters), replace=T)
+    DT_b <- DT_res[as.character(units), on = "occind",allow.cartesian=TRUE]
+    
+    A <- felm(a[[it]][[3]], data=DT_b)
+    # getfe(.) uses the return function from felm to create the vector of fixed effects
+    A_fe <- as.data.table(getfe(A)[c("idx","effect")])
+    setnames(A_fe,c(1,2),c("rn","coef"))
+    A <- as.data.table(A[c("coefficients","cse","se")],keep.rownames=TRUE)
+    setnames(A,c(1,2),c("rn","coef"))
+    A <- rbind(A,A_fe,fill=TRUE)
+  } -> coef.parallel
+  t2 <- Sys.time()
+  t2 - t1 
+  
+  write_fst(coef.parallel, paste0(main_directory,"R - Processing data/output/Rdata/coef_bootstrapset_1930_method_",new_var,".btrap.perwtge_",pop,".base.extra.all.fst"))
+  
+  # Creating "TRUE" estimations (without the standard errors for the county FE) and adding to the bootstrap ones
+  estimation.felm <-  felm(a[[it]][[3]], data=DT_res)
+  fe <- as.data.table(getfe(estimation.felm)[c("idx","effect")])
+  setnames(fe,c(1,2),c("rn","coef"))
+  obs <- data.table(rn="obs",coef=estimation.felm$N)
+  estimation.felm <- as.data.table(estimation.felm[c("coefficients","cse","se")],keep.rownames=TRUE)
+  setnames(estimation.felm,c(1,2),c("rn","coef"))
+  estimation.felm<- 
+    rbind(
+      estimation.felm,
+      fe,
+      obs,
+      fill=TRUE)
+  
+  estimation.bootstrap_x_true <- 
+    merge(
+      coef.parallel[,.(coef.b=mean(coef),se.b=sd(coef,na.rm=TRUE),cse.mean=mean(cse,na.rm=TRUE),se.mean=mean(se,na.rm=TRUE)),by="rn"],
+      estimation.felm,by="rn",all=TRUE
+    )
+  
+  write_fst(estimation.bootstrap_x_true, paste0(main_directory,"R - Processing data/output/Rdata/coef_final_1930_method_",new_var,".btrap.perwtge_",pop,".base.extra.all.fst"))
+  rm(coef.parallel,estimation.felm,fe,estimation.bootstrap_x_true)
+}
+```
+
+##### Base individual + extra_individual + other_individual
+```{r}
+tic()
+cores <- detectCores() -1
+registerDoParallel(cores)
+it <- 0
+for (new_var in c("sh_red_tit")) {
+  it <- it + 1
+  # It takes aprox 98 secs for bt<-20
+  bt <- min((2.5*3600)/120*20,5000)
+  pop <- 10000
+  
+  # Selecting dataset of interest
+  DT_res <- DT[perwt_1930 >= pop ]
+  
+  # FE variable has to be treated as a factor
+  DT_res[, `:=` (countynhg_1910 = as.factor(countynhg_1910),occind = as.factor(occind)) ]
+  
+  # Getting the group variables (group variable has to be either a character or a factor)
+  clusters <- as.data.table(table(DT_res$occind))[,c(1)]
+  
+  t1 <- Sys.time()
+  set.seed(123456)
+  foreach (i=1:bt, .combine = "rbind") %dopar% {
+    units <- sample(clusters[[1]], size = nrow(clusters), replace=T)
+    DT_b <- DT_res[as.character(units), on = "occind",allow.cartesian=TRUE]
+    
+    A <- felm(a[[it]][[4]], data=DT_b)
+    # getfe(.) uses the return function from felm to create the vector of fixed effects
+    A_fe <- as.data.table(getfe(A)[c("idx","effect")])
+    setnames(A_fe,c(1,2),c("rn","coef"))
+    A <- as.data.table(A[c("coefficients","cse","se")],keep.rownames=TRUE)
+    setnames(A,c(1,2),c("rn","coef"))
+    A <- rbind(A,A_fe,fill=TRUE)
+  } -> coef.parallel
+  t2 <- Sys.time()
+  t2 - t1 
+  
+  write_fst(coef.parallel, paste0(main_directory,"R - Processing data/output/Rdata/coef_bootstrapset_1930_method_",new_var,".btrap.perwtge_",pop,".base.extra.other.all.fst"))
+  
+  # Creating "TRUE" estimations (without the standard errors for the county FE) and adding to the bootstrap ones
+  estimation.felm <-  felm(a[[it]][[4]], data=DT_res)
+  fe <- as.data.table(getfe(estimation.felm)[c("idx","effect")])
+  setnames(fe,c(1,2),c("rn","coef"))
+  obs <- data.table(rn="obs",coef=estimation.felm$N)
+  estimation.felm <- as.data.table(estimation.felm[c("coefficients","cse","se")],keep.rownames=TRUE)
+  setnames(estimation.felm,c(1,2),c("rn","coef"))
+  estimation.felm<- 
+    rbind(
+      estimation.felm,
+      fe,
+      obs,
+      fill=TRUE)
+  
+  estimation.bootstrap_x_true <- 
+    merge(
+      coef.parallel[,.(coef.b=mean(coef),se.b=sd(coef,na.rm=TRUE),cse.mean=mean(cse,na.rm=TRUE),se.mean=mean(se,na.rm=TRUE)),by="rn"],
+      estimation.felm,by="rn",all=TRUE
+    )
+  
+  write_fst(estimation.bootstrap_x_true, paste0(main_directory,"R - Processing data/output/Rdata/coef_final_1930_method_",new_var,".btrap.perwtge_",pop,".base.extra.other.all.fst"))
+  rm(coef.parallel,estimation.felm,fe,estimation.bootstrap_x_true)
+}
+toc()
+```
+
+##### Base individual + extra_individual + other_individual + lit  
+```{r}
+tic()
+cores <- detectCores() -1
+registerDoParallel(cores)
+it <- 0
+for (new_var in c("sh_red_tit")) {
+  it <- it +1
+  # It takes aprox 14.5 secs for bt<-20
+  bt <- min((3*3600)/100*20,5000)
+  pop <- 10000
+  
+  # Selecting dataset of interest
+  DT_res <- DT[perwt_1930 >= pop ]
+  
+  # FE variable has to be treated as a factor
+  DT_res[, `:=` (countynhg_1910 = as.factor(countynhg_1910),occind = as.factor(occind)) ]
+  
+  # Getting the group variables (group variable has to be either a character or a factor)
+  clusters <- as.data.table(table(DT_res$occind))[,c(1)]
+  
+  t1 <- Sys.time()
+  set.seed(123456)
+  foreach (i=1:bt, .combine = "rbind") %dopar% {
+    units <- sample(clusters[[1]], size = nrow(clusters), replace=T)
+    DT_b <- DT_res[as.character(units), on = "occind",allow.cartesian=TRUE]
+    
+    A <- felm(a[[it]][[5]], data=DT_b)
+    # getfe(.) uses the return function from felm to create the vector of fixed effects
+    A_fe <- as.data.table(getfe(A)[c("idx","effect")])
+    setnames(A_fe,c(1,2),c("rn","coef"))
+    A <- as.data.table(A[c("coefficients","cse","se")],keep.rownames=TRUE)
+    setnames(A,c(1,2),c("rn","coef"))
+    A <- rbind(A,A_fe,fill=TRUE)
+  } -> coef.parallel
+  t2 <- Sys.time()
+  t2 - t1 
+  
+  write_fst(coef.parallel, paste0(main_directory,"R - Processing data/output/Rdata/coef_bootstrapset_1930_method_",new_var,".btrap.perwtge_",pop,".base.extra.other.educ.all.fst"))
+  
+  # Creating "TRUE" estimations (without the standard errors for the county FE) and adding to the bootstrap ones
+  estimation.felm <-  felm(a[[it]][[5]], data=DT_res)
+  fe <- as.data.table(getfe(estimation.felm)[c("idx","effect")])
+  setnames(fe,c(1,2),c("rn","coef"))
+  obs <- data.table(rn="obs",coef=estimation.felm$N)
+  estimation.felm <- as.data.table(estimation.felm[c("coefficients","cse","se")],keep.rownames=TRUE)
+  setnames(estimation.felm,c(1,2),c("rn","coef"))
+  estimation.felm<- 
+    rbind(
+      estimation.felm,
+      fe,
+      obs,
+      fill=TRUE)
+  
+  estimation.bootstrap_x_true <- 
+    merge(
+      coef.parallel[,.(coef.b=mean(coef),se.b=sd(coef,na.rm=TRUE),cse.mean=mean(cse,na.rm=TRUE),se.mean=mean(se,na.rm=TRUE)),by="rn"],
+      estimation.felm,by="rn",all=TRUE
+    )
+  
+  write_fst(estimation.bootstrap_x_true, paste0(main_directory,"R - Processing data/output/Rdata/coef_final_1930_method_",new_var,".btrap.perwtge_",pop,".base.extra.other.educ.all.fst"))
+  rm(coef.parallel,estimation.felm,fe,estimation.bootstrap_x_true)
+}
+toc()
+```
+
+##### Base individual + extra_individual + other_individual + lit + ind1950_main
+*** TO-DO: Redo this one!!!! I used the same name for the next one
+```{r}
+tic()
+cores <- detectCores() -1
+registerDoParallel(cores)
+it <- 0
+for (new_var in c("sh_red_tit")) {
+  it <- it +1
+  # It takes aprox 14.5 secs for bt<-20
+  bt <- min((3*3600)/140*20,5000)
+  pop <- 10000
+  
+  # Selecting dataset of interest
+  DT_res <- DT[perwt_1930 >= pop ]
+  
+  # FE variable has to be treated as a factor
+  DT_res[, `:=` (countynhg_1910 = as.factor(countynhg_1910),occind = as.factor(occind)) ]
+  
+  # Getting the group variables (group variable has to be either a character or a factor)
+  clusters <- as.data.table(table(DT_res$occind))[,c(1)]
+  
+  t1 <- Sys.time()
+  set.seed(123456)
+  foreach (i=1:bt, .combine = "rbind") %dopar% {
+    units <- sample(clusters[[1]], size = nrow(clusters), replace=T)
+    DT_b <- DT_res[as.character(units), on = "occind",allow.cartesian=TRUE]
+    
+    A <- felm(a[[it]][[6]], data=DT_b)
+    # getfe(.) uses the return function from felm to create the vector of fixed effects
+    A_fe <- as.data.table(getfe(A)[c("idx","effect")])
+    setnames(A_fe,c(1,2),c("rn","coef"))
+    A <- as.data.table(A[c("coefficients","cse","se")],keep.rownames=TRUE)
+    setnames(A,c(1,2),c("rn","coef"))
+    A <- rbind(A,A_fe,fill=TRUE)
+  } -> coef.parallel
+  t2 <- Sys.time()
+  t2 - t1 
+  
+  write_fst(coef.parallel, paste0(main_directory,"R - Processing data/output/Rdata/coef_bootstrapset_1930_method_",new_var,".btrap.perwtge_",pop,".base.extra.other.educ.ind1950.all.fst"))
+  
+  # Creating "TRUE" estimations (without the standard errors for the county FE) and adding to the bootstrap ones
+  estimation.felm <-  felm(a[[it]][[6]], data=DT_res)
+  fe <- as.data.table(getfe(estimation.felm)[c("idx","effect")])
+  setnames(fe,c(1,2),c("rn","coef"))
+  obs <- data.table(rn="obs",coef=estimation.felm$N)
+  estimation.felm <- as.data.table(estimation.felm[c("coefficients","cse","se")],keep.rownames=TRUE)
+  setnames(estimation.felm,c(1,2),c("rn","coef"))
+  estimation.felm<- 
+    rbind(
+      estimation.felm,
+      fe,
+      obs,
+      fill=TRUE)
+  
+  estimation.bootstrap_x_true <- 
+    merge(
+      coef.parallel[,.(coef.b=mean(coef),se.b=sd(coef,na.rm=TRUE),cse.mean=mean(cse,na.rm=TRUE),se.mean=mean(se,na.rm=TRUE)),by="rn"],
+      estimation.felm,by="rn",all=TRUE
+    )
+  
+  write_fst(estimation.bootstrap_x_true, paste0(main_directory,"R - Processing data/output/Rdata/coef_final_1930_method_",new_var,".btrap.perwtge_",pop,".base.extra.other.educ.ind1950.all.fst"))
+  rm(coef.parallel,estimation.felm,fe,estimation.bootstrap_x_true)
+}
+toc()
+```
+
+##### Base individual + extra_individual + other_individual + ind1950_main 
+```{r}
+tic()
+cores <- detectCores() -1
+registerDoParallel(cores)
+it <- 0
+for (new_var in c("sh_red_tit")) {
+  it <- it +1
+  # It takes aprox 14.5 secs for bt<-20
+  bt <- min((3*3600)/140*20,5000)
+  pop <- 10000
+  
+  # Selecting dataset of interest
+  DT_res <- DT[perwt_1930 >= pop ]
+  
+  # FE variable has to be treated as a factor
+  DT_res[, `:=` (countynhg_1910 = as.factor(countynhg_1910),occind = as.factor(occind)) ]
+  
+  # Getting the group variables (group variable has to be either a character or a factor)
+  clusters <- as.data.table(table(DT_res$occind))[,c(1)]
+  
+  t1 <- Sys.time()
+  set.seed(123456)
+  foreach (i=1:bt, .combine = "rbind") %dopar% {
+    units <- sample(clusters[[1]], size = nrow(clusters), replace=T)
+    DT_b <- DT_res[as.character(units), on = "occind",allow.cartesian=TRUE]
+    
+    A <- felm(a[[it]][[7]], data=DT_b)
+    # getfe(.) uses the return function from felm to create the vector of fixed effects
+    A_fe <- as.data.table(getfe(A)[c("idx","effect")])
+    setnames(A_fe,c(1,2),c("rn","coef"))
+    A <- as.data.table(A[c("coefficients","cse","se")],keep.rownames=TRUE)
+    setnames(A,c(1,2),c("rn","coef"))
+    A <- rbind(A,A_fe,fill=TRUE)
+  } -> coef.parallel
+  t2 <- Sys.time()
+  t2 - t1 
+  
+  write_fst(coef.parallel, paste0(main_directory,"R - Processing data/output/Rdata/coef_bootstrapset_1930_method_",new_var,".btrap.perwtge_",pop,".base.extra.other.ind1950.all.fst"))
+  
+  # Creating "TRUE" estimations (without the standard errors for the county FE) and adding to the bootstrap ones
+  estimation.felm <-  felm(a[[it]][[7]], data=DT_res)
+  fe <- as.data.table(getfe(estimation.felm)[c("idx","effect")])
+  setnames(fe,c(1,2),c("rn","coef"))
+  obs <- data.table(rn="obs",coef=estimation.felm$N)
+  estimation.felm <- as.data.table(estimation.felm[c("coefficients","cse","se")],keep.rownames=TRUE)
+  setnames(estimation.felm,c(1,2),c("rn","coef"))
+  estimation.felm<- 
+    rbind(
+      estimation.felm,
+      fe,
+      obs,
+      fill=TRUE)
+  
+  estimation.bootstrap_x_true <- 
+    merge(
+      coef.parallel[,.(coef.b=mean(coef),se.b=sd(coef,na.rm=TRUE),cse.mean=mean(cse,na.rm=TRUE),se.mean=mean(se,na.rm=TRUE)),by="rn"],
+      estimation.felm,by="rn",all=TRUE
+    )
+  
+  write_fst(estimation.bootstrap_x_true, paste0(main_directory,"R - Processing data/output/Rdata/coef_final_1930_method_",new_var,".btrap.perwtge_",pop,".base.extra.other.ind1950.all.fst"))
+  rm(coef.parallel,estimation.felm,fe,estimation.bootstrap_x_true)
+}
+toc()
+```
+
+### 1.4.4. First Stage Regressions - Studying the impact of different variables
+#### 1. Excluding all new sectors
+Models:
+ - 2. Base individual
+ - 3. Base individual + extra_individual
+ - 4. Base individual + extra_individual + other_individual
+ - 5. Base individual + extra_individual + other_individual + educ
+ - 6. Base individual + extra_individual + other_individual + educ + ind1950
+ - 7. Base individual + extra_individual + other_individual + ind1950 
+
+```{r}
+# Selecting dataset ----
+pop <- 10000
+
+DT_res <- DT[perwt_1930 >= pop & !(ind1950 %in% c(376,377,466,556,606,667,668,816,856))]
+
+# FE variable has to be treated as a factor
+DT_res[, `:=` (countynhg_1910 = as.factor(countynhg_1910),occind = as.factor(occind)) ]
+
+
+# Running regression ----
+A <-  felm(a[[1]][[2]], data=DT_res)
+fe <- as.data.table(getfe(A)[c("idx","effect")])[,variable:="coef_star"]
+setnames(fe,c(1,2),c("rn","model_2"))
+A <-summary(A)
+
+other <- data.table(rn=c("nobs","r2","adj.r2","fstat_value","fstat_numdf","fstat_dendf","fstat_proj_value","fstat_proj_numdf","fstat_proj_dendf"),variable=rep("zother",9),model_2=c(A$N,format(round(A$r.squared,4),nsmall=2),format(round(A$adj.r.squared,4)),unname(A$F.fstat[1:3]),unname(A$P.fstat[c(5,3,6)])) )
+
+coef_no_new_sec <- f_reg_results( data.table(A$coefficients,keep.rownames=TRUE)[,1:5], arg_round=4 )
+coef_no_new_sec <- melt(coef_no_new_sec,id.vars = c("rn"), measure.vars = c("coef","std","t_value","p_value","coef_star","std_par"),value.name=c(paste0("model_",2)))
+coef_no_new_sec <- rbind(coef_no_new_sec,other)
+coef_no_new_sec <- rbind(coef_no_new_sec,fe)
+
+rm(A,fe,other)
+
+
+for (i in 3:7) {
+  A <-  felm(a[[1]][[i]], data=DT_res)
+  fe <- as.data.table(getfe(A)[c("idx","effect")])[,variable:="coef_star"]
+  setnames(fe,c(1,2),c("rn",paste0("model_",i)))
+  A <- summary(A)
+  
+  other <- data.table(rn=c("nobs","r2","adj.r2","fstat_value","fstat_numdf","fstat_dendf","fstat_proj_value","fstat_proj_numdf","fstat_proj_dendf"),variable=rep("zother",9),model_1=c(A$N,format(round(A$r.squared,4),nsmall=2),format(round(A$adj.r.squared,4)),unname(A$F.fstat[1:3]),unname(A$P.fstat[c(5,3,6)])) )
+  setnames(other,c(3),c(paste0("model_",i)))
+  
+  t <- f_reg_results( data.table(A$coefficients,keep.rownames=TRUE)[,1:5], arg_round=4 )
+  t <- melt(t,id.vars = c("rn"), measure.vars = c("coef","std","t_value","p_value","coef_star","std_par"),value.name=c(paste0("model_",i)))
+  t <- rbind(t,other)
+  t <- rbind(t,fe)
+  coef_no_new_sec <- merge(coef_no_new_sec,t,by=c("rn","variable"),all=TRUE)
+  
+  rm(A,fe,other,t)
+  
+}
+coef_no_new_sec <- as.data.table(coef_no_new_sec)
+
+# Organizing regression results ----
+names_vector <- unique(
+                  coef_no_new_sec$rn
+                )
+## Order
+Order <- list(
+  c(grep("^male",names_vector,value=TRUE)),
+  c(grep("^race",names_vector,value=TRUE)),
+  c(grep("^age_",names_vector,value=TRUE)),
+  c(grep("^urban",names_vector,value=TRUE)),
+  c(grep("^wwages",names_vector,value=TRUE)),
+  c(grep("^mig_us",names_vector,value=TRUE)),
+  c(grep("^mig_ab",names_vector,value=TRUE)),
+  c(grep("^famsize",names_vector,value=TRUE)),
+  c(grep("^owner",names_vector,value=TRUE)),
+  c(grep("^marst_2",names_vector,value=TRUE)),
+  c(grep("^marst_3",names_vector,value=TRUE)),
+  c(grep("^ind1950_main",names_vector,value=TRUE)),
+  c("nobs"),c("r2"),c("adj.r2"),c("fstat_value"),c("fstat_proj_value")
+)
+        
+## Simplified vectors
+coef_no_new_sec <- f_order_reg(coef_no_new_sec[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% names_vector],Order=Order,order_var=rn)
+
+# Exporting regression results ----
+write_fst(coef_no_new_sec, paste0(main_directory,"R - Processing data/output/RData/First_Stage_Summary_Reg_1930_no_new_sec.fst"))
+
+wrapper_Excel(
+          list(coef_no_new_sec),
+          list("sh_red_tit"),
+          paste0(main_directory,"R - Processing data/output/Tables/1930/","First_Stage_Summary_Reg_1930_no_new_sec.xlsx")
+        )
+```
+
+#### 2. Including all new sectors
+Models:
+ - 2. Base individual
+ - 3. Base individual + extra_individual
+ - 4. Base individual + extra_individual + other_individual
+ - 5. Base individual + extra_individual + other_individual + educ
+ - 6. Base individual + extra_individual + other_individual + educ + ind1950
+ - 7. Base individual + extra_individual + other_individual + ind1950 
+
+```{r}
+# Selecting dataset ----
+pop <- 10000
+
+DT_res <- DT[perwt_1930 >= pop]
+
+# FE variable has to be treated as a factor
+DT_res[, `:=` (countynhg_1910 = as.factor(countynhg_1910),occind = as.factor(occind)) ]
+
+
+# Running regression ----
+A <-  felm(a[[1]][[2]], data=DT_res)
+fe <- as.data.table(getfe(A)[c("idx","effect")])[,variable:="coef_star"]
+setnames(fe,c(1,2),c("rn","model_2"))
+A <-summary(A)
+
+other <- data.table(rn=c("nobs","r2","adj.r2","fstat_value","fstat_numdf","fstat_dendf","fstat_proj_value","fstat_proj_numdf","fstat_proj_dendf"),variable=rep("zother",9),model_2=c(A$N,format(round(A$r.squared,4),nsmall=2),format(round(A$adj.r.squared,4)),unname(A$F.fstat[1:3]),unname(A$P.fstat[c(5,3,6)])) )
+
+coef_all <- f_reg_results( data.table(A$coefficients,keep.rownames=TRUE)[,1:5], arg_round=4 )
+coef_all <- melt(coef_all,id.vars = c("rn"), measure.vars = c("coef","std","t_value","p_value","coef_star","std_par"),value.name=c(paste0("model_",2)))
+coef_all <- rbind(coef_all,other)
+coef_all <- rbind(coef_all,fe)
+
+rm(A,fe,other)
+
+
+for (i in 3:7) {
+  A <-  felm(a[[1]][[i]], data=DT_res)
+  fe <- as.data.table(getfe(A)[c("idx","effect")])[,variable:="coef_star"]
+  setnames(fe,c(1,2),c("rn",paste0("model_",i)))
+  A <- summary(A)
+  
+  other <- data.table(rn=c("nobs","r2","adj.r2","fstat_value","fstat_numdf","fstat_dendf","fstat_proj_value","fstat_proj_numdf","fstat_proj_dendf"),variable=rep("zother",9),model_1=c(A$N,format(round(A$r.squared,4),nsmall=2),format(round(A$adj.r.squared,4)),unname(A$F.fstat[1:3]),unname(A$P.fstat[c(5,3,6)])) )
+  setnames(other,c(3),c(paste0("model_",i)))
+  
+  t <- f_reg_results( data.table(A$coefficients,keep.rownames=TRUE)[,1:5], arg_round=4 )
+  t <- melt(t,id.vars = c("rn"), measure.vars = c("coef","std","t_value","p_value","coef_star","std_par"),value.name=c(paste0("model_",i)))
+  t <- rbind(t,other)
+  t <- rbind(t,fe)
+  coef_all <- merge(coef_all,t,by=c("rn","variable"),all=TRUE)
+  
+  rm(A,fe,other,t)
+  
+}
+coef_all <- as.data.table(coef_all)
+
+# Organizing regression results ----
+names_vector <- unique(
+                  coef_all$rn
+                )
+## Order
+Order <- list(
+  c(grep("^male",names_vector,value=TRUE)),
+  c(grep("^race",names_vector,value=TRUE)),
+  c(grep("^age_",names_vector,value=TRUE)),
+  c(grep("^urban",names_vector,value=TRUE)),
+  c(grep("^wwages",names_vector,value=TRUE)),
+  c(grep("^mig_us",names_vector,value=TRUE)),
+  c(grep("^mig_ab",names_vector,value=TRUE)),
+  c(grep("^famsize",names_vector,value=TRUE)),
+  c(grep("^owner",names_vector,value=TRUE)),
+  c(grep("^marst_2",names_vector,value=TRUE)),
+  c(grep("^marst_3",names_vector,value=TRUE)),
+  c(grep("^lit",names_vector,value=TRUE)),
+  c(grep("^imm_parents",names_vector,value=TRUE)),
+  c(grep("^ind1950_main",names_vector,value=TRUE)),
+  c("nobs"),c("r2"),c("adj.r2"),c("fstat_value"),c("fstat_proj_value")
+)
+        
+## Simplified vectors
+coef_all <- f_order_reg(coef_all[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% names_vector],Order=Order,order_var=rn)
+
+# Exporting regression results ----
+write_fst(coef_all, paste0(main_directory,"R - Processing data/output/RData/First_Stage_Summary_Reg_1930_all.fst"))
+
+wrapper_Excel(
+          list(coef_all),
+          list("sh_red_tit"),
+          paste0(main_directory,"R - Processing data/output/Tables/1930/","First_Stage_Summary_Reg_1930_all.xlsx")
+        )
+rm(coef_no_new_sec,coef_all)
+```
+

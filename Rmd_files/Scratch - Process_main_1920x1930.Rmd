@@ -1,0 +1,1018 @@
+---
+title: "Scratch-Process_main_1920x1930"
+output: html_document
+---
+
+## Scratch codes for Rmd file "Process_main_1920x1930"
+
+In this R Markdown document I will have code lines that I am testing
+
+## Expanding a set of titles that may contain the word "or" that have parentheses
+
+## Only titles (with parentheses)
+# Data
+```{r}
+data1 = data.table(
+  ID = as.character(c("aa","aa (bb)","(aa) bb","aa or bb","aa or bb (cc)","aa or bb (cc)","(cc) aa or bb","aa (bb or cc)","aa cc (bb)","aa (dd)","(dd) cc","aa dd")),
+  a = c(0,1,0,1,0,1,1,1,0,0,0,0)
+)
+# Keep only unique variables (without any changes)
+data1 <- data1[,sort:=sapply(sapply(strsplit(ID," "),sort),function(x) paste(x,collapse=' '))][,a:=max(a),by="sort"][,.SD[1],by="sort",.SDcols=c("ID","a")]
+
+
+```
+
+# Some functions needed
+```{r}
+# Data used to thest f_split_or
+# data1 = data.table(
+# ID = as.character(c("aa or","cc aa or bb","aa or bb cc","cc aa or bb dd","aa or bb or cc","aa or bb cc or dd","cc aa or bb cc or dd hh","aa or bb cc or dd","a or b     or c or d","a or b c or d or e","a or b c or d e or f","A a or b c or d e or f","A a or b c or d e or f B"))
+# )
+# a <- f_split_or(data1,ID)
+
+f_split_or <- function(y,id,obs_var) {
+  # var: variable that has the strings with the or options that we want to split
+  # Note: We only consider cases that have at most 3 or. Any other cases will just be treated as a unique case, e.g. only one value associated to the variable
+  
+  if (missing(obs_var)) {
+    stop("You need to provide an observation variable")
+  } 
+  X <- copy(y)
+  id_ch <- deparse(substitute(id))
+  setnames(X, c(id_ch),c("id")) 
+  obs_ch <- deparse(substitute(obs_var))
+  setnames(X, c(obs_ch),c("obs")) 
+  
+  X <- X[,rep_or:=str_count(id, pattern=" or ")]
+
+  if ( nrow(X[rep_or==0]) > 0 | nrow(X[rep_or>=4]) >  0)     X[rep_or==0 | rep_or>=4,var1:=id]
+  if (nrow(X[rep_or==1]) > 0) {
+    X[rep_or==1,var1:=gsub("([^ ]+) or ([^ ]+)","\\1",id)][rep_or==1,var2:=gsub("([^ ]+) or ([^ ]+)","\\2",id)]
+    X[rep_or==1,var3:=gsub("(.+) or (.+)","\\1",id)][rep_or==1,var4:=gsub("(.+) or (.+)","\\2",id)]
+  } 
+  if (nrow(X[rep_or==2]) > 0) {
+    X[rep_or==2,var1:=gsub("([^ ]+) or (.+) or ([^ ]+)","\\1",id)][rep_or==2,var2:=gsub("([^ ]+) or (.+) or ([^ ]+)","\\2",id)][rep_or==2,var3:=gsub("([^ ]+) or (.+) or ([^ ]+)","\\3",id)]
+    X[rep_or==2,var4:=gsub("(.+) or (.+) or (.+)","\\1",id)][rep_or==2,var5:=gsub("(.+) or (.+) or (.+)","\\2",id)][rep_or==2,var6:=gsub("(.+) or (.+) or (.+)","\\3",id)]
+  }
+  if (nrow(X[rep_or==3]) > 0) {
+    X[rep_or==3,var1:=gsub("([^ ]+) or (.+) or (.+) or ([^ ]+)","\\1",id)][rep_or==3,var2:=gsub("([^ ]+) or (.+) or (.+) or ([^ ]+)","\\2",id)][rep_or==3,var3:=gsub("([^ ]+) or (.+) or (.+) or ([^ ]+)","\\3",id)][rep_or==3,var4:=gsub("([^ ]+) or (.+) or (.+) or ([^ ]+)","\\4",id)]
+    X[rep_or==3,var5:=gsub("(.+) or (.+) or (.+) or (.+)","\\1",id)][rep_or==3,var6:=gsub("(.+) or (.+) or (.+) or (.+)","\\2",id)][rep_or==3,var7:=gsub("(.+) or (.+) or (.+) or (.+)","\\3",id)][rep_or==3,var8:=gsub("(.+) or (.+) or (.+) or (.+)","\\4",id)]
+  }
+  
+  X <- as.data.table( melt(X[,!c("rep_or")],id.vars=c("id","obs"), measure.vars = colnames(X)[grepl( "var" , names(X) )],variable.name="t",value.name="var",na.rm=TRUE) )
+  X <- X[, .SD[1], by = c("obs","id","var")][,t:=NULL]
+  
+  setnames(X, c("obs","id","var"), c(obs_ch,id_ch,paste0(deparse(substitute(id)),"_l"))  )
+  
+
+  return(X)
+}
+
+
+paste3 <- function(x1,x2,s=" ") {
+  # Problems if we have a separator different than " "
+  x1 <- unlist(lapply(x1,function(x) {x[is.na(x)] <- ""; x}))
+  x2 <- unlist(lapply(x2,function(x) {x[is.na(x)] <- ""; x}))
+  t=str_squish(paste(x1,x2,sep=s))
+  return(t)
+}
+
+```
+
+# Look for repeated observations taking into account the existence of parentheses and titles with "or". Expand the list of observations that are not new.
+# Function to reduce the set of observations and expand the set of observations that could be matched
+
+```{r}
+# Function To reduce the set of observations
+
+f_try <- function(obs_f,tit_f,ind_f,tit_par_f,ind_par_f,match_f,flag_return=0){
+  # 0. Some flag variables
+  flag_tit_par <- flag_ind <- flag_ind_par <- 0
+  # 1. Changing the name of the variables for further calculations and creating parentheses variables if they don't exist
+  # The function has to have ind and tit
+  if (missing(obs_f)) { stop("You need to provide and obs_v variable")
+  } else if (missing(tit_f)) { stop("You need to provide a tit variable")
+  } else if (missing(ind_f)) { stop("You need to provide an ind variable, even if the industries are all empty")
+  }
+  
+  # Make sure obs variable is unique
+  
+  X_f <- data.table(obs=obs_f,tit=tit_f,ind=ind_f)
+  y_f <- X_f[,c("obs")][,initial_obs:=1:.N]
+  # Make sure obs variable is unique
+  if (  nrow(unique(y_f,by="obs")) != nrow(y_f)   ) {
+    stop("At least one number in the obs vector is repeated")
+  }
+  X_f <- X_f[,l:=0][ind=="",ind:=NA]
+   
+   # Title has to be different than NA for all observations  
+  if (nrow(X_f[is.na(tit) | tit==""]) > 0) {
+    warining("At least one observations has no title. Observation(s) will be eliminated")
+    X_f <- X_f[!(is.na(tit) | tit=="")]
+  }
+   
+  # Change flags if some of the variables are missing or are all NA or ""
+  if ( !missing(tit_par_f) ) {
+     X_f[,tit_par:=tit_par_f]
+     X_f <- X_f[tit_par=="",tit_par:=NA][,l:= l + unlist(lapply(tit, str_length))][!is.na(tit_par),l:= l + 2 + unlist(lapply(tit_par, str_length))]
+     if (nrow(X_f[!(is.na(tit_par) | tit_par=="")]) == 0) {flag_tit_par <-1}
+  } else {
+    X_f <- X_f[,l:= l + unlist(lapply(tit, str_length))]
+    if (nrow(X_f[grepl("\\([^()]+\\)",tit)])>0) {
+      X_f[grepl("\\([^()]+\\)",tit),tit_par:=gsub("\\(|\\)","",str_extract(tit,"\\([^()]+\\)"))][,tit := str_squish(  gsub("\\([^()]+\\)","",tit))]
+    } else { 
+      flag_tit_par <-1 
+      }
+  } 
+  
+  if (nrow(X_f[!(is.na(ind) | ind=="")]) == 0) { flag_ind <- 1}
+  
+  if (!missing(ind_par_f)) {
+    X_f[,ind_par:=ind_par_f]
+    X_f <- X_f[ind_par=="",ind_par:=NA][!is.na(ind),l:= l + unlist(lapply(ind, str_length))][!is.na(ind_par),l:= l + 2 + unlist(lapply(ind_par, str_length))]
+    if (nrow(X_f[!(is.na(ind_par) | ind_par=="")]) == 0) {flag_ind_par <- 1}
+  } else {
+    X_f <- X_f[!is.na(ind),l:= l + unlist(lapply(ind, str_length))]
+    if (nrow(X_f[grepl("\\([^()]+\\)",ind)])>0) {
+      X_f[grepl("\\([^()]+\\)",ind),ind_par:=gsub("\\(|\\)","",str_extract(ind,"\\([^()]+\\)"))][,ind := str_squish(  gsub("\\([^()]+\\)","",ind))]
+      X_f <- X_f[ind_par=="",ind_par:=NA][ind=="",ind:=NA]
+    } else { flag_ind_par <-1 }
+  }
+  
+  if (!missing(match_f)) {
+    X_f[,match:=match_f]
+  } else {
+    print("No match variable provided. A match vaariable with value of 0 is created")
+    X_f <- X_f[,match:=0]
+  }
+
+  # 2. Keeping only unique variables and
+  # 3. Expand observations (title and industry part, with/without parentheses)
+   
+  X_f <- X_f[,`:=`(  sort_tit=      sapply(lapply(strsplit(tit," "),sort),function(x) paste(x,collapse=' '))
+                   )]
+  # In the next block we consider all the different cases
+  if ( flag_ind ==1 & flag_ind_par==1 & flag_tit_par==1 ) {                     
+    #1.  ######### - tit - ##########
+    # Drop duplicated observations
+    X_f <- X_f[,match:=max(match),by=c("sort_tit")][,.SD[1],by=c("sort_tit"),.SDcols=c("obs","match","tit","l")][,c("sort_tit"):=NULL]
+    
+    ex_tit <- f_split_or(X_f[,c("obs","tit")],tit,obs)
+    ex_tit_f <- ex_tit[,final_t:=sapply(lapply(strsplit(tit_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_t")][,c("obs","final_t")]
+    
+  } else if (flag_ind ==1 & flag_ind_par==0 & flag_tit_par==0) {                
+    #2.  ######### - tit, tit_par, ind_par - ##########
+    X_f <- X_f[,`:=`(  sort_tit_par=  sapply(lapply(strsplit(tit_par," "),sort),function(x) paste(x,collapse=' ')),
+                   sort_ind_par=  sapply(lapply(strsplit(ind_par," "),sort),function(x) paste(x,collapse=' '))
+            )]
+    
+    X_f <- X_f[,match:=max(match),by=c("sort_tit","sort_tit_par","sort_ind_par")][,.SD[1],by=c("sort_tit","sort_tit_par","sort_ind_par"),.SDcols=c("obs","match","tit","tit_par","ind_par","l")][,c("sort_tit","sort_tit_par","sort_ind_par"):=NULL]
+    
+    # Expanding title
+    # Expand title
+    ex_tit <- f_split_or(X_f[,c("obs","tit")],tit,obs)
+    # Expand title par 
+    ex_tit_par <- f_split_or(X_f[,c("obs","tit_par")],tit_par,obs)
+
+    ex_tit_f <- rbind(ex_tit[,c("obs","tit_l")],merge(ex_tit[,c("obs","tit_l")],ex_tit_par[,c("obs","tit_par_l")],by="obs",all=TRUE,allow.cartesian=TRUE),fill=TRUE)
+    ex_tit_f <- ex_tit_f[!is.na(tit_par_l),final_t:=paste3(tit_l,tit_par_l)][is.na(tit_par_l),final_t:=tit_l][,final_t:=sapply(lapply(strsplit(final_t," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_t")][,c("obs","final_t")]
+    
+    # Expanding industry par
+    ex_ind_par <- f_split_or(X_f[,c("obs","ind_par")],ind_par,obs)
+    ex_ind_f <- ex_ind_par[,final_i:=sapply(lapply(strsplit(ind_par_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_i")][,c("obs","final_i")]
+    
+  } else if (flag_ind ==1 & flag_ind_par==1 & flag_tit_par==0) {                
+    #2.  ######### - tit, tit_par - ##########
+    X_f <- X_f[,`:=`(  sort_tit_par=  sapply(lapply(strsplit(tit_par," "),sort),function(x) paste(x,collapse=' '))
+            )]
+    
+    X_f <- X_f[,match:=max(match),by=c("sort_tit","sort_tit_par")][,.SD[1],by=c("sort_tit","sort_tit_par"),.SDcols=c("obs","match","tit","tit_par","l")][,c("sort_tit","sort_tit_par"):=NULL]
+    
+    # Expanding title
+    # Expand title
+    ex_tit <- f_split_or(X_f[,c("obs","tit")],tit,obs)
+    # Expand title par 
+    ex_tit_par <- f_split_or(X_f[,c("obs","tit_par")],tit_par,obs)
+
+    ex_tit_f <- rbind(ex_tit[,c("obs","tit_l")],merge(ex_tit[,c("obs","tit_l")],ex_tit_par[,c("obs","tit_par_l")],by="obs",all=TRUE,allow.cartesian=TRUE),fill=TRUE)
+    ex_tit_f <- ex_tit_f[!is.na(tit_par_l),final_t:=paste3(tit_l,tit_par_l)][is.na(tit_par_l),final_t:=tit_l][,final_t:=sapply(lapply(strsplit(final_t," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_t")][,c("obs","final_t")]
+    
+  } else if (flag_ind ==1 & flag_ind_par==0 & flag_tit_par==1) {                
+    #3.  ######### - tit, ind_par - ##########
+    X_f <- X_f[,`:=`(  sort_ind_par=  sapply(lapply(strsplit(ind_par," "),sort),function(x) paste(x,collapse=' '))
+            )]
+    X_f <- X_f[,match:=max(match),by=c("sort_tit","sort_ind_par")][,.SD[1],by=c("sort_tit","sort_ind_par"),.SDcols=c("obs","match","tit","ind_par","l")][,c("sort_tit","sort_ind_par"):=NULL]
+    
+    # Title
+    ex_tit <- f_split_or(X_f[,c("obs","tit")],tit,obs)
+    ex_tit_f <- ex_tit[,final_t:=sapply(lapply(strsplit(tit_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_t")][,c("obs","final_t")]
+    
+    # Industry
+    # Par
+    ex_ind_par <- f_split_or(X_f[,c("obs","ind_par")],ind_par,obs)
+    ex_ind_f <- ex_ind_par[,final_i:=sapply(lapply(strsplit(ind_par_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_i")][,c("obs","final_i")]
+    
+  } else if (flag_ind ==0 & flag_ind_par==1 & flag_tit_par==1) {                
+    #5.  ######### - tit, ind - ##########
+    X_f <- X_f[,`:=`(  sort_ind=  sapply(lapply(strsplit(ind," "),sort),function(x) paste(x,collapse=' '))
+            )]
+    
+    X_f <- X_f[,match:=max(match),by=c("sort_tit","sort_ind")][,.SD[1],by=c("sort_tit","sort_ind"),.SDcols=c("obs","match","tit","ind","l")][,c("sort_tit","sort_ind"):=NULL]
+    
+    # Title
+    ex_tit <- f_split_or(X_f[,c("obs","tit")],tit,obs)
+    ex_tit_f <- ex_tit[,final_t:=sapply(lapply(strsplit(tit_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_t")][,c("obs","final_t")]
+    
+    # Industry
+    ex_ind <- f_split_or(X_f[,c("obs","ind")],ind,obs)
+    ex_ind_f <- ex_ind[,final_i:=sapply(lapply(strsplit(ind_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_i")][,c("obs","final_i")]
+    
+  } else if (flag_ind ==0 & flag_ind_par==0 & flag_tit_par==1) {                
+    #6.  ######### - tit, ind, ind_par - ##########
+    X_f <- X_f[,`:=`(  sort_ind=  sapply(lapply(strsplit(ind," "),sort),function(x) paste(x,collapse=' ')),
+                   sort_ind_par=  sapply(lapply(strsplit(ind_par," "),sort),function(x) paste(x,collapse=' '))
+            )]
+    
+    X_f <- X_f[,match:=max(match),by=c("sort_tit","sort_ind","sort_ind_par")][,.SD[1],by=c("sort_tit","sort_ind","sort_ind_par"),.SDcols=c("obs","match","tit","ind","ind_par","l")][,c("sort_tit","sort_ind","sort_ind_par"):=NULL]
+    
+    # Title
+    ex_tit <- f_split_or(X_f[,c("obs","tit")],tit,obs)
+    ex_tit_f <- ex_tit[,final_t:=sapply(lapply(strsplit(tit_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_t")][,c("obs","final_t")]
+    
+    # Industry
+    ex_ind <- f_split_or(X_f[,c("obs","ind")],ind,obs)
+    #Expand title par 
+    ex_ind_par <- f_split_or(X_f[,c("obs","ind_par")],ind_par,obs)
+    
+    ex_ind_f <- rbind(ex_ind[,c("obs","ind_l")],merge(ex_ind[,c("obs","ind_l")],ex_ind_par[,c("obs","ind_par_l")],by="obs",all=TRUE,allow.cartesian=TRUE),fill=TRUE)
+    ex_ind_f <- ex_ind_f[!is.na(ind_par_l),final_i:=paste3(ind_l,ind_par_l)][is.na(ind_par_l),final_i:=ind_l][,final_i:=sapply(lapply(strsplit(final_i," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_i")][,c("obs","final_i")]
+  
+  } else if (flag_ind ==0 & flag_ind_par==1 & flag_tit_par==0) {                
+    #7.  ######### - tit, tit_par, ind - ##########
+    X_f <- X_f[,`:=`(  sort_tit_par=  sapply(lapply(strsplit(tit_par," "),sort),function(x) paste(x,collapse=' ')),
+                   sort_ind=  sapply(lapply(strsplit(ind," "),sort),function(x) paste(x,collapse=' '))
+            )]
+    
+    X_f <- X_f[,match:=max(match),by=c("sort_tit","sort_tit_par","sort_ind")][,.SD[1],by=c("sort_tit","sort_tit_par","sort_ind"),.SDcols=c("obs","match","tit","tit_par","ind","l")][,c("sort_tit","sort_tit_par","sort_ind"):=NULL]
+    
+    # Expanding title
+    # Expand title
+    ex_tit <- f_split_or(X_f[,c("obs","tit")],tit,obs)
+    # Expand title par 
+    ex_tit_par <- f_split_or(X_f[,c("obs","tit_par")],tit_par,obs)
+
+    ex_tit_f <- rbind(ex_tit[,c("obs","tit_l")],merge(ex_tit[,c("obs","tit_l")],ex_tit_par[,c("obs","tit_par_l")],by="obs",all=TRUE,allow.cartesian=TRUE),fill=TRUE)
+    ex_tit_f <- ex_tit_f[!is.na(tit_par_l),final_t:=paste3(tit_l,tit_par_l)][is.na(tit_par_l),final_t:=tit_l][,final_t:=sapply(lapply(strsplit(final_t," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_t")][,c("obs","final_t")]
+    
+    # Expanding industry par
+    ex_ind <- f_split_or(X_f[,c("obs","ind")],ind,obs)
+    ex_ind_f <- ex_ind[,final_i:=sapply(lapply(strsplit(ind_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_i")][,c("obs","final_i")]
+    
+  }  else if (flag_ind ==0 & flag_ind_par==0 & flag_tit_par==0) {
+    # Reorder title + par and ind + par
+    X_f <- X_f[,`:=`(  sort_tit_par=  sapply(lapply(strsplit(tit_par," "),sort),function(x) paste(x,collapse=' ')),
+                   sort_ind=      sapply(lapply(strsplit(ind," "),sort),function(x) paste(x,collapse=' ')),
+                   sort_ind_par=  sapply(lapply(strsplit(ind_par," "),sort),function(x) paste(x,collapse=' '))
+            )]
+    # Drop duplicated observations
+    X_f <- X_f[,match:=max(match),by=c("sort_tit","sort_tit_par","sort_ind","sort_ind_par")][,.SD[1],by=c("sort_tit","sort_tit_par","sort_ind","sort_ind_par"),.SDcols=c("obs","match","tit","tit_par","ind","ind_par","l")][,c("sort_tit","sort_tit_par","sort_ind","sort_ind_par"):=NULL]
+    
+    # Expanding title
+    # Expand title
+    ex_tit <- f_split_or(X_f[,c("obs","tit")],tit,obs)
+    # Expand title par 
+    ex_tit_par <- f_split_or(X_f[,c("obs","tit_par")],tit_par,obs)
+
+    ex_tit_f <- rbind(ex_tit[,c("obs","tit_l")],merge(ex_tit[,c("obs","tit_l")],ex_tit_par[,c("obs","tit_par_l")],by="obs",all=TRUE,allow.cartesian=TRUE),fill=TRUE)
+    ex_tit_f <- ex_tit_f[!is.na(tit_par_l),final_t:=paste3(tit_l,tit_par_l)][is.na(tit_par_l),final_t:=tit_l][,final_t:=sapply(lapply(strsplit(final_t," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_t")][,c("obs","final_t")]
+    
+    # Industry
+    ex_ind <- f_split_or(X_f[,c("obs","ind")],ind,obs)
+    #Expand title par 
+    ex_ind_par <- f_split_or(X_f[,c("obs","ind_par")],ind_par,obs)
+    #NOte: Make sure to consider the case where the tit_par vector is all NAs
+    ex_ind_f <- rbind(ex_ind[,c("obs","ind_l")],merge(ex_ind[,c("obs","ind_l")],ex_ind_par[,c("obs","ind_par_l")],by="obs",all=TRUE,allow.cartesian=TRUE),fill=TRUE)
+    ex_ind_f <- ex_ind_f[!is.na(ind_par_l),final_i:=paste3(ind_l,ind_par_l)][is.na(ind_par_l),final_i:=ind_l][,final_i:=sapply(lapply(strsplit(final_i," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_i")][,c("obs","final_i")]
+  
+  }
+  
+  # 4. Construct the match variable
+  
+  # A. Using both industry and title
+  if (flag_ind==1 & flag_ind_par==1) {
+    # Update
+    # Merging
+    ex <- merge(ex_tit_f,X_f[,c("obs","match","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)
+    # Assigning and updating match variable
+    ex <- ex[,match := max(match),by=c("final_t")]
+    ex_inv <- copy(ex)[,final:=final_t][,!c("final_t")]
+    ex_f <- ex[,.(match=max(match)),by=c("obs","l")]
+    
+  } else if (flag_ind==0) {
+    # Update
+    # Merging
+    ex <- merge(ex_tit_f,ex_ind_f,by="obs",all=TRUE,allow.cartesian=TRUE)
+    # Assigning and updating match variable
+    ex <- merge(ex,X_f[,c("obs","match","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian = TRUE)
+    ex <- ex[,match := max(match),by=c("final_t","final_i")]
+    ex_inv <- copy(ex)[!is.na(final_i),final:=paste3(final_t,final_i)][is.na(final_i),final:=final_t][,final:=sapply(lapply(strsplit(final," "),sort),function(x) paste(x,collapse=' '))][,match := max(match),by=c("final")][,c("obs","l","match","final")]
+    ex_f <- ex[,.(match=max(match)),by=c("obs","l")]
+    
+  } else if (flag_ind==1 & flag_ind_par==0) {
+    # Merging
+    ex <- rbind(ex_tit_f,
+                merge(ex_tit_f,ex_ind_f,by="obs",all=TRUE,allow.cartesian=TRUE), fill=TRUE
+                )
+
+    # Assigning and updating match variable
+    ex <- merge(ex,X_f[,c("obs","match","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian = TRUE)
+    ex <- ex[,match := max(match),by=c("final_t","final_i")]
+    ex_inv <- copy(ex)[!is.na(final_i),final:=paste3(final_t,final_i)][is.na(final_i),final:=final_t][,final:=sapply(lapply(strsplit(final," "),sort),function(x) paste(x,collapse=' '))][,match := max(match),by=c("final")][,c("obs","l","match","final")]
+    ex_f <- ex[,.(match=max(match)),by=c("obs","l")]
+  }
+  
+  # B. Using only title
+  ex_1 <- merge(ex_tit_f,X_f[,c("obs","match")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)
+  ex_1 <- ex_1[,match := max(match),by=c("final_t")][,.(match=max(match)),by=c("obs")]
+  
+  # C. Using title and industry but looking also at inverted possibilities
+  ex_2 <- ex_inv[,.(match=max(match)),by=c("obs")]
+
+  
+  # 5. Construct the reduced set of cases
+  # A. Convoluted way combining different cases
+ 
+  if ( flag_ind ==1 & flag_ind_par==1 & flag_tit_par==1 ) {
+    ex_tit <- ex_tit[,final_t:=sapply(lapply(strsplit(tit_l," "),sort),function(x) paste(x,collapse=' '))]
+    r <- merge(ex_tit,X_f[,c("obs","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)
+    setorderv(r,c("final_t","l"),c(1,-1) )
+    r <- r[,.SD[1],by=c("final_t"),.SDcols="obs"][,c("obs")]
+    
+  } else if (flag_ind ==1 & flag_ind_par==0 & flag_tit_par==0) {
+    # Shrinking ex_* variables
+    ex_tit <- ex_tit[,final_t:=sapply(lapply(strsplit(tit_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_t"),.SDcols="tit_l"][,c("obs","final_t")]
+    ex_tit_par <- merge(ex_tit,ex_tit_par[,!c("tit_par")],by="obs",all=TRUE,allow.cartesian=TRUE)[!is.na(tit_par_l),final_t:=paste3(final_t,tit_par_l)][,final_t:=sapply(lapply(strsplit(final_t," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_t"),.SDcols="tit_par_l"][,c("obs","final_t")] 
+    
+    ex_ind_par <- ex_ind_par[,final_i:=sapply(lapply(strsplit(ind_par_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_i"),.SDcols="ind_par_l"][,c("obs","final_i")]
+    
+    r_1 <- merge( 
+              merge(ex_tit_par[,c("obs","final_t")],
+                    ex_ind_par[,c("obs","final_i")],
+                    by="obs",all=TRUE,allow.cartesian=TRUE),
+                  X_f[,c("obs","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)[,t:=1]
+    r_2 <- merge(ex_tit_par[,c("obs","final_t")],
+                 X_f[,c("obs","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)[,t:=2]
+    r_3 <- merge( merge(ex_tit[,c("obs","final_t")],
+                        ex_ind_par[,c("obs","final_i")],
+                        by="obs",all=TRUE,allow.cartesian=TRUE),
+                  X_f[,c("obs","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)[,t:=3]
+    r_4 <- merge(ex_tit[,c("obs","final_t")],
+                  X_f[,c("obs","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)[,t:=4]
+    
+    r <- rbind(r_1,r_2,r_3,r_4,fill=TRUE)
+    setorderv(r,c("t","final_t","final_i","l"),c(1,1,1,-1) )
+    # 1. Keep only one observation (longest one - reason for setorderv ..(-1)) for each c("t","final_t","final_i") combination
+    # 2. Keep only 1 observation per c("obs","t") (one observation might be associated with multiple "final_t","final_i")
+    # 3. Add up number of times an "obs" appear (using n). Max number of appearances is equal to max number of t
+    r <- r[,.SD[1],by=c("t","final_t","final_i"),.SDcols=c("obs")][,n:=1][,.SD[1],by=c("obs","t"),.SDcols="n"][,.(n=sum(n)),by="obs"]
+    rm(r_1,r_2,r_3,r_4)
+    r <- r[n==4][,c("obs")]
+    
+  } else if (flag_ind ==1 & flag_ind_par==1 & flag_tit_par==0) { 
+    # Shrinking ex_* variables
+    ex_tit <- ex_tit[,final_t:=sapply(lapply(strsplit(tit_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_t"),.SDcols="tit_l"][,c("obs","final_t")]
+    ex_tit_par <- merge(ex_tit,ex_tit_par[,!c("tit_par")],by="obs",all=TRUE,allow.cartesian=TRUE)[!is.na(tit_par_l),final_t:=paste3(final_t,tit_par_l)][,final_t:=sapply(lapply(strsplit(final_t," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_t"),.SDcols="tit_par_l"][,c("obs","final_t")] 
+    
+    r <- rbind(
+              merge(ex_tit,X_f[,c("obs","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)[,t:=1],
+              merge(ex_tit_par,X_f[,c("obs","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)[,t:=2], fill=TRUE)
+    setorderv(r_a,c("t","final_t","l"),c(1,1,-1) )
+    r <- r[,.SD[1],by=c("t","final_t"),.SDcols=c("obs")][,n:=1][,.SD[1],by=c("obs","t"),.SDcols="n"][,.(n=sum(n)),by="obs"]
+    r <- r[n==2][,c("obs")]
+  
+  } else if (flag_ind ==1 & flag_ind_par==0 & flag_tit_par==1) {
+    # Shrinking ex_* variables
+    ex_tit <- ex_tit[,final_t:=sapply(lapply(strsplit(tit_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_t"),.SDcols="tit_l"][,c("obs","final_t")]
+    
+    ex_ind_par <- ex_ind_par[,final_i:=sapply(lapply(strsplit(ind_par_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_i"),.SDcols="ind_par_l"][,c("obs","final_i")]
+    
+    
+    r_1 <- merge( 
+              merge(ex_tit[,c("obs","final_t")],
+                    ex_ind_par[,c("obs","final_i")],
+                    by="obs",all=TRUE,allow.cartesian=TRUE),
+                  X_f[,c("obs","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)[,t:=1]
+    r_2 <- merge(ex_tit[,c("obs","final_t")],
+                 X_f[,c("obs","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)[,t:=2]
+    
+    r <- rbind(r_1,r_2,fill=TRUE)
+    setorderv(r,c("t","final_t","final_i","l"),c(1,1,1,-1) )
+    r <- r[,.SD[1],by=c("t","final_t","final_i"),.SDcols=c("obs")][,n:=1][,.SD[1],by=c("obs","t"),.SDcols="n"][,.(n=sum(n)),by="obs"]
+    rm(r_1,r_2)
+    r <- r[n==2][,c("obs")]
+    
+  } else if (flag_ind ==0 & flag_ind_par==1 & flag_tit_par==1) {
+    # Shrinking ex_* variables
+    ex_tit <- ex_tit[,final_t:=sapply(lapply(strsplit(tit_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_t"),.SDcols="tit_l"][,c("obs","final_t")]
+    
+    ex_ind <- ex_ind[,final_i:=sapply(lapply(strsplit(ind_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_i"),.SDcols="ind_l"][,c("obs","final_i")]
+    
+    r <- merge(merge(ex_tit,ex_ind,by="obs",all=TRUE,allow.cartesian=TRUE),
+               X_f[,c("obs","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)
+    
+    setorderv(r, c("final_t","final_i","l") , c(1,1,-1) )
+    r <- r[,.SD[1],by=c("final_t","final_i"),.SDcols=c("obs")][,c("obs")]
+    
+  } else if (flag_ind ==0 & flag_ind_par==0 & flag_tit_par==1) {
+    # Shrinking ex_* variables
+    ex_tit <- ex_tit[,final_t:=sapply(lapply(strsplit(tit_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_t"),.SDcols="tit_l"][,c("obs","final_t")]
+    
+    ex_ind <- ex_ind[,final_i:=sapply(lapply(strsplit(ind_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_i"),.SDcols="ind_l"][,c("obs","final_i")]
+    ex_ind_par <- merge(ex_ind,ex_ind_par[,!c("ind_par")],by="obs",all=TRUE,allow.cartesian=TRUE)[!is.na(ind_par_l),final_i:=paste3(final_i,ind_par_l)][,final_i:=sapply(lapply(strsplit(final_i," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_i"),.SDcols="ind_par_l"][,c("obs","final_i")] 
+    
+    r_1 <- merge( 
+              merge(ex_tit[,c("obs","final_t")],
+                    ex_ind_par[,c("obs","final_i")],
+                    by="obs",all=TRUE,allow.cartesian=TRUE),
+                  X_f[,c("obs","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)[,t:=1]
+    r_2 <- merge( 
+              merge(ex_tit[,c("obs","final_t")],
+                    ex_ind[,c("obs","final_i")],
+                    by="obs",all=TRUE,allow.cartesian=TRUE),
+                  X_f[,c("obs","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)[,t:=2]
+    
+    r <- rbind(r_1,r_2,fill=TRUE)
+    setorderv(r,c("t","final_t","final_i","l"),c(1,1,1,-1) )
+    r <- r[,.SD[1],by=c("t","final_t","final_i"),.SDcols=c("obs")][,n:=1][,.SD[1],by=c("obs","t"),.SDcols="n"][,.(n=sum(n)),by="obs"]
+    rm(r_1,r_2)
+    r <- r[n==2][,c("obs")]
+    
+  } else if (flag_ind ==0 & flag_ind_par==1 & flag_tit_par==0) {
+    # Shrinking ex_* variables
+    ex_tit <- ex_tit[,final_t:=sapply(lapply(strsplit(tit_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_t"),.SDcols="tit_l"][,c("obs","final_t")]
+    ex_tit_par <- merge(ex_tit,ex_tit_par[,!c("tit_par")],by="obs",all=TRUE,allow.cartesian=TRUE)[!is.na(tit_par_l),final_t:=paste3(final_t,tit_par_l)][,final_t:=sapply(lapply(strsplit(final_t," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_t"),.SDcols="tit_par_l"][,c("obs","final_t")] 
+    
+    ex_ind <- ex_ind[,final_i:=sapply(lapply(strsplit(ind_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_i"),.SDcols="ind_l"][,c("obs","final_i")]
+    
+    r_1 <- merge( 
+              merge(ex_tit_par[,c("obs","final_t")],
+                    ex_ind[,c("obs","final_i")],
+                    by="obs",all=TRUE,allow.cartesian=TRUE),
+                  X_f[,c("obs","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)[,t:=1]
+    r_2 <- merge( merge(ex_tit[,c("obs","final_t")],
+                        ex_ind[,c("obs","final_i")],
+                        by="obs",all=TRUE,allow.cartesian=TRUE),
+                  X_f[,c("obs","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)[,t:=2]
+    
+    r <- rbind(r_1,r_2,fill=TRUE)
+    setorderv(r,c("t","final_t","final_i","l"),c(1,1,1,-1) )
+    r <- r[,.SD[1],by=c("t","final_t","final_i"),.SDcols=c("obs")][,n:=1][,.SD[1],by=c("obs","t"),.SDcols="n"][,.(n=sum(n)),by="obs"]
+    rm(r_1,r_2)
+    r <- r[n==2][,c("obs")]
+    
+  } else if (flag_ind ==0 & flag_ind_par==0 & flag_tit_par==0) {
+    # Shrinking ex_* variables
+    ex_tit <- ex_tit[,final_t:=sapply(lapply(strsplit(tit_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_t"),.SDcols="tit_l"][,c("obs","final_t")]
+    ex_tit_par <- merge(ex_tit,ex_tit_par[,!c("tit_par")],by="obs",all=TRUE,allow.cartesian=TRUE)[!is.na(tit_par_l),final_t:=paste3(final_t,tit_par_l)][,final_t:=sapply(lapply(strsplit(final_t," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_t"),.SDcols="tit_par_l"][,c("obs","final_t")] 
+    
+    ex_ind <- ex_ind[,final_i:=sapply(lapply(strsplit(ind_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_i"),.SDcols="ind_l"][,c("obs","final_i")]
+    ex_ind_par <- merge(ex_ind,ex_ind_par[,!c("ind_par")],by="obs",all=TRUE,allow.cartesian=TRUE)[!is.na(ind_par_l),final_i:=paste3(final_i,ind_par_l)][,final_i:=sapply(lapply(strsplit(final_i," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_i"),.SDcols="ind_par_l"][,c("obs","final_i")] 
+    
+    # Constructing the different cases
+    # Construct 4 cases, reduce the list if tit_ind, tit_list is the same by keeping the longest string, and assign a number to each obs, based on how many time they appear
+    r_1 <- merge( 
+              merge(ex_tit_par[,c("obs","final_t")],
+                    ex_ind_par[,c("obs","final_i")],
+                    by="obs",all=TRUE,allow.cartesian=TRUE),
+                  X_f[,c("obs","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)[,t:=1]
+    r_2 <- merge( merge(ex_tit_par[,c("obs","final_t")],
+                        ex_ind[,c("obs","final_i")],
+                        by="obs",all=TRUE,allow.cartesian=TRUE),
+                  X_f[,c("obs","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)[,t:=2]
+    
+    r_3 <- merge( merge(ex_tit[,c("obs","final_t")],
+                        ex_ind_par[,c("obs","final_i")],
+                        by="obs",all=TRUE,allow.cartesian=TRUE),
+                  X_f[,c("obs","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)[,t:=3]
+    
+    r_4 <- merge( merge(ex_tit[,c("obs","final_t")],
+                        ex_ind[,c("obs","final_i")],
+                        by="obs",all=TRUE,allow.cartesian=TRUE),
+                  X_f[,c("obs","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)[,t:=4]
+    
+    r <- rbind(r_1,r_2,r_3,r_4)
+    setorderv(r,c("t","final_t","final_i","l"),c(1,1,1,-1) )
+    r <- r[,.SD[1],by=c("t","final_t","final_i"),.SDcols=c("obs")][,n:=1][,.SD[1],by=c("obs","t"),.SDcols="n"][,.(n=sum(n)),by="obs"]
+    rm(r_1,r_2,r_3,r_4)
+    r <- r[n==4][,c("obs")]
+  }
+  
+  # B. Simpler case
+  if (flag_ind==1 & flag_ind_par==1) {
+    # Compute the share of different combinations of an observation title-industry combination that
+    # cannot be eliminated after matching with other variables
+    r_all <- ex[,.SD[1],by=c("obs","final_t"),.SDcols="l"][,criteria:=.N,by="obs"]
+    setorderv(r_all,c("final_t","l"),c(1,-1))
+    r_all <- r_all[,.SD[1],by=c("final_t"),.SDcols=c("l","obs","criteria")]
+    r_all <- r_all[,{c=.N; list(criteria=c/criteria)},by="obs"]
+    
+  } else  {
+    # Compute the share of different combinations of an observation title-industry combination that
+    # cannot be eliminated after matching with other variables
+    r_all <- ex[,.SD[1],by=c("obs","final_t","final_i"),.SDcols="l"][,criteria:=.N,by="obs"]
+    setorderv(r_all,c("final_t","final_i","l"),c(1,1,-1))
+    r_all <- r_all[,.SD[1],by=c("final_t","final_i"),.SDcols=c("l","obs","criteria")]
+    r_all <- r_all[,{c=.N; list(criteria=c/criteria)},by="obs"]
+    
+  } 
+  # Only keep those observations that keep at least 3/4 of their expanded title-industry combination
+  r_all <- r_all[criteria>0.75][,.SD[1],by="obs",.SDcols="criteria"][,c("obs")]  # 0.75 is an ARBITRARY VALUE!!
+  
+  # C. Simpler case considering inverted industry and title
+  r_all_inv <- ex_inv[,.SD[1],by=c("obs","final"),.SDcols="l"][,criteria:=.N,by="obs"]
+  setorderv(r_all_inv,c("final","l"),c(1,-1))
+  r_all_inv <- r_all_inv[,.SD[1],by=c("final"),.SDcols=c("l","obs","criteria")]
+  r_all_inv <- r_all_inv[,{c=.N; list(criteria=c/criteria)},by="obs"]
+  r_all_inv <- r_all_inv[criteria>0.75][,.SD[1],by="obs",.SDcols="criteria"][,c("obs")]  # 0.75 is an ARBITRARY VALUE!!
+    
+  
+  # 7. Check that all observations can be generated with the reduced set
+  # Combine with vector with all possible combinations
+  # A. Convoluted case
+  if (flag_ind==1 & flag_ind_par==1) {
+    # 1. No industry info ---> no variable final_i
+    # Obtain all possible combinations of observations in the r vector
+    # Note: replace r_exp with r in final code
+    r_exp <- merge(r,ex[,c("obs","final_t")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)
+      
+    # Merge this expanded r vector with all possible combinations of all observations
+    # NOTE: change r_t for r in final code
+    # 1. Merge r_exp with all possible combinations of observations using final_t
+    # 2. Find out obs that couldn't be linked with the observations in vector r
+    # 3. Keep only observations that couldn't be linked (those for which max(n)=0)
+    r_exp <- merge(r_exp,ex[,c("obs","final_t")],by=c("final_t"),all=TRUE,allow.cartesian=TRUE)[,n:=1][is.na("obs.x"),n:=0][,n:=max(n),by=c("obs.y")][n==0][,obs:=obs.y]  
+      
+    # Create final vector of unique titles my addin r to the previous vector
+    if (nrow(r_exp)!=0) { unique <- rbind(  r, r_exp[,c("obs")],fill=TRUE)
+    } else            { unique <- copy(r)
+    }
+  } else {
+    # Obtain all possible combinations of observations in the r vector
+    # Note: replace r_exp with r in final code
+    r_exp <- merge(r,ex[,c("obs","final_t","final_i")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)
+      
+    r_exp <- merge(r_exp,ex[,c("obs","final_t","final_i")],by=c("final_t","final_i"),all=TRUE,allow.cartesian=TRUE)[,n:=1][is.na("obs.x"),n:=0][,n:=max(n),by="obs.y"][n==0][,obs:=obs.y]  
+      
+    # Create final vector of unique titles my addin r to the previous vector
+    if (nrow(r_exp)!=0) { unique <- rbind(r,r_exp[,c("obs")],fill=TRUE)
+    } else            { unique <- copy(r)  
+    }
+  }
+  
+  # B. Simpler case
+  rm(r_exp)
+  if (flag_ind==1 & flag_ind_par==1) {
+    
+    r_exp <- merge(r_all,ex[,c("obs","final_t")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)
+
+    r_exp <- merge(r_exp,ex[,c("obs","final_t")],by=c("final_t"),all=TRUE,allow.cartesian=TRUE)[,n:=1][is.na("obs.x"),n:=0][,n:=max(n),by=c("obs.y")][n==0][,obs:=obs.y]  
+      
+    # Create final vector of unique titles my adding r_all to the previous vector
+    if (nrow(r_exp)!=0) { unique_all <- rbind(  r_all, r_exp[,c("obs")],fill=TRUE)
+    } else            { unique_all <- copy(r_all)
+    }
+  } else {
+    # Obtain all possible combinations of observations in the r vector
+    r_exp <- merge(r_all,ex[,c("obs","final_t","final_i")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)
+      
+    r_exp <- merge(r_exp,ex[,c("obs","final_t","final_i")],by=c("final_t","final_i"),all=TRUE,allow.cartesian=TRUE)[,n:=1][is.na("obs.x"),n:=0][,n:=max(n),by="obs.y"][n==0][,obs:=obs.y]  
+      
+    # Create final vector of unique titles my addin r to the previous vector
+    if (nrow(r_exp)!=0) { unique_all <- rbind(r_all,r_exp[,c("obs")],fill=TRUE)
+    } else            { unique_all <- copy(r_all)  
+    }
+  }
+  
+  # C. Simpler case + title, industry
+  rm(r_exp)
+  if (flag_ind==1 & flag_ind_par==1) {
+    unique_all_inv <- copy(unique_all)
+    
+  } else {
+    r_exp <- merge(r_all_inv,ex_inv[,c("obs","final")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)
+    r_exp <- merge(r_exp,ex_inv[,c("obs","final")],by=c("final"),all=TRUE,allow.cartesian=TRUE)[,n:=1][is.na("obs.x"),n:=0][,n:=max(n),by="obs.y"][n==0][,obs:=obs.y]  
+      
+    # Create final vector of unique titles my addin r to the previous vector
+    if (nrow(r_exp)!=0) { unique_all_inv <- rbind(r_all_inv,r_exp[,c("obs")],fill=TRUE)
+    } else            { unique_all_inv <- copy(r_all_inv)  
+    }
+  }
+  
+  
+  # Constructing the final set of variables
+  f_initial_obs <-function(x,flag_match) {
+    #Note: y_f was created before in the code for this function
+    if (flag_match=="red") {
+      x <- merge(x[,reduced:=1],y_f[,c("obs","initial_obs")],by="obs",all=TRUE,allow.cartesian=TRUE)[is.na(reduced),reduced:=0][,c("initial_obs","reduced")]
+      setorderv(x,c("initial_obs"),c(1))
+    } else {
+      x <- merge(x,y_f[,c("obs","initial_obs")],by="obs",all=TRUE,allow.cartesian=TRUE)[is.na(match),match:=1][,c("initial_obs","match")]
+    setorderv(x,c("initial_obs"),c(1))
+    }
+    return(x)
+  }
+  
+  # NOTE: we could probably use a list and lapply/sapply
+  unique <- f_initial_obs(unique,"red")
+  unique_all <- f_initial_obs(unique_all,"red")
+  unique_all_inv <- f_initial_obs(unique_all_inv,"red")
+  
+  matched <- f_initial_obs(ex_f,"match")
+  matched_all <- f_initial_obs(ex_1,"match")
+  matched_all_inv <- f_initial_obs(ex_2,"match")
+  
+  # ex contains the list of observations with the updated match variable. It should be the same size as the y variable after dropping out duplicated observations
+  # Note: If the variable was not created withing the function, R will look in the workspace
+  if (flag_return==0) {
+    return( list( unique[[2]],unique_all[[2]],unique_all_inv[[2]],matched[[2]],matched_all[[2]],matched_all_inv[[2]] ) )
+  } else if (flag_return==1){
+    return( list( unique[[2]],matched[[2]] ) )
+  } else if (flag_return==2){
+    return( list( unique_all[[2]],matched_all[[2]] ) )
+  } else if (flag_return==3){
+    return( list( unique_all_inv[[2]],matched_all_inv[[2]] ) )
+  } else if (flag_return==4) {
+    if (flag_ind==1 & flag_ind_par==1){ 
+      return(list(matched,matched_all,matched_all_inv,unique,unique_all,unique_all_inv,X_f,r,r_all,r_all_inv,ex,ex_inv,ex_1,ex_2,ex_tit_f,flag=c(flag_tit_par,flag_ind,flag_ind_par)))
+    } else {return(list(matched,matched_all,matched_all_inv,unique,unique_all,unique_all_inv,X_f,r,r_all,r_all_inv,ex,ex_inv,ex_1,ex_2,ex_tit_f,ex_ind_f,flag=c(flag_tit_par,flag_ind,flag_ind_par)))}
+  }
+}
+
+
+```
+
+Trials with the function
+```{r}
+try = data.table(
+  ID = as.character(c("aa","aa (bb)","(aa) bb","aa or bb","aa or bb (cc)","aa or bb (cc)","(cc) aa or bb","aa (bb or cc)","aa cc (bb)","aa (dd)","(dd) cc","aa dd")),
+  ID1 = as.character(c("aa","aa","bb","aa or bb","aa or bb","aa or bb","aa or bb","aa","aa cc","aa","cc","aa dd")),
+  ID_par = as.character(c("","bb","aa","","cc","cc","cc","bb or cc","bb","dd","dd","")),
+  ind = as.character(c("A or B (C)","A (D)","C or A (B)","A B","B A (C or D)","B","A B (C)","D","A","A (B)","B or A","C (A)")),
+  indemp = as.character(c("","","","","","","","","","","","")),
+  ind1 = as.character(c("A or B","A","C or A","A B","B A","B","A B","D","A","A","B or A","C")),
+  indpar = as.character(c("C","D","B","A B","C or D","B","C","D","A","B","","A")),
+  match = c(0,1,0,1,0,1,1,1,0,0,0,0)
+)
+try <- try[,obs:=1:.N]
+
+D = data.table(
+  ID = as.character(c("aa","aa (bb)","(aa) bb","aa or bb","aa or bb (cc)","aa or bb (cc)","(cc) aa or bb","aa (bb or cc)","ee","XX")),
+  indus = as.character(c("A B","A","C A","A B","B A","B","A B","D","XX","ee")),
+  a = c(0,1,0,1,0,0,1,1,0,1),
+  obs=1:10
+)
+
+D1 = data.table(
+  ID = as.character(c("bb","aa or bb","aa bb (cc)","aa or bb (cc)","(cc) aa or bb","aa (bb or cc)")),
+  indus = as.character(c("C A","A C","B (A)","A C","A B","D")),
+  a = c(0,0,0,1,1,0),
+  obs=11:16
+)
+
+D2 = data.table(
+  ID = as.character(c("bb","aa or bb","aa (cc)","aa cc")),
+  indus = as.character(c("A (C)","A B","A (B)","A C")),
+  #indus = as.character(c("A","A C","A","A C")),
+  a = c(0,1,0,1),
+  obs=17:20
+)
+
+X <- D3[,c("red","red1","red2","match","match1","match2"):=mapply(FUN=f_try,obs_f=list(obs),tit_f=list(ID),ind_f=list(indus),match_f=list(a)),by="group"]
+
+```
+
+
+## Titles and industries (with parentheses, but no or)
+
+
+# Data
+```{r}
+dataind = data.table(
+  ID = as.character(c("aa","aa (bb)","(aa) bb","aa or bb","aa or bb (cc)","aa or bb (cc)","(cc) aa or bb","aa (bb or cc)","aa cc (bb)","aa (dd)","(dd) cc","aa dd")),
+  ind = as.character(c("A B","A","C A","A B","B A","B","A B","D","A","B","B A","C A")),
+  indpar = as.character(c("","C","D","","","D","","","E","","","")),
+  a = c(0,1,0,1,0,1,1,1,0,0,0,0)
+)
+dataind$na <- NA
+dataind[a==1,na:=1]
+if (nrow(dataind[!is.na(na),c("na")]) > 0) print("True")
+
+# Separate parentheses in ID
+dataind[grepl("\\([^()]+\\)",ID),IDpar:=gsub("\\(|\\)","",str_extract(ID,"\\([^()]+\\)"))][,ID := str_squish(  gsub("\\([^()]+\\)","",ID))]
+
+
+## Keep only unique variables (without any changes)
+# Reorder title
+dataind <- dataind[,sort1:=sapply(sapply(strsplit(ID," "),sort),function(x) paste(x,collapse=' '))]
+# Reorder ind + par (here I consider par as with parentheses. We could change that)
+dataind <- dataind[,sort2:=sapply(
+                  sapply(strsplit(paste3(ind,gsub("(.+)","\\(\\1\\)",indpar))," "),sort),
+                    function(x) paste(x,collapse=' ')
+                  )     ]
+
+dataind <- dataind[,a:=max(a),by=c("sort1","sort2")][,.SD[1],by=c("sort1","sort2"),.SDcols=c("ID","ind","indpar","a")]
+# Vector with the length of the tit, ind/par combination, without excluding parentheses
+dataind[,l:= unlist(lapply(sort1, str_length)) + 1L + unlist(lapply(sort2, str_length))]
+dataind[,c("sort1","sort2"):=NULL]
+# Vector with obs identifier
+dataind[,obs:=1:.N]
+
+
+
+
+```
+
+# Update the matched vector
+# Process for title
+```{r}
+
+#Expand title
+ex_tit <- f_split_or(try[,c("obs","tit")],tit,obs)
+#Expand title par 
+ex_tit_par <- f_split_or(try[,c("obs","tit_par")],tit_par,obs)
+#NOte: Make sure to consider the case where the tit_par vector is all NAs
+ex_tit_f <- rbind(ex_tit[,c("obs","tit_l")],merge(ex_tit[,c("obs","tit_l")],ex_tit_par[,c("obs","tit_par_l")],by="obs",all=TRUE),fill=TRUE)
+ex_tit_f <- ex_tit_f[!is.na(tit_par_l),final_t:=paste3(tit_l,tit_par_l)][is.na(tit_par_l),final_t:=tit_l][,final_t:=sapply(sapply(strsplit(final_t," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_t")][,c("obs","final_t")]
+
+# Expand ind
+ex_ind <- f_split_or(try[,c("obs","ind")],ind,obs)
+#Expand title par 
+ex_ind_par <- f_split_or(try[,c("obs","ind_par")],ind_par,obs)
+#NOte: Make sure to consider the case where the tit_par vector is all NAs
+ex_ind_f <- rbind(ex_ind[,c("obs","ind_l")],merge(ex_ind[,c("obs","ind_l")],ex_ind_par[,c("obs","ind_par_l")],by="obs",all=TRUE),fill=TRUE)
+ex_ind_f <- ex_ind_f[!is.na(ind_par_l),final_i:=paste3(ind_l,ind_par_l)][is.na(ind_par_l),final_i:=ind_l][,final_i:=sapply(sapply(strsplit(final_i," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_i")][,c("obs","final_i")]
+
+# Note: this should be done only if there exist a title without ind
+ex_f <- merge(ex_tit_f,ex_ind_f,by="obs",all=TRUE)
+ex_f <- merge(ex_f,try[,c("obs","match")],by="obs",all.x=TRUE,all.y=FALSE)
+ex <- ex_f[,match := max(match),by=c("final_t","final_i")][,.(match=max(match)),by="obs"]
+
+
+```
+
+
+
+
+```{r }
+# Expand the whole list
+# Try1 contains elements without parentheses, try2 with
+dataind.match <- dataind[,c("obs","ID")][,try1:=str_squish(  gsub("\\([^()]+\\)","",ID)  )]
+dataind.match <- f_split_or(dataind.match,try1,obs)
+temp <- dataind[grepl("\\([^()]+\\)",ID),c("obs","ID")][,try2:=str_extract(ID,"\\([^()]+\\)")][,try2:=str_squish(  gsub("\\(|\\)","",try2)  )]
+temp <- f_split_or(temp,try2,obs)
+
+dataind.match <- merge(dataind.match[,!c("a","try1")],temp[,!c("ID","a","try2")],by="obs",all=TRUE)
+dataind.match <- dataind.match[,final:=paste3(try2_list,try1_list)]
+dataind.match <- dataind.match[!is.na(try2_list),f:=paste(try1_list,final,sep=",")][is.na(try2_list),f:=try1_list]
+dataind.match <- f_split_or(dataind.match[,c("obs","ID","f")],f)[,!c("f")]
+
+dataind.match[,f_list:=sapply(sapply(strsplit(f_list," "),sort),function(x) paste(x,collapse=' '))]
+dataind.match <- dataind.match[,.SD[1],by=c("obs","f_list"),.SDcols="ID"]
+
+```
+
+# Process for ind-par
+```{r }
+# Expand the whole list
+# Try1 contains elements without parentheses, try2 with
+tempind <- dataind[,c("obs","ind","par")][,indpar:=paste3(ind,gsub("(.+)","\\(\\1\\)",par))]
+# First we don't consider or
+#dataind.match <- f_split_or(dataind.match,try1)
+tempind <- tempind[,try:=paste3(ind,par)]
+# Consider changing "" for NA, to make this more homogeneous with previous code chunks
+tempind <- tempind[par!="",find:=paste(ind,try,sep=",")][par=="",find:=ind]
+tempind <- f_split_or(tempind[,c("obs","indpar","find")],find)[,!c("find")]
+
+tempind[,find_list:=sapply(sapply(strsplit(find_list," "),sort),function(x) paste(x,collapse=' '))]
+tempind <- tempind [,.SD[1],by=c("obs","find_list"),.SDcols="indpar"]
+```
+
+
+# Mix title and ind-par
+```{r}
+dataind.match.unique <- merge(dataind.match,tempind,by="obs",all=TRUE)
+
+# merge with data1 
+dataind.match.unique <- merge(dataind.match.unique,dataind[,c("obs","a")],by="obs",all.x=TRUE)
+dataind.match.unique[,b:=max(a),by=c("f_list","find_list")]
+dataind.match.unique <- dataind.match.unique[,.SD[1],by=c("obs","ID","indpar"),.SDcols="b"]
+
+# dataind.match.unique contains an updated version of dataind, where we have looked for duplicates and have changed the value of the "a" variable
+
+```
+
+
+# Reduce the set of titles-ind-par combinations
+
+# Construct two vectors, one for tit with parentheses and another one for tit without parentheses
+```{r}
+# <- dataind[,c("obs","ID")][,try1:=str_squish(  gsub("\\([^()]+\\)","",ID)  )]
+#dataind.match <- f_split_or(dataind.match,try1)
+#temp <- dataind.match[grepl("\\([^()]+\\)",ID),c("obs","ID")][,try2:=str_extract(ID,"\\([^()]+\\)")][,try2:=str_squish(  gsub("\\(|\\)","",try2)  )]
+#temp <- f_split_or(temp,try2)
+
+# Construct 1 list with parentheses
+# Keep all the terms with parentheses
+dataind.tit.par <- dataind[,c("obs","ID")][,try:=str_squish(gsub("\\(|\\)","",ID))]
+# Split or
+dataind.tit.par <- f_split_or(dataind.tit.par,try)
+#reorder terms
+dataind.tit.par[,try_list:=sapply(sapply(strsplit(try_list," "),sort),function(x) paste(x,collapse=' '))]
+# Drop repeated obs-try_list combinations
+dataind.tit.par <- dataind.tit.par[,.SD[1],by=c("obs","try_list"),.SDcols="ID"]
+
+# Construct 2 list without parentheses
+# Drop all the terms with parentheses
+dataind.tit.npar <- dataind[,c("obs","ID")][,try:=str_squish(gsub("\\([^()]+\\)","",ID))]
+# Split or
+dataind.tit.npar <- f_split_or(dataind.tit.npar,try)
+#reorder terms
+dataind.tit.npar[,try_list:=sapply(sapply(strsplit(try_list," "),sort),function(x) paste(x,collapse=' '))]
+# Drop repeated obs-try_list combinations
+dataind.tit.npar <- dataind.tit.npar[,.SD[1],by=c("obs","try_list"),.SDcols="ID"]
+
+```
+
+# Construct a vector for ind-par with and without parentheses
+
+```{r}
+# Since we are not dealing with or in the title we can do it very simple
+# Vector with parentheses
+dataind.ind.par <- dataind[,c("obs","ind","par")][,try_ind:=paste3(ind,par)][,try_ind:=sapply(sapply(strsplit(try_ind," "),sort),function(x) paste(x,collapse=' '))]
+
+# Vector without parentheses
+dataind.ind.npar <- dataind[,c("obs","ind")][,try_ind:=sapply(sapply(strsplit(ind," "),sort),function(x) paste(x,collapse=' '))]
+
+
+## TO-DO
+# - Expand exercise to work also with or in the industry/parentheses
+#     - One of the main issues: more than 2 ors
+
+```
+
+# Generate different combinations
+```{r}
+# The vectors try_list and try_ind in dataind.tit.* and dataind.ind.* have laready been sorted out in a previous step
+
+
+ptm <- proc.time()
+# With construct 4 cases, reduce the list if try_ind, try_list is the same by keeping the longest string, and assign a number to each obs, based on how many time they appear
+r_1 <- merge( merge(dataind.tit.par[,c("obs","try_list")],dataind.ind.par[,c("obs","try_ind")],by="obs",all=TRUE),
+              dataind[,c("obs","l")],by="obs",all.x=TRUE)[,t:=1]
+r_2 <- merge( merge(dataind.tit.par[,c("obs","try_list")],dataind.ind.npar[,c("obs","try_ind")],by="obs",all=TRUE),
+              dataind[,c("obs","l")],by="obs",all.x=TRUE)[,t:=2]
+
+r_3 <- merge( merge(dataind.tit.npar[,c("obs","try_list")],dataind.ind.par[,c("obs","try_ind")],by="obs",all=TRUE),
+              dataind[,c("obs","l")],by="obs",all.x=TRUE)[,t:=3]
+
+r_4 <- merge( merge(dataind.tit.npar[,c("obs","try_list")],dataind.ind.npar[,c("obs","try_ind")],by="obs",all=TRUE),
+              dataind[,c("obs","l")],by="obs",all.x=TRUE)[,t:=4]
+
+r <- rbind(r_1,r_2,r_3,r_4)
+setorderv(r,c("t","try_list","try_ind","l"),c(1,1,1,-1) )
+r <- r[,.SD[1],by=c("t","try_list","try_ind"),.SDcols=c("obs")][,n:=1][,.SD[1],by=c("obs","t"),.SDcols="n"][,.(n=sum(n)),by="obs"]
+rm(r_1,r_2,r_3,r_4)
+proc.time() - ptm
+
+
+```
+
+# Check that the final list can recover all of the observations
+```{r}
+
+# List with all possible combinations
+a <- merge(dataind.match,tempind,by="obs",all=TRUE)
+
+# Expand the r vector
+r_exp <- merge(r[n==4],a[,c("obs","f_list","find_list")],by="obs",all.x=TRUE,all.y=FALSE)
+
+# Merge r_exp and a. Keep those obs that couldn't be matched with the expanded r vector. 
+b <- merge(r_exp,a,by=c("f_list","find_list"),all=TRUE)[is.na("obs.x"),n:=0][,n:=max(n),by="obs.y"][n==0][,obs:=obs.y]
+
+# Create final vector of unique titles my addin r to the previous vector
+if (nrow(b)!=0) { unique <- rbind(r[n==4][,n:=NULL],b[,c("obs")],fill=TRUE)
+} else          { unique <- r[n==4][,n:=NULL]  }
+
+
+final <- merge(unique,dataind,all.x=TRUE)
+rm(unique,temp)
+
+
+```
+
+
+## Appendix
+
+# Recycled codes
+```{r}
+
+```
+
+
+# Scratch codes
+```{r}
+
+# Count number of times " or " appears (Note: the function doesn't recognize \\<x\\>)
+data <- data1[,rep_or:=str_count(ID, pattern=" or ")]
+
+if ( nrow(data[rep_or==0]) > 0 | nrow(data[rep_or>=4]) >  0) data[rep_or==0 | rep_or>=4,var1:=ID]
+if (nrow(data[rep_or==1]) > 0) {
+  data[rep_or==1,var1:=gsub("([^ ]+) or ([^ ]+)","\\1",ID)][rep_or==1,var2:=gsub("([^ ]+) or ([^ ]+)","\\2",ID)]
+  data[rep_or==1,var3:=gsub("(.+) or (.+)","\\1",ID)][rep_or==1,var4:=gsub("(.+) or (.+)","\\2",ID)]
+} 
+if (nrow(data[rep_or==2]) > 0) {
+  data[rep_or==2,var1:=gsub("([^ ]+) or (.+) or ([^ ]+)","\\1",ID)][rep_or==2,var2:=gsub("([^ ]+) or (.+) or ([^ ]+)","\\2",ID)][rep_or==2,var3:=gsub("([^ ]+) or (.+) or ([^ ]+)","\\3",ID)]
+  data[rep_or==2,var4:=gsub("(.+) or (.+) or (.+)","\\1",ID)][rep_or==2,var5:=gsub("(.+) or (.+) or (.+)","\\2",ID)][rep_or==2,var6:=gsub("(.+) or (.+) or (.+)","\\3",ID)]
+}
+if (nrow(data[rep_or==3]) > 0) {
+  data[rep_or==3,var1:=gsub("([^ ]+) or (.+) or (.+) or ([^ ]+)","\\1",ID)][rep_or==3,var2:=gsub("([^ ]+) or (.+) or (.+) or ([^ ]+)","\\2",ID)][rep_or==3,var3:=gsub("([^ ]+) or (.+) or (.+) or ([^ ]+)","\\3",ID)][rep_or==3,var4:=gsub("([^ ]+) or (.+) or (.+) or ([^ ]+)","\\4",ID)]
+  data[rep_or==3,var5:=gsub("(.+) or (.+) or (.+) or (.+)","\\1",ID)][rep_or==3,var6:=gsub("(.+) or (.+) or (.+) or (.+)","\\2",ID)][rep_or==3,var7:=gsub("(.+) or (.+) or (.+) or (.+)","\\3",ID)][rep_or==3,var8:=gsub("(.+) or (.+) or (.+) or (.+)","\\4",ID)]
+}
+
+
+data <-as.data.table( melt(data,id.vars=("ID"), measure.vars = colnames(data)[grepl( "var" , names(data) )],variable.name="y",value.name="var",na.rm=TRUE) )
+data <- data[, .SD[1], by = c("ID","var")][,y:=NULL]
+           
+
+
+
+
+a <- f_split_or(data1,ID)
+  
+
+
+
+
+  
+  
+  #y <- X[grepl('\\<or\\>',var)]
+  y[,var1:=gsub("([^ ]+) or ([^ ]+)","\\1",var)][,var2:=gsub("([^ ]+) or ([^ ]+)","\\2",var)]
+  
+  y[,var3:=paste(var1,var2, sep = ",", collapse = NULL)][var1==var2,var3:=var1]
+  y[,var4:=stringr::str_split(var3,',')]
+  y <- y[,.(var4_list=unlist(var4)),by = setdiff(names(y),'var4')]
+  y[,c("var1","var2","var3"):=NULL]
+  
+  
+  
+  #setnames(y, c("var","var1","var2"), c(var_ch,paste0(deparse(substitute(var)),"_1"),paste0(deparse(substitute(var)),"_2"))  )
+  setnames(y, c("var","var4_list"), c(var_ch,paste0(deparse(substitute(var)),"_list"))  ) 
+}
+
+
+```
+
+# Old way to construct a variable containing different variables separated by a comma
+```{r}
+data1 = data.table(
+  ID = as.character(c("aa or","cc aa or bb","aa or bb cc","cc aa or bb dd","aa or bb or cc","aa or bb cc or dd","cc aa or bb cc or dd hh","aa or bb cc or dd","a or b or c or d","a or b c or d or e","a or b c or d e or f","A a or b c or d e or f","A a or b c or d e or f B"))
+)
+# Count number of times " or " appears (Note: the function doesn't recognize \\<x\\>)
+data <- data1[,rep_or:=str_count(ID, pattern=" or ")][,rep_sp:=str_count(ID, pattern=" ")]
+
+if (nrow(data[rep_or==0]) > 0) data[rep_or==0,var1:=ID]
+if (nrow(data[rep_or==1]) > 0) {
+  data[rep_or==1,var1:=gsub("([^ ]+) or ([^ ]+)","\\1",ID)][rep_or==1,var2:=gsub("([^ ]+) or ([^ ]+)","\\2",ID)]
+  if (nrow(data[rep_sp==4]) > 0) {
+    data[rep_or==1 & rep_sp==4,var3:=gsub("(.+) or (.+)","\\1",ID)][rep_or==1 & rep_sp==4,var4:=gsub("(.+) or (.+)","\\2",ID)]
+  }
+} 
+if (nrow(data[rep_or==2]) > 0) {
+  data[rep_or==2,var1:=gsub("([^ ]+) or (.+) or ([^ ]+)","\\1",ID)][rep_or==2,var2:=gsub("([^ ]+) or (.+) or ([^ ]+)","\\2",ID)][rep_or==2,var3:=gsub("([^ ]+) or (.+) or ([^ ]+)","\\3",ID)]
+  data[rep_or==2,var4:=gsub("(.+) or (.+) or (.+)","\\1",ID)][rep_or==2,var5:=gsub("(.+) or (.+) or (.+)","\\2",ID)][rep_or==2,var6:=gsub("(.+) or (.+) or (.+)","\\3",ID)]
+}
+if (nrow(data[rep_or==3]) > 0) {
+  data[rep_or==3,var1:=gsub("([^ ]+) or (.+) or (.+) or ([^ ]+)","\\1",ID)][rep_or==3,var2:=gsub("([^ ]+) or (.+) or (.+) or ([^ ]+)","\\2",ID)][rep_or==3,var3:=gsub("([^ ]+) or (.+) or (.+) or ([^ ]+)","\\3",ID)][rep_or==3,var4:=gsub("([^ ]+) or (.+) or (.+) or ([^ ]+)","\\4",ID)]
+  data[rep_or==3,var5:=gsub("(.+) or (.+) or (.+) or (.+)","\\1",ID)][rep_or==3,var6:=gsub("(.+) or (.+) or (.+) or (.+)","\\2",ID)][rep_or==3,var7:=gsub("(.+) or (.+) or (.+) or (.+)","\\3",ID)][rep_or==3,var8:=gsub("(.+) or (.+) or (.+) or (.+)","\\4",ID)]
+
+data[!is.na(var2),ff:=paste(var1,var2,sep=",")]
+if (!is.null(data$var3)) {
+  data[!is.na(var3),ff:=paste(ff,var3,sep=",")]
+  if (!is.null(data$var4)) {
+    data[!is.na(var4),ff:=paste(ff,var4,sep=",")]
+    if (!is.null(data$var5)) {
+      data[!is.na(var5),ff:=paste(ff,var5,sep=",")]
+      if (!is.null(data$var6)) {
+        data[!is.na(var6),ff:=paste(ff,var6,sep=",")]
+        if (!is.null(data$var7)) {
+          data[!is.na(var7),ff:=paste(ff,var7,sep=",")]
+          if (!is.null(data$var8)) {
+            data[!is.na(var8),ff:=paste(ff,var8,sep=",")]
+          }
+        }
+      }
+    }
+  }
+}
+```
+

@@ -1,0 +1,1737 @@
+---
+title: "Constructing databases 1920, 1930, 1940"
+output: html_document
+---
+TO-DO:
+- Simplify some of the parts where I construct the geographic variables. ---> Introduce a loop
+
+
+Inputs:
+- new_titles.occind1930: Info about new titles in 1930
+- new_titles.occ1940: Info about new titles in 1940
+- occ1930.codes: info about occ1930 categories, names...
+- census_sample_1880.fst: raw individual level data downloaded from IPUMS
+- census_sample_1900.fst: raw individual level data downloaded from IPUMS
+- census_sample_1910.fst: raw individual level data downloaded from IPUMS
+- census_sample_1920.fst: raw individual level data downloaded from IPUMS
+- census_sample_1930.fst: raw individual level data downloaded from IPUMS
+- census_sample_1940.fst: raw individual level data downloaded from IPUMS
+
+Results:
+3.2.
+- new_titles_agg: database at the occind,countynhg, countynhg_1910, metarea_1940 level with info about share of new titles and number of workers in each category. Can be used to construct measures of the share of new work at different geographic levels
+
+3.3.
+Databases with information at the geographic level. Besides the population, the Herfindahl index and the state, most of the information shows the shares of different categories. For example, sh_male contains the share of males in a given region
+- census_sample_1880_agg_countynhg
+- census_sample_1880_agg_countynhg_1910
+- census_sample_1880_agg_metarea_1940
+
+- census_sample_1900_agg_countynhg
+- census_sample_1900_agg_countynhg_1910
+- census_sample_1900_agg_metarea_1940
+
+- census_sample_1910_agg_countynhg
+- census_sample_1910_agg_countynhg_1910
+- census_sample_1910_agg_metarea_1940
+
+- census_sample_1920_agg_countynhg
+- census_sample_1920_agg_countynhg_1910
+- census_sample_1920_agg_metarea_1940
+
+For 1930 the variables also include the share of new work in each region
+- census_sample_1930_agg_countynhg
+- census_sample_1930_agg_countynhg_1910
+- census_sample_1930_agg_metarea_1940
+
+For 1940 the variables also include the share of new work in each region
+- census_sample_1940_agg_icpsr
+- census_sample_1930_agg_countynhg_1910
+- census_sample_1930_agg_metarea_1940
+
+4.
+- census_sample_1930_individual_data: 1930 Census with some changes (only workers, simplify variables, drop some observations, include new work variable...)
+- census_sample_1940_individual_data: 1930 Census with some changes (only workers, simplify variables, drop some observations, include new work variable...)
+
+5. Database with information at the individual level (1930) as well as the aggregate level (both 1920 and 1930)
+*** NOTE: These databases can be used to run the main regressions
+- census_sample_1930_individual_data_x_countynhg_1910
+- census_sample_1930_individual_data_x_metarea_1940
+
+
+# 0. Delete Workspace and load packages
+## Function to load necessary packages
+```{r}
+f_load_pk <- function() {
+  
+  # Pacman: packages manager. It does different things, here I use it to load multiple packages at the same time
+  library (pacman)
+  p_load(readxl,foreign,readstata13,data.table,plyr,dplyr,stringr,openxlsx,stringdist,reshape2,qdap,fst,ipumsr,tm,textreg,tmap,tmaptools,sf,leaflet,ipumsr)
+  p_load(tictoc)
+  
+  # Statistical packages
+  p_load(fastDummies,sandwich,lmtest,estimatr)
+  #graphs
+  p_load(ggplot2,maps,ggthemes,sjPlot,sjmisc,sjlabelled,jtools,ggstance,broom.mixed)
+  p_load(ggpubr)   # Contains ggarrange, used to plot more than one grpah in the same figure
+  p_load(scales)   # Used in histogram to show percent format
+}
+```
+
+## Using function
+```{r}
+rm(list=setdiff(ls(all.names = TRUE), "f_load_pk"))
+f_load_pk()
+```
+
+# Defining main and other directories
+```{r}
+main_directory <- "/Volumes/GoogleDrive/My Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/"
+
+```
+
+
+In this part we create a set of data structures with information at the level of a geographic unit (e.g. countynhg)
+
+# 1. Functions 
+## 1.0 Cleaning functions
+```{r}
+# Cleaning punctuation signs
+f_clean_punct <- function(x,flag=1){
+  y=gsub("\\."," ",x)
+  if (flag==1) y=gsub(","," ",y)
+  y=gsub(",$","",y)
+  y=gsub("’|`|'|‘|;|\"|”|“","",y) 
+  y=gsub("-"," ",y)
+  # Use capture and backtracking 
+  y=gsub("([a-z0-9])\\(","\\1 \\(",y)
+  y=gsub("\\)([a-z0-9])","\\) \\1",y)
+  
+  y=gsub("\\( ","\\(",y)
+  y=gsub(" \\)","\\)",y)
+  y=gsub("\\( \\)|\\(\\)","",y)
+  y=gsub("\\)\\(","\\) \\(",y)
+  y=str_squish(y)
+  
+  y=gsub(" , ",", ",y)
+  y=gsub(", , |, , , ",", ",y)
+  y=gsub("\\(, |\\(,","\\(",y)
+  y=gsub(", \\)|,\\)","\\)",y)
+  y=gsub("\\( *","\\(",y)
+  y=gsub(" *\\)","\\)",y)
+  y=gsub("\\( *\\)|\\(\\)","",y)
+  y=gsub("\\(([vx0-9]) ","\\1 ",y)
+  y=str_squish(y)
+  y
+}
+
+f_change_syms <- function(x){
+   # NOTE: For 1940: private and government worker are separated. To be able to compare it with 1930 I assigned them w
+  # worker
+  ## Parentheses
+  y=gsub("\\(oa, pw, or gw\\)|\\( *[0o]a p* w *or g *w *\\)|\\([0o]a, p* w *or g *w *\\)|\\([0o]a, p* w, *or g *w *\\)|\\( *[0o]a p* w *dr g *w *\\)|\\( *[0o] *a p *w g *w *\\)","\\(o w\\)",x)
+  y=gsub("\\( *p *w or *g *w\\)|\\( *g *w or *p *w\\)","\\(w\\)",y)
+  y=gsub("\\(oa or pw\\)|\\([0o]a or p *w\\)|\\( *[0o]a *or p *w *\\)|\\( *[0o] *a dr p *w *\\)|\\( *[0o] *a p *w *\\)","\\(o w\\)",y)
+  y=gsub("\\( *[0o]a *or g *w *\\)|\\( *[0o] *a dr g *w *\\)|\\( *[0o] *a g *w *\\)","\\(o w\\)",y)
+  # Employer or own account
+  y=gsub("\\( *e *m or [0o] *a *\\)|\\( *e *m *[0o] *a *\\)","\\(e o\\)",y)
+  y=gsub("\\( *e *[0o] *\\)|\\( *e *or *[0o] *\\)|\\( *e *[0o] *\\)","\\(e o\\)",y)
+  y=gsub("\\( *e *[0o]a *\\)|\\( *e *or *[0o]a *\\)|\\( *e *[0o]a *\\)","\\(e o\\)",y)
+  # Employer
+  y=gsub("\\( *e *m *\\)|\\( *e *\\)|\\<€\\>","\\(e\\)",y)
+  # Own account
+  y=gsub("\\( *[0o] *a *\\)|\\( *o *\\)","\\(o\\)",y)
+  #government, private worker
+  y=gsub("\\( *p *w\\)","\\(w\\)",y)
+  y=gsub("\\( *g *w\\)","\\(w\\)",y)
+  # worker
+  y=gsub("\\( *working out *\\)|\\( *w *\\)","\\(w\\)",y)
+  # owner or worker (no such symbol for 1920)
+  y=gsub("\\( *[0o] *or *w *\\)|\\( *[0o] *w *\\)","\\(o w\\)",y)
+  # non paid worker
+  y=gsub("\\( *n *p *\\)|\\( *n *r *\\)","\\(np\\)",y)
+  
+ 
+  ## No parentheses
+  # Employer or own account
+  y=gsub("\\<e *m or [0o] *a\\>|\\<e *m *[0o] *a\\>","e o",y)
+  y=gsub("\\<e *[0o]\\>|\\<e *or *[0o]\\>|\\<e *[0o]\\>","e o",y)
+  y=gsub("\\<e *[0o]a\\>|\\<e *or *[0o]a\\>|\\<e *[0o]a\\>","e o",y)
+  #Employer
+  y=gsub("\\<e *m\\>|\\<e\\>","e",y)
+  #own account
+  y=gsub("\\<[0o] *a\\>|\\<o\\>","o",y)
+  # worker
+  y=gsub("\\<working out\\>|\\<w\\>","w",y)
+  # owner or worker (no such symbol for 1920)
+  y=gsub("\\<[0o] *or *w\\>|\\<[0o] *w\\>|\\<[0o]a *or *w\\>","o w",y)
+  # non paid worker
+  y=gsub("\\<n *p\\>|\\<n *r\\>","np",y)
+  
+  # NOTE: For 1940: private and government worker are separated. To be able to compare it with 1930 I assigned them w
+  # worker
+  y=gsub("\\<[0o]a, p* w, *or g *w\\>|\\<[0o]a p* w *or g *w\\>|\\<[0o]a p* w *dr g *w\\>|\\<[0o] *a p *w g *w\\>","o w",y)
+  y=gsub("\\<p *w or *g *w\\>|\\<g *w or *p *w\\>","w",y)
+  y=gsub("\\<[0o]a *or p *w\\>|\\<[0o] *a dr p *w\\>|\\<[0o] *a p *w\\>","o w",y)
+  y=gsub("\\<[0o]a *or g *w\\>|\\<[0o] *a dr g *w\\>|\\<[0o] *a g *w\\>","o w",y)
+  y=gsub("\\<p *w\\>","w",y)
+  y=gsub("\\<g *w\\>","w",y)
+  
+  
+  y=gsub("\\<unless\\>","except",y)
+  
+  y=str_squish(y)
+  y=gsub(" , ",", ",y)
+  y=gsub(", , |, , , ",", ",y)
+  y=gsub("\\(, |\\(,","\\(",y)
+  y=gsub(", \\)|,\\)","\\)",y)
+  y=gsub("\\( *","\\(",y)
+   y=gsub(" *\\)","\\)",y)
+   y=gsub("\\( *\\)|\\(\\)","",y)
+   y=str_squish(y)
+  y
+}
+
+f_change_words <- function(x){
+   y=gsub("\\( *e *t *c *\\)|\\( *e *t *e *\\)","\\(etc\\)",x)
+   y=gsub("\\( *n *e *c *\\)|\\( *n *s *c *\\)|\\( *n *c *c *\\)","\\(nec\\)",y)
+   y=gsub("\\( *a *o *s *\\)|\\( *n *o *s *\\)","\\(nos\\)",y)
+   y=gsub("\\( *n *s *\\)|\\( *n *a *\\)|\\( *n *g *\\)|\\( *not specified *\\)|\\( *not .*specified *\\)","\\(ns\\)",y)
+   y=gsub("\\(orns\\)","\\(or ns\\)",y)
+   y=gsub("\\(not elsewhere classified\\)","\\(nec\\)",y)
+   y=gsub("\\( *m *d *\\)","\\(md\\)",y)
+   
+   y=gsub("\\<e *t *c\\>|\\<e *t *e\\>","etc",y)
+   y=gsub("\\<n *e *c\\>|\\<n *s *c\\>|\\<n *c *c\\>","nec",y)
+   y=gsub("\\<a *o *s\\>|\\<n *o *s\\>","nos",y)
+   y=gsub("\\<n *s\\>|\\<n *a\\>|\\<n *g\\>|\\<not specified\\>","ns",y)
+   y=gsub("\\<orns\\>","or ns",y)
+   y=gsub("\\<not elsewhere classified\\>","nec",y)
+   y=gsub("\\<m *d\\>","md",y)
+   y=gsub("\\<u *s\\>|\\<united states\\>","us",y)
+   y=gsub("\\<b *r\\>","or",y)
+   y=str_squish(y)
+   y=gsub(" , ",", ",y)
+   y=gsub(", , |, , , ",", ",y)
+   y=gsub("\\(, |\\(,","\\(",y)
+   y=gsub(", \\)|,\\)","\\)",y)
+   y=gsub("\\( *","\\(",y)
+   y=gsub(" *\\)","\\)",y)
+   y=gsub("\\( *\\)|\\(\\)","",y)
+   y=str_squish(y)
+   y
+}
+
+f_clean_syms <- function(x){
+  ## Parentheses
+  # Employer or own account
+  y=gsub("\\( *e *m or [0o] *a *\\)|\\( *e *m *[0o] *a *\\)|\\(e o\\)","",x)
+  y=gsub("\\( *e *[0o] *\\)|\\( *e *or *[0o] *\\)|\\( *e *[0o] *\\)|\\(e o\\)","",y)
+  y=gsub("\\( *e *[0o]a *\\)|\\( *e *or *[0o]a *\\)|\\( *e *[0o]a *\\)|\\(e o\\)","",y)
+  # Employer
+  y=gsub("\\( *e *m *\\)|\\( *e *\\)|\\(e\\)","",y)
+  # Own account
+  y=gsub("\\( *[0o] *a *\\)|\\( *o *\\)|\\(o\\)","",y)
+  # worker
+  y=gsub("\\( *working out *\\)|\\( *w *\\)|\\(w\\)","",y)
+  # owner or worker (no such symbol for 1920)
+  y=gsub("\\( *[0o] *or *w *\\)|\\( *[0o] *w *\\)|\\(o w\\)","",y)
+  
+  y=gsub("\\( *n *p *\\)|\\( *n *r *\\)|\\(np\\)","",y)
+  
+  # NOTE: For 1940: private and government worker are separated. To be able to compare it with 1930 I assigned them w
+  # worker
+  y=gsub("\\( *[0o]a p* w *or g *w *\\)|\\( *[0o]a p* w *dr g *w *\\)|\\( *[0o] *a p *w g *w *\\)","",y)
+  y=gsub("\\( *p *w or *g *w\\)","",y)
+  y=gsub("\\( *[0o]a *or p *w *\\)|\\( *[0o] *a dr p *w *\\)|\\( *[0o] *a p *w *\\)","",y)
+  y=gsub("\\( *[0o]a *or g *w *\\)|\\( *[0o] *a dr g *w *\\)|\\( *[0o] *a g *w *\\)","",y)
+  y=gsub("\\( *p *w\\)","",y)
+  y=gsub("\\( *g *w\\)","",y)
+  
+  
+  #Eliminate when (any) appears. We could also eliminate when \\<any\\> appears, but that might affect phrases that contain any
+  y=gsub("\\( *any *\\)","",y)
+  
+  ## No parentheses
+  # Employer or own account
+  y=gsub("\\<e *m or [0o] *a\\>|\\<e *m *[0o] *a\\>|\\<e o\\>","",x)
+  y=gsub("\\<e *[0o]\\>|\\<e *or *[0o]\\>|\\<e *[0o]\\>|\\<e o\\>","",y)
+  y=gsub("\\<e *[0o]a\\>|\\<e *or *[0o]a\\>|\\<e *[0o]a\\>|\\<e o\\>","",y)
+  #Employer
+  y=gsub("\\<e *m\\>|\\<e\\>","",y)
+  #own account
+  y=gsub("\\<[0o] *a\\>|\\<o\\>","",y)
+  # worker
+  y=gsub("\\<working out\\>|\\<w\\>","",y)
+  # owner or worker (no such symbol for 1920)
+  y=gsub("\\<[0o] *or *w\\>|\\<[0o] *w\\>","",y)
+  
+  y=gsub("\\<n *p\\>|\\<n *r\\>|\\<np\\>","",y)
+  y=str_squish(y)
+  y=str_squish(gsub("\\( *\\)|\\( *or *\\)","",y))
+  y=gsub(" , ",", ",y)
+  y=gsub(", , |, , , ",", ",y)
+  y=gsub("\\(, |\\(,","\\(",y)
+  y=gsub(", \\)|,\\)","\\)",y)
+  y=gsub("\\( *","\\(",y)
+  y=gsub(" *\\)","\\)",y)
+  y=gsub("\\( *\\)|\\(\\)","",y)
+  y=str_squish(y)
+}
+
+
+f_clean_words <- function(x){
+   y=gsub("\\( *e *t *c *\\)|\\( *e *t *e *\\)|\\(etc\\)","",x)
+   y=gsub("\\( *n *e *c *\\)|\\( *n *s *c *\\)|\\( *n *c *c *\\)|\\(n e c\\)|\\(nec\\)","",y)
+   y=gsub("\\( *a *o *s *\\)|\\( *n *o *s *\\)|\\(n o s\\)|\\(nos\\)","",y)
+   y=gsub("\\( *n *s *\\)|\\( *n *a *\\)|\\(n s\\)|\\(ns\\)","",y)
+   y=gsub("\\(not elsewhere classified\\)|\\(n e c\\)|\\(nec\\)","",y)
+   y=gsub("\\( *m *d *\\)|\\(m d\\)|\\(md\\)","",y)
+   
+
+   y=gsub("\\<e *t *c\\>|\\<e *t *e\\>|\\<etc\\>","",y)
+   y=gsub("\\<n *e *c\\>|\\<n *s *c\\>|\\<n *c *c\\>|\\<n e c\\>|\\<nec\\>","",y)
+   y=gsub("\\<a *o *s\\>|\\<n *o *s\\>|\\<n o s\\>|\\<nos\\>","",y)
+   y=gsub("\\<n *s\\>|\\<n *a\\>|\\<n s\\>|\\<ns\\>","",y)
+   y=gsub("\\<not elsewhere classified\\>|\\<n e c\\>|\\<nec\\>","",y)
+   y=gsub("\\<m *d\\>","",y)
+#  y=gsub("\\<u *s\\>|\\<united states\\>|\\<us\\>","",y)
+   y=str_squish(y)
+   y=gsub(" , ",", ",y)
+   y=gsub(", , |, , , ",", ",y)
+   y=gsub("\\(, |\\(,","\\(",y)
+   y=gsub(", \\)|,\\)","\\)",y)
+   y=gsub("\\( *","\\(",y)
+   y=gsub(" *\\)","\\)",y)
+   y=gsub("\\( *\\)|\\(\\)","",y)
+   y=str_squish(y)
+   y
+}
+
+f_clean_conj <- function(x){
+  # Note: We might/should(?) other conjunctions/pronouns different than "or"
+  y=gsub("\\<in\\>|\\<and\\>|\\<of\\>|\\<on\\>|\\<for\\>|\\<to\\>","",x)
+  y=gsub(" , ",", ",y)
+  y=gsub(", , |, , , ",", ",y)
+  y=gsub("\\(, |\\(,","\\(",y)
+  y=gsub(", \\)|,\\)","\\)",y)
+  y=gsub("\\( *","\\(",y)
+  y=gsub(" *\\)","\\)",y)
+  y=gsub("\\( *\\)|\\(\\)","",y)
+  y=str_squish(y)
+  y
+}
+
+f_adjust_ind_number_1940 <- function(x){
+  y=gsub("\\(([vx][0-9])$","\\(\\1\\)",x)
+  y=gsub("\\(([vx][vx])$","\\(\\1\\)",y)
+  y=gsub("\\(([0-9][xv])$","\\(\\1\\)",y)
+  y=gsub("\\(([0-9]+)$","\\(\\1\\)",y)
+  y=gsub("\\(([0-9]+)$","\\(\\1\\)",y)
+  y=gsub("^ ([vx][0-9])\\)$","\\(\\1\\)",y)
+  y=gsub("^ ([vx][vx])\\)$","\\(\\1\\)",y)
+  y=gsub("^ ([0-9][xv])\\)$","\\(\\1\\)",y)
+  y=gsub("^([vx][0-9])\\)$","\\(\\1\\)",y)
+  y=gsub("^([vx][vx])\\)$","\\(\\1\\)",y)
+  y=gsub("^([0-9][xv])\\)$","\\(\\1\\)",y)
+  y=gsub("^([vx][0-9])$","\\(\\1\\)",y)
+  y=gsub("^([vx][vx])$","\\(\\1\\)",y)
+  y=gsub("^([0-9][vx])$","\\(\\1\\)",y)
+  y=gsub("^([0-9][0-9])$","\\(\\1\\)",y)
+  y=gsub(" ([vx][0-9])$","\\(\\1\\)",y)
+  y=gsub(" ([vx][vx])$","\\(\\1\\)",y)
+  y=gsub(" ([0-9][vx])$"," \\(\\1\\)",y)
+  y=gsub(" ([0-9][0-9])$"," \\(\\1\\)",y)
+  y=str_squish(y)
+  y
+}
+
+```
+
+
+## 1.1. Functions to transform or simplify some individual level variables
+In this sections we simplify some of the individual level variables
+
+The next functions  simplify the categories of some variables. This simplified categories will be used both as individual level variables and to construct shares for geography level variables
+
+```{r}
+### Literacy
+# Replace literacy categories
+# Note: If literacy appears as 0 (the IPUMS label for it is N/A), we assign it an NA value. When creating the shares variables we will drop values that are NA. That means that the shares are created among people that gave a non 0 answer
+
+f_lit <- function(X,lit_v){
+  setnames( X,c(deparse(substitute(lit_v))),c("literacy"))
+  X[,literacy:=na_if(literacy,0)]
+  X <- X[literacy>= 1 & literacy<=3,literacy:=0] # Can't read or write
+  X <- X[literacy== 4,literacy:=1] # Can read or write
+  setnames( X,c("literacy"),c(deparse(substitute(lit_v))))
+  return(X)
+}
+
+
+### Race
+#Replace race categories categories
+f_race <- function(X,race_v){
+  setnames( X,c(deparse(substitute(race_v))),c("race_c"))
+  X <- X[race_c >=3,race_c:=3] # Other race
+  setnames( X,c("race_c"),c(deparse(substitute(race_v))))
+  return(X)
+}
+
+
+### Martial status
+# Replace literacy categories
+f_mar <- function(X,mar_v){
+  setnames( X,c(deparse(substitute(mar_v))),c("m"))
+  X <- X[m >= 2 & m<=5,m:=2] # Different that "married, spouse present" (category 1) and never married/single (category 3)
+  X <- X[m == 6,m:=3] # Never married/single
+  setnames( X,c("m"),c(deparse(substitute(mar_v))))
+  return(X)
+}
+
+
+# NOTE: The next functions construct simplified categories for some variables. The user can specify if he wants to keep the original variable or not. For geographic level share variables it is advisable to work with the simplified categories
+
+### Birthplace
+# Here we simplify categories by looking at group of countries.
+# Additionally we construct binary migration variables.
+
+# Note: The state_v variable has to be of the FIP code type, since bpl is in fip code
+f_bpl <- function(X,state_v,birth_v,flag=0,name){
+  # name is a size 2 character vector
+  if (!missing(name) & length(name)!=2 & typeof(name)!="character") stop("The name vector has to be a character vector of size 2") 
+  setnames( X,c(deparse(substitute(state_v)),deparse(substitute(birth_v))),c("st_v","bp_v") )
+  
+  # If state is different from birth of origin, consider as a migrant
+  X <- X[,m_us:=0][bp_v!=st_v,m_us:=1]
+  X <- X[,m_abr:=0][bp_v>=100,m_abr:=1]
+  
+  setnames( X,  c("st_v"),  c(deparse(substitute(state_v))) )
+  if (flag==1) {
+    # Simplify birthplace inside US
+    X <- X[bp_v %in% c(9,23,25,33,44,50),temp:=1] # New England
+    X <- X[bp_v %in% c(34,36,42),temp:=2] # Middle Atlantic
+    X <- X[bp_v %in% c(17,18,26,39,55),temp:=3] # East North Central
+    X <- X[bp_v %in% c(19,20,27,29,31,38,46),temp:=4] # West North Central
+    X <- X[bp_v %in% c(10,11,12,13,24,37,45,51,54),temp:=5] # South Atlantic
+    X <- X[bp_v %in% c(1,21,28,47),temp:=6] # East South Central
+    X <- X[bp_v %in% c(5,22,40,48),temp:=7] # West South Central
+    X <- X[bp_v %in% c(4,8,16,35,30,49,32,56),temp:=8] # Mountain
+    X <- X[bp_v %in% c(2,6,15,41,53),temp:=9] # Pacific
+    X <- X[bp_v<100,bp_v:=temp]
+    X <- X[,temp:=NULL]
+    
+    # Simplify birth place abroad
+    X <- X[bp_v %in% 100:199,bp_v:=150]  #U.S Outlying Areas + other North America
+    X <- X[bp_v %in% 200:300,bp_v:=200]  # Central America + SA
+    X <- X[bp_v %in% 500:599 | bp_v %in% 700:800,bp_v:=500] # Asia + Oceania
+    X <- X[bp_v %in% 600:699,bp_v:=600] # Africa
+    X <- X[bp_v %in% 400:405 | bp_v==419 ,bp_v:=400] #Northern Europe exc. Ireland and UK
+    X <- X[bp_v %in% 410:413,bp_v:=410] # UK excl. Ireland
+    X <- X[bp_v %in% 420:429,bp_v:=420] # Western Europe 
+    X <- X[bp_v %in% 430:440 & bp_v!=434,bp_v:=430] # Southern Europe exc. Italy 
+    X <- X[bp_v %in% 450:459 & bp_v!=453,bp_v:=450] # Central Europe exc. Germany
+    X <- X[bp_v %in% 460:499,bp_v:=460] # Russian Empire
+    X <- X[bp_v < 900] # drop if bp_v>=900
+    # Other bp values: 414 Ireland, 434 Italy, Germany 450
+    
+    setnames( X,c("bp_v"),c(deparse(substitute(birth_v))) )
+  } else {
+    X <- X[,bp_v:=NULL]
+  }
+  
+  if (missing(name)) {
+    setnames( X,c("m_us","m_abr"),c("migrant","migrant_abroud") )
+  } else {
+    setnames( X,c("m_us","m_abr"), name)
+  }
+  
+  return(X)
+}
+
+### Main sector using ind1950
+# NOTE: you need to provide the ind1950 variable
+f_ind1950 <- function(X,sec_v,flag=0) {
+  setnames( X,c(deparse(substitute(sec_v))),c("industry"))
+  
+  X <- X[industry %in% 100:199,ind1950_main:=1] # Agriculture
+  X <- X[industry %in% 200:299,ind1950_main:=2] # Mining and Construction
+  X <- X[industry %in% 300:499,ind1950_main:=3] # Manufacturing
+  X <- X[industry %in% 500:599,ind1950_main:=4] # Transportation, Communication, and Other Utilities
+  X <- X[industry %in% 600:699,ind1950_main:=5] # Trade
+  X <- X[industry %in% 700:899,ind1950_main:=6] # Services
+  X <- X[industry %in% 900:949,ind1950_main:=7] # Public Administration
+  X <- X[industry == 0 | industry>=950,ind1950_main:=0] # Non-specified, missing
+  
+  if (flag==0) {
+    setnames(X,c("industry"),c(deparse(substitute(sec_v))))
+  } else {
+    # Drop the individual industry number
+    X <- X[,industry:=NULL]
+  }
+  return(X)
+}
+
+
+### Main occupation using occ1950
+# We use the occ1950 because it is available in every sample. We have to think carefully what might be the issue if you use occ for other parts of the work.
+# NOTE: you need to provide the ind1950 variable
+f_occ1950 <- function(X,occ_v,flag=0) {
+  setnames( X,c(deparse(substitute(occ_v))),c("occupation"))
+  
+  X <- X[occupation >= 0 & occupation<= 99 ,occ1950_main:= 0] #           "Professional, Technical"
+  X <- X[occupation >= 100 & occupation<= 199, occ1950_main:= 100 ] #     "Farmers"
+  X <- X[occupation >= 200 & occupation<= 299, occ1950_main:= 200] #      "Managers, Officials, and Proprietors"',
+  X <- X[occupation >= 300 & occupation<= 399, occ1950_main:= 300] #      "Clerical and Kindred"
+  X <- X[occupation >= 400 & occupation<= 499, occ1950_main:= 400] #      "Sales workers"
+  X <- X[occupation >= 500 & occupation<= 599 , occ1950_main:= 500] #     "Craftsmen"
+  X <- X[occupation >= 600 & occupation<= 699, occ1950_main:= 600] #      "Operatives"
+  X <- X[occupation >= 700 & occupation<= 729, occ1950_main:= 700] #      "Service Workers (private household)"
+  X <- X[occupation >= 730 & occupation<= 799, occ1950_main:= 730] #      "Service Workers (not household)"
+  X <- X[occupation >= 800 & occupation<= 899, occ1950_main:= 800] #      "Farm laborers"
+  X <- X[occupation >= 900 & occupation<= 970, occ1950_main:= 900] #      "Laborers"
+  X <- X[occupation >= 979 & occupation<= 999, occ1950_main:= 979] #      "Missing, not classified"
+  
+  if (flag==0) {
+    setnames(X,c("occupation"),c(deparse(substitute(occ_v))))
+  } else {
+    # Drop the individual industry number
+    X <- X[,occupation:=NULL]
+  }
+  return(X)
+}
+
+### Main age groups
+f_age <- function(X,age_v,flag=0) {
+  setnames( X,c(deparse(substitute(age_v))),c("age_a"))
+  X <- X[age_a %in% 0:9,age_main:=0] # 0-9
+  X <- X[age_a %in% 10:15,age_main:=1] # 10-15
+  X <- X[age_a %in% 16:23,age_main:=2] # 16:23
+  X <- X[age_a %in% 24:29,age_main:=3] # 24:29
+  X <- X[age_a %in% 30:39,age_main:=4] # 30:39
+  X <- X[age_a %in% 40:49,age_main:=5] # 40:49
+  X <- X[age_a %in% 50:64,age_main:=6] # 50:64
+  X <- X[age_a >= 65,age_main:=7] # >=65
+  
+  if (flag==0) {
+    setnames(X,c("age_a"),c(deparse(substitute(age_v))))
+  } else {
+    # Drop the individual age 
+    X <- X[,age_a:=NULL]
+  }
+  return(X)
+}
+
+### Main Education cateogies
+f_educ <- function(X,educ_v,flag=0) {
+  setnames( X,c(deparse(substitute(educ_v))),c("educ_a"))
+  X <- X[,educ_main:=ifelse(educ_a<=5,1,0)]    # HS dropout
+  X <- X[educ_a>5 & educ_a<10,educ_main:=2]      # HS dropout
+  X <- X[educ_a>=10,educ_main:=3]              # College or post-graduate
+  X <- X[is.na(educ_a),educ_main:=NA]
+  
+  if (flag==0) {
+    setnames(X,c("educ_a"),c(deparse(substitute(educ_v))))
+  } else {
+    # Drop the individual age 
+    X <- X[,educ_a:=NULL]
+  }
+  return(X)
+}
+
+#### Wage
+# Create the weakly and hourly wage variables
+f_wage <- function(X,wage_v,hrswork_v,wkswork_v,flag=0) {
+  setnames(
+    X,
+    c(deparse(substitute(wage_v)),deparse(substitute(hrswork_v)),deparse(substitute(wkswork_v))),
+    c("wage_a","hrswork_a","wkswork_a")
+  )
+  
+  # Change the missing values (999999) and 0 to NA 
+  X <- X[wage_a == 0 | wage_a == 999999,wage_a:=NA]
+  
+  # Week's wage. Only compute the wkwage for individuals with non NA number of weeks
+  X <- X[wkswork_a>0 & !is.na(wkswork_a),wkwage:=wage_a/(wkswork_a)]
+  # Hour wage. Only compute the hrwage for individuals with non NA number of weeks and hrswork
+  X <- X[wkswork_a>0 & !is.na(wkswork_a) & hrswork_a>0 & !is.na(hrswork_a),hrwage:=wage_a/(wkswork_a*hrswork_a)]
+  
+  if (flag==0) {
+    setnames(
+      X,
+      c("wage_a","hrswork_a","wkswork_a"),
+      c(deparse(substitute(wage_v)),deparse(substitute(hrswork_v)),deparse(substitute(wkswork_v)))
+    )
+  } else {
+    # Drop the input variables
+    X <- X[,c("wage_a","hrswork_a","wkswork_a"):=NULL]
+  }
+  return(X)
+}
+
+### Migration 5 years
+f_mig5 <- function(X,mig5_v,mig5det_v,flag=0) {
+  setnames( X,c(deparse(substitute(mig5_v))),c("mig5_a"))
+  
+  # State migration
+  X <- X[mig5_a %in% c(1,2),mig5_state:=1]   # Didn't change state
+  X <- X[mig5_a %in% c(3),mig5_state:=2]     # Changed states
+  X <- X[mig5_a %in% c(4),mig5_state:=3]     # Changed countries
+  
+  # County migration
+  if(!(missing(mig5det_v))) {
+    setnames( X,c(deparse(substitute(mig5det_v))),c("mig5det_a"))
+    X <- X[mig5det_a %in% c(10,21),mig5_county:=1]          # Didn't change county
+    X <- X[mig5det_a %in% c(22,25),mig5_county:=2]             # Changed county within state
+    # NOTE: Code 25 is "Moved within state, Unknown within state. We assume this means moved across counties
+    X <- X[mig5det_a %in% c(31,32),mig5_county:=3]       # Changed county and state
+    X <- X[mig5det_a %in% c(40),mig5_county:=4]       # Changed country
+    
+  }
+  
+  if (flag==0) {
+    setnames(X,c("mig5_a"),c(deparse(substitute(mig5_v))))
+    if(!(missing(mig5det_v))) {
+      setnames(X,c("mig5det_a"),c(deparse(substitute(mig5det_v))))
+    }
+  } else {
+    # Drop the individual age 
+    X <- X[,mig5_a:=NULL]
+    if(!(missing(mig5det_v))) {
+      X <- X[,mig5det_a:=NULL]
+    }
+  }
+  return(X)
+}
+
+
+```
+
+For wage:
+wksowrk:  reports the number of weeks that the respondent worked for profit, pay, or as an unpaid family worker during the previous year
+wkswork2: like WKSWORK1, reports the number of weeks that the respondent worked for profit, pay, or as an unpaid family worker during the previous year in intervals
+hrswork1: is a 2-digit numeric variable that reports the total number of hours the respondent was at work during the previous week.
+hrswork2: like HRSWORK1, reports the total number of hours the respondent was at work during the previous week in intervals
+uhrswork: reports the number of hours per week that the respondent usually worked, if the person worked during the previous year.
+
+
+
+## 1.2. Functions to construct variables at a geographic level
+Here I construct a set of variables at the county level
+
+### Function to create shares
+```{r}
+f_shares <- function(X,geof,weight,var,flag=0,binary=0) {
+  # flag determines if the NA values are eliminated
+  # binary specifies if var is a binary (1,0) variable
+  X <- copy(X)
+  setnames( X,c(deparse(substitute(weight)),deparse(substitute(var)),deparse(substitute(geof))),c("w","v","g"))
+  var_ch <- deparse(substitute(var))
+  # flag=1 drop observations with NA values
+  if (flag==1) {  X <- X[!is.na(w) & w>0 & !is.na(v) & !is.na(g)]
+  } else {  X <- X[!is.na(w) & w>0 & !is.na(g)] }
+  
+  if (binary==0) {
+    X <- X[,lapply(.SD,sum,na.rm=TRUE),by=c("g","v"),.SDcols=c("w")]
+    X <- X[,sh_v:=sum(w,na.rm=TRUE),by=c("g")][,sh_v:=w/sh_v][,w:=NULL]
+      
+    #setnames(X, c("sh_v"), c( deparse(substitute(var))) ) 
+    X <- X[,v:=paste0("sh_",var_ch,"_",v)]    # We do this to avoid the variable being named as the values of v
+    X <- data.table::dcast(X, g ~ v, value.var = "sh_v")  
+    setnames(X,c("g"),c(deparse(substitute(geof))))
+  } else if (binary==1) {
+    X[,v:=v*w]
+    X <- X[,lapply(.SD,sum,na.rm=TRUE),by=c("g"),.SDcols=c("w","v")]
+    X <- X[,`:=`(v=v/w)][,w:=NULL]
+    setnames(X,c("g","v"),c(deparse(substitute(geof)),paste0("sh_",deparse(substitute(var)))))
+  }
+  return(X)
+}
+
+```
+
+### Function to compute averages
+```{r}
+f_average <- function(X,geof,weight,var,flag=0) {
+  # flag determines if the NA values are eliminated
+  X <- copy(X)
+  setnames( X,c(deparse(substitute(weight)),deparse(substitute(var)),deparse(substitute(geof))),c("w","v","g"))
+  # flag=1 drop observations with NA values
+  if (flag==1) {  X <- X[!is.na(w) & w>0 & !is.na(v) & v>0 & !is.na(g)]
+  } else {  X <- X[!is.na(w) & w>0 & !is.na(g)] }
+  
+  X <- X[,lapply(.SD,weighted.mean,w=w),by="g",.SDcols=c("v")]
+  setnames(X,c("g","v"),c(deparse(substitute(geof)),paste0("av_",deparse(substitute(var)))))
+
+  return(X)
+}
+```
+
+
+### Function to create Hirschman-Herfindahl index
+```{r}
+f_HHI <- function(X,geof,weight,arg_ind) {
+  X <- copy(X)
+  setnames( X,c(deparse(substitute(weight)),deparse(substitute(arg_ind)),deparse(substitute(geof))),c("w","v","g"))
+  # flag=1 drop observations with NA values
+  X <- X[!is.na(w) & w>0 & !is.na(g) & (!is.na(v) & v!=0 & v<950)]
+  
+  X <- X[,lapply(.SD,sum,na.rm=TRUE),by=c("g","v"),.SDcols=c("w")][,N:=.N,by=c("g")]
+  X <- X[,si:=sum(w),by=c("g")][,si:=w/si][,si2:=si*si]
+  X <- X[,H:=sum(si2),by=c("g")][,H:=-(H-1/N)/(1-1/N)]   # Last formula scales the index between -1 and 0. Values closer to zero imply more variety
+  X <- X[,.SD[1],by=c("g"),.SDcols=c("H")]
+  setnames(X,c("g"),c(deparse(substitute(geof))))
+  return(X)
+}
+
+
+```
+
+### Function to create variables related to work status
+1930 work related variables
+**Labforce** has three different answers: 0 (N/A), 1 (Not in the labor force) and 2 (in the labor force). We assume that everyone answering 0, is not in the labor force. When we look at the ages of people coded with an answer of 0 we find out that they were all less than 16 years old. 
+**empstat ** has 4 answers: 0 (N/A), 1 (Employed), 2 (Unemployed), 3 (Not in the labor force). We assume that everyone answering 0, is not in the labor force. For 1930 there were no observations with a value of empstat equal to 0.
+
+```{r}
+f_work <- function(X,geof,weight,arg_labforce,arg_empstat,arg_classwkr) {
+  X <- copy(X)
+  setnames( X,c(deparse(substitute(weight)),deparse(substitute(geof)),deparse(substitute(arg_labforce))),c("w","g","v_lf"))
+  # We treat N/A answers as the same as not in the labor force
+  X[,v_lf:=ifelse(v_lf==2,1,0)]
+  X[,`:=`(v_lf=v_lf*w)]
+  if (!missing(arg_empstat) & !missing(arg_classwkr)) { 
+    setnames(X,c(deparse(substitute(arg_empstat)),deparse(substitute(arg_classwkr))),c("v_emp","v_cl") )
+    X[,`:=`(temp=ifelse(v_emp==1|v_emp==2,1,0),v_unemp=ifelse(v_emp==2,1,0),        v_emp=ifelse(v_emp==1,1,0),v_wage=ifelse(v_cl==2,1,0),v_cl=ifelse(v_cl==1 | v_cl==2,1,0))]
+    X[,`:=`(temp=temp*w,v_unemp=v_unemp*w,v_emp=v_emp*w,v_wage=v_wage*w,v_cl=v_cl*w)]
+    X <- X[,lapply(.SD,sum,na.rm=TRUE),by=c("g"),.SDcols=c("w","v_lf","v_emp","temp","v_unemp","v_cl","v_wage")]
+    X <- X[,`:=`(sh_labforce=v_lf/w,sh_labforce_emp=v_emp/w,sh_unemp=v_unemp/temp,sh_labforce_cl=v_cl/w,sh_wrkwage=v_wage/v_cl)]
+    X[,c("v_emp","v_unemp","temp","v_cl","v_wage"):=NULL]
+  } else if (!missing(arg_empstat)) {
+    setnames(X,c(deparse(substitute(arg_empstat))),c("v_emp") )
+    X[,`:=`(temp=ifelse(v_emp==1|v_emp==2,1,0),v_unemp=ifelse(v_emp==2,1,0),v_emp=ifelse(v_emp==1,1,0))]
+    X[,`:=`(temp=temp*w,v_unemp=v_unemp*w,v_emp=v_emp*w)]
+    X <- X[,lapply(.SD,sum,na.rm=TRUE),by=c("g"),.SDcols=c("w","v_lf","v_emp","temp","v_unemp")]
+    X <- X[,`:=`(sh_labforce=v_lf/w,sh_labforce_emp=v_emp/w,sh_unemp=v_unemp/temp)]
+    X[,c("v_emp","v_unemp","temp"):=NULL]
+  } else if (!missing(arg_classwkr)) {
+    setnames(X,c(deparse(substitute(arg_classwkr))),c("v_cl") )
+    X[,`:=`(v_wage=ifelse(v_cl==2,1,0),v_cl=ifelse(v_cl==1 | v_cl==2,1,0))]
+    X[,`:=`(v_wage=v_wage*w,v_cl=v_cl*w)]
+    X <- X[,lapply(.SD,sum,na.rm=TRUE),by=c("g"),.SDcols=c("w","v_lf","v_cl","v_wage")]
+    X <- X[,`:=`(sh_labforce=v_lf/w,sh_labforce_cl=v_cl/w,sh_wrkwage=v_wage/v_cl)]
+    X[,c("v_cl","v_wage"):=NULL]
+  } else {
+    X <- X[,lapply(.SD,sum,na.rm=TRUE),by=c("g"),.SDcols=c("w","v_lf")]
+    X <- X[,`:=`(sh_labforce=v_lf/w)]
+  }
+  X[,c("w","v_lf"):=NULL]
+  setnames( X,c("g"),c(deparse(substitute(geof))))
+  
+  return(X)
+}
+
+
+```
+The function creates the following variables
+- sh_labforce: (population in the labor force)/(all the population of interest), we use code 2 in labforce to characterize people in the labor force
+- sh_labforce_emp: (population in the labor force)/(all the population of interest), we use code 1 and 2 in empstat to characterize in the labor force
+- sh_unemp: (pop unemployed)/(pop employed) use codes 1 (emp) and 2 (unemp) of variable empstat
+- sh_labforce_cl: (population in the labor force)/(all the population of interest), we use code 1 and 2 in classwkr to characterize in the labor force
+- sh_wrkwage: (works for wage)/(self-employed or works for wage), we use variable classwkr
+
+### Functions to organize data
+Takes individual level information, simplifies/changes it and create new variables of interest
+*** NOTE: ind1950=606 is associated with a 0 in year 1940. During that Census all wholesale trade work was assigned a unique industry (626, Miscellaneous wholesale trade)
+```{r}
+f_census_simplify <- function(X) {
+# NOTE: For this function to work we require all the variables used to be part of the X dataset 
+  if (is.null(X$statefip)) stop("You need to provide variable statefip")
+  
+  # Migrant status
+  ## International
+  if (!is.null(X$bpl))    X <- f_bpl(X,statefip,birth_v=bpl,flag=0,name=c("mig_us","mig_ab")) else warning("No variable bpl was provided")
+  if (!is.null(X$mbpl))   X <- f_bpl(X,statefip,birth_v=mbpl,flag=0,name=c("m_mig_us","m_mig_ab")) else warning("No variable mbpl was provided")
+  if (!is.null(X$fbpl))   X <- f_bpl(X,statefip,birth_v=fbpl,flag=0,name=c("f_mig_us","f_mig_ab")) else warning("No variable fbpl was provided")
+  
+  ## Internal (look at location 5 years ago)
+  if (!is.null(X$migrate5) & !is.null(X$migrate5d))   {
+    X <- f_mig5(X,mig5_v=migrate5,mig5det_v=migrate5d,flag=1)   # We drop the original variables
+  } else if (!is.null(X$migrate5) & is.null(X$migrate5d))  {
+    X <- f_mig5(X,mig5_v=migrate5,flag=1)   # We drop the original variables
+    warning("No variable migrate5d was provided")
+  } else warning("No migration variables were provided")
+  
+  # Literacy, Age (age groups), industry (industry groups), marital status, race, urban,ownership,education,wage
+  if (!is.null(X$lit))      X <- f_lit(X,lit)         else warning("No variable lit was provided")
+  if (!is.null(X$age))      X <- f_age(X,age,flag=0)  else warning("No variable age was provided")
+  if (!is.null(X$occ1950))  X <- f_occ1950(X,occ1950,flag=1) else warning("No variable occ1950 was provided")
+  if (!is.null(X$mars))     X <- f_mar(X,marst)              else warning("No variable marst was provided")
+  if (!is.null(X$race))     X <- f_race(X,race)              else warning("No variable race was provided")
+  if (!is.null(X$school))   X[,school:=ifelse(school==2,1,0)]    else warning("No variable school was provided")
+  if (!is.null(X$sex))      X[,male:=ifelse(sex==1,1,0)][,sex:=NULL]     else warning("No variable sex was provided")
+  if (!is.null(X$urban))    X[,urban:=ifelse(urban==2,1,0)]              else warning("No variable urban was provided")
+  if (!is.null(X$farm))     X[,farm:=ifelse(farm==2,1,0)]                else warning("No variable farm was provided")
+  if (!is.null(X$ownershp)) X[,ownershp:=na_if(ownershp,0)][!is.na(ownershp),ownershp:=ifelse(ownershp==1,1,0)] else warning("No variable ownershp was provided")
+  if (!is.null(X$educ))      X <- f_educ(X,educ,flag=0)  else warning("No variable educ was provided")
+  
+  if (!is.null(X$classwkr)) X <-X[,wwages:=ifelse(classwkr==2,1,0)]
+  if (!is.null(X$incwage) & !is.null(X$wkswork1) & !is.null(X$hrswork1)) {
+    X <- f_wage(X,wage_v=incwage,wkswork_v=wkswork1,hrswork_v=hrswork1,flag=0)
+  } else warning("One or more of the following variables was not provided: incwage, wkswork1, hrswork1")
+  
+  
+  # Industry variables
+  if (!is.null(X$ind1950))      X[,new_sector_ind1950:=ifelse(ind1950 %in% c(376,377,466,856,556,606,667,668,816),ind1950,0)]  # Keep only sectors identified as new
+  if (!is.null(X$ind1950))      X <- f_ind1950(X,ind1950,flag=0) else warning("No variable ind1950 was provided")   # I need ind1950 to compute HHI
+  
+  return(X)
+}
+
+```
+
+### Function to create final dataset
+NOTE: This function only works if all the variables used (e.g. male, age_main...) are provided. If that is not the case consider either changing the function by erasing the variables that are not present or doing the operations outside of the function.
+The function create shares of different variables at the geographical level. E.g. Given a binary vector for the variable male, we create the new variable share of male population at a given geographic dimension
+```{r}
+# NOTE: This function only works if all the variables exist
+f_geof_vars <- function(X,arg_geof,arg_p) {
+  setnames(X,deparse(substitute(arg_geof)),c("arg_geof"))
+  if (!missing(arg_p)) {setnames(X,deparse(substitute(arg_p)),c("perwt"))
+  } else {warning("No arg_p argument. Make sure your data contains a variable named perwt")}
+  
+  Y <- Reduce(
+    function(x, y, ...) merge(x, y,by="arg_geof", all = TRUE, ...),
+    list(
+      f_shares(X[,c("arg_geof","perwt","male")],arg_geof,perwt,male,flag=1,binary=1),
+      f_shares(X[occ1950_main<979,c("arg_geof","perwt","occ1950_main")],arg_geof,perwt,occ1950_main,flag=1),
+      f_shares(X[,c("arg_geof","perwt","age_main")],arg_geof,perwt,age_main,flag=1),
+      f_shares(X[,c("arg_geof","perwt","race")],arg_geof,perwt,race,flag=1),
+      f_shares(X[,c("arg_geof","perwt","school")],arg_geof,perwt,school,flag=1,binary=1),
+      f_shares(X[,c("arg_geof","perwt","urban")],arg_geof,perwt,urban,flag=1,binary=1),
+      f_shares(X[,c("arg_geof","perwt","farm")],arg_geof,perwt,farm,flag=1,binary=1),
+      f_shares(X[,c("arg_geof","perwt","marst")],arg_geof,perwt,marst,flag=1),
+      f_shares(X[,c("arg_geof","perwt","mig_us")],arg_geof,perwt,mig_us,flag=1,binary=1),
+      f_shares(X[,c("arg_geof","perwt","mig_ab")],arg_geof,perwt,mig_ab,flag=1,binary=1),
+      f_shares(X[,c("arg_geof","perwt","m_mig_ab")],arg_geof,perwt,m_mig_ab,flag=1,binary=1),
+      f_shares(X[,c("arg_geof","perwt","m_mig_us")],arg_geof,perwt,m_mig_us,flag=1,binary=1),
+      f_shares(X[,c("arg_geof","perwt","f_mig_ab")],arg_geof,perwt,f_mig_ab,flag=1,binary=1),
+      f_shares(X[,c("arg_geof","perwt","f_mig_us")],arg_geof,perwt,f_mig_us,flag=1,binary=1),
+      
+      #Industry
+      f_shares(X[ind1950_main != 0, c("arg_geof","perwt","ind1950_main")],arg_geof,perwt,ind1950_main,flag=1),
+      f_shares(X[ind1950_main != 0, c("arg_geof","perwt","ind1950_main","new_sector_ind1950")][,c("ind1950_main"):=NULL],arg_geof,perwt,new_sector_ind1950,flag=1),
+      f_HHI(X[,c("arg_geof","perwt","ind1950")],arg_geof,perwt,ind1950),
+      
+      # Regional population
+      X[,c("arg_geof","perwt")][,lapply(.SD,sum,na.rm=TRUE),by=c("arg_geof"),.SDcols=c("perwt")],
+      
+      # Keeping only one statefip if the country appears in more than one
+      X[,c("arg_geof","perwt","statefip")][,lapply(.SD,sum,na.rm=TRUE),by=c("arg_geof","statefip"),.SDcols=c("perwt")][order(arg_geof,-perwt)][,.SD[1],by=c("arg_geof"),.SDcols="statefip"]
+      )
+  )
+  
+  # Ownership variable
+  if (length(X$ownershp)>0) {
+    Y <- merge(Y,f_shares(X[,c("arg_geof","perwt","ownershp")],arg_geof,perwt,ownershp,flag=1,binary=1),by="arg_geof", all = TRUE)
+  }
+  
+  # Education related variables
+  # literacy
+  if (length(X$lit)>0) {
+    Y <- 
+      merge(
+        Y,
+        f_shares(X[,c("arg_geof","perwt","lit")],arg_geof,perwt,lit,binary=1,flag=1),
+        by="arg_geof", all = TRUE)
+  }
+  
+  # educ_main
+  if (length(X$educ_main)>0) {
+    Y <- 
+      merge(
+        Y,
+        f_shares(X[,c("arg_geof","perwt","educ_main")],arg_geof,perwt,educ_main,flag=1),
+        by="arg_geof", all = TRUE)
+  }
+  
+  # Wage related variables
+  #* Here we compute the average wage using the different wage definitions
+  #* NOTE: average wage is computed for everyone having a wage.
+  if (length(X$incwage)>0) {
+    Y <- 
+      merge(
+        Y,
+        f_average(X[,c("arg_geof","perwt","incwage")],arg_geof,perwt,incwage,flag=1),
+        by="arg_geof", all = TRUE)
+  }
+  if (length(X$wkwage)>0) {
+    Y <- 
+      merge(
+        Y,
+        f_average(X[,c("arg_geof","perwt","wkwage")][wkwage>0 & wkwage!=Inf & !is.na(wkwage)],arg_geof,perwt,wkwage,flag=1),
+        by="arg_geof", all = TRUE)
+  } 
+  if (length(X$hrwage)>0) {
+    Y <- 
+      merge(
+        Y,
+        f_average(X[,c("arg_geof","perwt","hrwage")][hrwage>0 & hrwage!=Inf & !is.na(hrwage)],arg_geof,perwt,hrwage,flag=1),
+        by="arg_geof", all = TRUE)
+  } 
+  
+  
+  # Migration related variables
+  if (length(X$mig5_state)>0) {
+    Y <- merge(Y,f_shares(X[,c("arg_geof","perwt","mig5_state")],arg_geof,perwt,mig5_state,flag=1),by="arg_geof",all=TRUE)
+  }
+  if (length(X$mig5_county)>0) {
+    Y <- merge(Y,f_shares(X[,c("arg_geof","perwt","mig5_county")],arg_geof,perwt,mig5_county,flag=1),by="arg_geof",all=TRUE)
+  }
+  
+  # Employment related variables
+  if (length(X$empstat)>0 & length(X$classwkr)>0) {
+    X <- merge(Y,f_work(X[age>=16,c("arg_geof","perwt","labforce","empstat","classwkr","age")][,c("arg_geof","perwt","labforce","empstat","classwkr")],arg_geof,perwt,labforce,empstat,classwkr),by="arg_geof", all = TRUE)
+  } else if (length(X$empstat)>0 & length(X$classwkr)<=0) {
+    X <- merge(Y,f_work(X[age>=16,c("arg_geof","perwt","labforce","empstat","age")][,c("arg_geof","perwt","labforce","empstat")],arg_geof,perwt,arg_labforce=labforce,arg_empstat=empstat),by="arg_geof", all = TRUE)
+  } else if (length(X$empstat)<=0 & length(X$classwkr)>0) {
+    X <- merge(Y,f_work(X[age>=16,c("arg_geof","perwt","labforce","classwkr","age")][,c("arg_geof","perwt","labforce","classwkr")],arg_geof,perwt,arg_labforce=labforce,arg_classwkr=classwkr),by="arg_geof", all = TRUE)
+  } else if (length(X$empstat)<=0 & length(X$classwkr)<=0) {
+    X <- merge(Y,f_work(X[age>=16,c("arg_geof","perwt","labforce","age")][,c("arg_geof","perwt","labforce")],arg_geof,perwt,arg_labforce=labforce),by="arg_geof", all = TRUE)
+  }
+  
+  setnames(X,c("arg_geof"),deparse(substitute(arg_geof)))
+  if (!missing(arg_p)) setnames(X,c("perwt"),deparse(substitute(arg_p)))
+  return(X)
+}
+
+
+
+```
+
+### Function to Create aggregated database
+```{r}
+f_geographic_database <- function(X,arg_geof,arg_new_titles) {
+  # Change arg_geof variable
+  setnames(X,deparse(substitute(arg_geof)),c("arg_geof"))
+  
+  # Simplify
+  X <- f_census_simplify(X)
+  
+  # Compute geof level shares and work variables
+  # NOTE : if not all the variables are present, do the final construction manually
+  X <- f_geof_vars(X,arg_geof)
+  X <- X[!is.na(arg_geof)]
+  
+  if (missing(arg_new_titles)) {print(""); print("No variable with New Title information provided")
+  } else {
+    print("")
+    warning("The arg_new_titles data has to be aggregated at the industry level of interest")
+    setnames(arg_new_titles,deparse(substitute(arg_geof)),c("arg_geof"))
+    X <- merge(X,arg_new_titles,by="arg_geof",all.x=TRUE,all.y=FALSE)
+  }
+  
+  # Convert all cells with NA values to 0
+  X <- X[,lapply(.SD,function(x) {x[is.na(x)] <- 0; x}),.SDcols=names(X)]
+  
+  setnames(X,c("arg_geof"),deparse(substitute(arg_geof)))
+  if (!missing(arg_new_titles)) { setnames(arg_new_titles,c("arg_geof"),deparse(substitute(arg_geof)))}
+  
+  return(X)
+}
+ 
+```
+
+
+# 3. Constructing databases with information of SHARE OF NEW WORK at a geographic level
+We want to construct a set of variables that characterize geographic locations. For that we use the information at the individual level and create share or level variables. 
+## 3.1 1930 
+### 3.1.1. Import the database with information about new titles
+```{r}
+occ1930.codes <- as.data.table( read_excel(paste0(main_directory,"R - Processing data/input/1930 - Cleaned.xlsx"), sheet = "1930 main groups",guess_max=10000) )[,!c("occ_ini_1930","occ1930","occ_name")]
+
+new_titles.occind1930 <- list(
+                                read_fst(paste0(main_directory,"R - Processing data/output/Rdata/new_titles_1930_by_occind.fst"),as.data.table=TRUE),
+                                read_fst(paste0(main_directory,"R - Processing data/output/Rdata/new_titles_1930_by_occind.all.fst"),as.data.table=TRUE)
+)
+
+new_titles.occind1930[[1]] <- merge(new_titles.occind1930[[1]],occ1930.codes[,c("occind1930","occind1930_name","occ","ind","occind","flag")],by="occind1930",all=TRUE)
+new_titles.occind1930[[2]] <- merge(new_titles.occind1930[[2]],occ1930.codes[,c("occind1930","occind1930_name","occ","ind","occind","flag")],by="occind1930",all=TRUE)
+
+write.xlsx(new_titles.occind1930[[1]],paste0(main_directory,"R - Processing data/output/Tables/new_titles.occind1930_within.xlsx"),row.names = TRUE)
+
+```
+
+### 3.1.2 Aggregate the Census data and merge with the new titles vector
+#### Import and aggregate Census data
+```{r}
+new_titles_agg <-read_fst(paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1930.fst"),as.data.table=TRUE,columns=c("countynhg","countynhg_1910","metarea_1940","occind","perwt","ind1950"))[!is.na(countynhg)]
+
+new_titles_agg_all <- new_titles_agg[,.(perwt=sum(perwt)),by=c("countynhg","countynhg_1910","metarea_1940","occind")]
+new_titles_agg_no_new_sec_all <- new_titles_agg[!(ind1950 %in% c(376,377,466,556,606,667,668,816,856))][,.(perwt=sum(perwt)),by=c("countynhg","countynhg_1910","metarea_1940","occind")]
+new_titles_agg_no_new_sec_main <- new_titles_agg[!(ind1950 %in% c(376,377,466,856))][,.(perwt=sum(perwt)),by=c("countynhg","countynhg_1910","metarea_1940","occind")]
+
+rm(new_titles_agg)
+```
+
+#### Merge with new titles information
+We can merge with either the new_titles vector that uses all titles (second element in the list) or the one using titles within occ (first element in the list)
+```{r}
+# We only keep rows that have an occind code. The share of new titles will be computed using only persons that have a valid occind code
+new_titles_agg_all <- merge(new_titles_agg_all,new_titles.occind1930[[1]][,c("sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind","occind")],by=c("occind"),all.x=TRUE,all.y=FALSE)[!is.na(occind)]
+new_titles_agg_no_new_sec_all <- merge(new_titles_agg_no_new_sec_all,new_titles.occind1930[[1]][,c("sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind","occind")],by=c("occind"),all.x=TRUE,all.y=FALSE)[!is.na(occind)]
+new_titles_agg_no_new_sec_main <- merge(new_titles_agg_no_new_sec_main,new_titles.occind1930[[1]][,c("sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind","occind")],by=c("occind"),all.x=TRUE,all.y=FALSE)[!is.na(occind)]
+
+write_fst(new_titles_agg_all, paste0(main_directory,"R - Processing data/output/Rdata/new_titles_agg.fst"))
+write_fst(new_titles_agg_no_new_sec_all, paste0(main_directory,"R - Processing data/output/Rdata/new_titles_agg_no_new_sec_all.fst"))
+write_fst(new_titles_agg_no_new_sec_main, paste0(main_directory,"R - Processing data/output/Rdata/new_titles_agg_no_new_sec_main.fst"))
+```
+
+## 3.2 1940 
+### 3.2.1. Import the databases with information about new titles
+```{r}
+# Importing occupation codes and links between IPUMS code and Census code
+occ1940.codes <- as.data.table( read_excel(paste0(main_directory,"R - Processing data/input/1940 - Cleaned.xlsx"), sheet = "occ1940",guess_max=10000) )[,`:=`(occ1940_IPUMS=as.numeric(occ1940_IPUMS),occ1940=tolower(occ1940))][,!c("ind1940_IPUMS","ind1940","occind1940")][,.SD[1],by="occ1940"]
+#*** Note: We only work with occupation codes, omitting the industry part
+
+# Importing industry codes and links between IPUMS code and Census code
+ind1940.codes <- as.data.table( read_excel(paste0(main_directory,"R - Processing data/input/1940 - Cleaned.xlsx"), sheet = "ind1940",guess_max=10000) )[,ind1940:=tolower(ind1940)][,name_ind1940:=f_clean_conj(f_change_words(f_change_syms(f_clean_punct(tolower(name_ind1940),flag=0) )) )][is.na(name_ind1940_subgroup),name_ind1940_subgroup:=name_ind1940_main]
+
+# New titles database. 
+#* We are only working with reducing titles within occ-ind_subgroup groups
+#* dataset_1: The REST category is considered independently and associated to each other subindustry (by occ1940) that doesn't already exist
+#* dataset_2: Every title in the REST category is repeated in all the subindustries (by occ1940). We drop repeated titles by occ1940-subindustry
+#* dataset_3: We work at the occ1940. For a given occ1940, every subindustry has the same value for all the variables
+
+new_titles_1940.by_occ_subind <- read_fst(paste0(main_directory,"R - Processing data/output/Rdata/new_titles_1940_by_occ_subind.fst"),as.data.table=TRUE)[set=="within"][,set:=NULL]
+```
+*** NOTE: We are only working with the database that looks for repeated titles within occ1940-subind group
+
+### 3.2.2 Aggregate the Census data and merge with the new titles vector
+#### Import and aggregate Census data
+* NOTE: We drop people working in NONCLASSIFIABLE occupations, without occ1940 or subindustry, and without a geographic variable
+```{r}
+new_titles_agg_1940 <-
+  read_fst(
+    paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1940.fst"),as.data.table=TRUE,
+    columns=c("icpsrfip","countynhg_1910","metarea_1940","occ1940","perwt","name_ind1940_subgroup","ind1950")
+    )[!is.na(occ1940) & !is.na(name_ind1940_subgroup) & name_ind1940_subgroup!="NONCLASSIFIABLE"][!(is.na(icpsrfip) & is.na(countynhg_1910) & is.na(metarea_1940))]
+
+new_titles_agg_all_1940 <- new_titles_agg_1940[,.(perwt=sum(perwt)),by=c("icpsrfip","countynhg_1910","metarea_1940","occ1940","name_ind1940_subgroup")]
+new_titles_agg_no_new_sec_all_1940 <- new_titles_agg_1940[!(ind1950 %in% c(376,377,466,556,606,667,668,816,856))][,.(perwt=sum(perwt)),by=c("icpsrfip","countynhg_1910","metarea_1940","occ1940","name_ind1940_subgroup")]
+new_titles_agg_no_new_sec_main_1940 <- new_titles_agg_1940[!(ind1950 %in% c(376,377,466,856))][,.(perwt=sum(perwt)),c("icpsrfip","countynhg_1910","metarea_1940","occ1940","name_ind1940_subgroup")]
+
+rm(new_titles_agg_1940)
+```
+
+#### Merge with new titles information
+We merge the number of people per occ1940-name_ind1940_subgroup-geography with the information about new titles
+```{r}
+# We only keep rows that have an occind code. The share of new titles will be computed using only persons that have a valid occind code
+new_titles_agg_all_1940 <- merge(new_titles_agg_all_1940,new_titles_1940.by_occ_subind[!is.na("occ1940")][,c("occ1940","name_ind1940_subgroup","sh_new_all_dataset1","sh_new_all_dataset2","sh_new_all_dataset3","sh_new_method1_dataset1","sh_new_method1_dataset2","sh_new_method1_dataset3","sh_new_method2_dataset1","sh_new_method2_dataset2","sh_new_method2_dataset3")],by=c("occ1940","name_ind1940_subgroup"),all.x=TRUE,all.y=FALSE)[!is.na(occ1940)]
+
+new_titles_agg_no_new_sec_all_1940 <- merge(new_titles_agg_no_new_sec_all_1940,new_titles_1940.by_occ_subind[!is.na("occ1940")][,c("occ1940","name_ind1940_subgroup","sh_new_all_dataset1","sh_new_all_dataset2","sh_new_all_dataset3","sh_new_method1_dataset1","sh_new_method1_dataset2","sh_new_method1_dataset3","sh_new_method2_dataset1","sh_new_method2_dataset2","sh_new_method2_dataset3")],by=c("occ1940","name_ind1940_subgroup"),all.x=TRUE,all.y=FALSE)[!is.na(occ1940)]
+new_titles_agg_no_new_sec_main_1940 <- merge(new_titles_agg_no_new_sec_main_1940,new_titles_1940.by_occ_subind[!is.na("occ1940")][,c("occ1940","name_ind1940_subgroup","sh_new_all_dataset1","sh_new_all_dataset2","sh_new_all_dataset3","sh_new_method1_dataset1","sh_new_method1_dataset2","sh_new_method1_dataset3","sh_new_method2_dataset1","sh_new_method2_dataset2","sh_new_method2_dataset3")],by=c("occ1940","name_ind1940_subgroup"),all.x=TRUE,all.y=FALSE)[!is.na(occ1940)]
+
+write_fst(new_titles_agg_all_1940, paste0(main_directory,"R - Processing data/output/Rdata/new_titles_agg_1940.fst"))
+write_fst(new_titles_agg_no_new_sec_all_1940, paste0(main_directory,"R - Processing data/output/Rdata/new_titles_agg_no_new_sec_all_1940.fst"))
+write_fst(new_titles_agg_no_new_sec_main_1940, paste0(main_directory,"R - Processing data/output/Rdata/new_titles_agg_no_new_sec_main_1940.fst"))
+```
+
+# 4. Constructing databases with general geographical variables
+## 4.0. Importing division x state crosswalk
+```{r}
+division_statefip <- as.data.table( read_excel(paste0(main_directory,"R - Processing data/input/division_state.xlsx"), sheet = "codes",guess_max=10000) )[,c("division","statefip","name_statefip")][,c("division","statefip"):=lapply(.SD,function(x) as.integer(x)),.SDcols=c("division","statefip")]
+```
+
+## 4.1. Creating aggregated databases
+### 1880
+NOTE: no empstat, classwkr, ownershp in 1880
+*** **NOTE:** I introduce the division variable in this section
+***           **UPDATE OTHER DATASETS THAT ARE AFFECTED BY IT**
+```{r}
+Initial <-read_fst(paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1880.fst"),as.data.table=TRUE,columns=c("statefip","countynhg","countynhg_1910","metarea_1940","urban","farm","perwt","famsize","sex","school","lit","age","marst","race","bpl","mbpl","fbpl","labforce","occ1950","ind1950","occscore"))
+
+# Division variable
+Initial <- merge(Initial,division_statefip,by="statefip",all.x=TRUE,all.y=FALSE)
+
+# countynhg
+census_sample_1880_agg_countynhg <- f_geographic_database(
+                                          Initial[,!c("countynhg_1910","metarea_1940")][!is.na(countynhg)],
+                                          countynhg)
+write_fst(census_sample_1880_agg_countynhg, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1880_agg_countynhg.fst"))
+
+# countynhg_1910
+census_sample_1880_agg_countynhg_1910 <- f_geographic_database(
+                                          Initial[,!c("countynhg","metarea_1940")][!is.na(countynhg_1910)],
+                                          countynhg_1910)
+census_sample_1880_agg_countynhg_1910_no_new_sec_all <- f_geographic_database(
+                    Initial[!(ind1950 %in% c(376,377,466,556,606,667,668,816,856)),!c("countynhg","metarea_1940")][!is.na(countynhg_1910)],
+                    countynhg_1910)
+census_sample_1880_agg_countynhg_1910_no_new_sec_main <- f_geographic_database(
+                    Initial[!(ind1950 %in% c(376,377,466,856)),!c("countynhg","metarea_1940")][!is.na(countynhg_1910)],
+                    countynhg_1910)
+write_fst(census_sample_1880_agg_countynhg_1910, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1880_agg_countynhg_1910.fst"))
+write_fst(census_sample_1880_agg_countynhg_1910_no_new_sec_all, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1880_agg_countynhg_1910_no_new_sec_all.fst"))
+write_fst(census_sample_1880_agg_countynhg_1910_no_new_sec_main, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1880_agg_countynhg_1910_no_new_sec_main.fst"))
+
+# metarea_1940
+census_sample_1880_agg_metarea_1940 <- f_geographic_database(
+                                          Initial[,!c("countynhg","countynhg_1910")][!is.na(metarea_1940)],
+                                          metarea_1940)
+census_sample_1880_agg_metarea_1940_no_new_sec_all <- f_geographic_database(
+                                          Initial[!(ind1950 %in% c(376,377,466,556,606,667,668,816,856)), !c("countynhg","countynhg_1910")][!is.na(metarea_1940)],
+                                          metarea_1940)
+census_sample_1880_agg_metarea_1940_no_new_sec_main <- f_geographic_database(
+                                          Initial[!(ind1950 %in% c(376,377,466,856)), !c("countynhg","countynhg_1910")][!is.na(metarea_1940)],
+                                          metarea_1940)
+write_fst(census_sample_1880_agg_metarea_1940, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1880_agg_metarea_1940.fst"))
+write_fst(census_sample_1880_agg_metarea_1940_no_new_sec_all, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1880_agg_metarea_1940_no_new_sec_all.fst"))
+write_fst(census_sample_1880_agg_metarea_1940_no_new_sec_main, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1880_agg_metarea_1940_no_new_sec_main.fst"))
+
+rm(list = ls(pattern="^census_sample_1880_agg_") )
+rm(Initial)
+```
+
+### 1900
+NOTE: no empstat, classwkr in 1900
+```{r}
+Initial <-read_fst(paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1900.fst"),as.data.table=TRUE,columns=c("statefip","countynhg","countynhg_1910","metarea_1940","urban","farm","ownershp","perwt","famsize","sex","school","lit","age","marst","race","bpl","mbpl","fbpl","labforce","occ1950","ind1950","occscore"))
+
+# Division variable
+Initial <- merge(Initial,division_statefip,by="statefip",all.x=TRUE,all.y=FALSE)
+
+# countynhg
+census_sample_1900_agg_countynhg <- f_geographic_database(
+                                          Initial[,!c("countynhg_1910","metarea_1940")][!is.na(countynhg)],
+                                          countynhg)
+write_fst(census_sample_1900_agg_countynhg, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1900_agg_countynhg.fst"))
+
+# countynhg_1910
+census_sample_1900_agg_countynhg_1910 <- f_geographic_database(
+                                          Initial[,!c("countynhg","metarea_1940")][!is.na(countynhg_1910)],
+                                          countynhg_1910)
+census_sample_1900_agg_countynhg_1910_no_new_sec_all <- f_geographic_database(
+                    Initial[!(ind1950 %in% c(376,377,466,556,606,667,668,816,856)),!c("countynhg","metarea_1940")][!is.na(countynhg_1910)],
+                    countynhg_1910)
+census_sample_1900_agg_countynhg_1910_no_new_sec_main <- f_geographic_database(
+                    Initial[!(ind1950 %in% c(376,377,466,856)),!c("countynhg","metarea_1940")][!is.na(countynhg_1910)],
+                    countynhg_1910)
+write_fst(census_sample_1900_agg_countynhg_1910, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1900_agg_countynhg_1910.fst"))
+write_fst(census_sample_1900_agg_countynhg_1910_no_new_sec_all, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1900_agg_countynhg_1910_no_new_sec_all.fst"))
+write_fst(census_sample_1900_agg_countynhg_1910_no_new_sec_main, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1900_agg_countynhg_1910_no_new_sec_main.fst"))
+
+# metarea_1940
+census_sample_1900_agg_metarea_1940 <- f_geographic_database(
+                                          Initial[,!c("countynhg","countynhg_1910")][!is.na(metarea_1940)],
+                                          metarea_1940)
+census_sample_1900_agg_metarea_1940_no_new_sec_all <- f_geographic_database(
+                                          Initial[!(ind1950 %in% c(376,377,466,556,606,667,668,816,856)), !c("countynhg","countynhg_1910")][!is.na(metarea_1940)],
+                                          metarea_1940)
+census_sample_1900_agg_metarea_1940_no_new_sec_main <- f_geographic_database(
+                                          Initial[!(ind1950 %in% c(376,377,466,856)), !c("countynhg","countynhg_1910")][!is.na(metarea_1940)],
+                                          metarea_1940)
+write_fst(census_sample_1900_agg_metarea_1940, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1900_agg_metarea_1940.fst"))
+write_fst(census_sample_1900_agg_metarea_1940_no_new_sec_all, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1900_agg_metarea_1940_no_new_sec_all.fst"))
+write_fst(census_sample_1900_agg_metarea_1940_no_new_sec_main, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1900_agg_metarea_1940_no_new_sec_main.fst"))
+
+rm(list = ls(pattern="^census_sample_1900_agg_") )
+rm(Initial)
+```
+
+### 1910
+NOTE: NO empstat in 1910
+```{r}
+Initial <-read_fst(paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1910.fst"),as.data.table=TRUE,columns=c("statefip","countynhg","countynhg_1910","metarea_1940","urban","farm","ownershp","perwt","famsize","sex","school","lit","age","marst","race","bpl","mbpl","fbpl","labforce","classwkr","occ1950","ind1950","occscore"))
+
+# Division variable
+Initial <- merge(Initial,division_statefip,by="statefip",all.x=TRUE,all.y=FALSE)
+
+# countynhg
+census_sample_1910_agg_countynhg <- f_geographic_database(
+                                          Initial[,!c("countynhg_1910","metarea_1940")][!is.na(countynhg)],
+                                          countynhg)
+write_fst(census_sample_1910_agg_countynhg, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1910_agg_countynhg.fst"))
+
+# countynhg_1910
+census_sample_1910_agg_countynhg_1910 <- f_geographic_database(
+                                          Initial[,!c("countynhg","metarea_1940")][!is.na(countynhg_1910)],
+                                          countynhg_1910)
+census_sample_1910_agg_countynhg_1910_no_new_sec_all <- f_geographic_database(
+                    Initial[!(ind1950 %in% c(376,377,466,556,606,667,668,816,856)),!c("countynhg","metarea_1940")][!is.na(countynhg_1910)],
+                    countynhg_1910)
+census_sample_1910_agg_countynhg_1910_no_new_sec_main <- f_geographic_database(
+                    Initial[!(ind1950 %in% c(376,377,466,856)),!c("countynhg","metarea_1940")][!is.na(countynhg_1910)],
+                    countynhg_1910)
+write_fst(census_sample_1910_agg_countynhg_1910, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1910_agg_countynhg_1910.fst"))
+write_fst(census_sample_1910_agg_countynhg_1910_no_new_sec_all, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1910_agg_countynhg_1910_no_new_sec_all.fst"))
+write_fst(census_sample_1910_agg_countynhg_1910_no_new_sec_main, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1910_agg_countynhg_1910_no_new_sec_main.fst"))
+
+# metarea_1940
+census_sample_1910_agg_metarea_1940 <- f_geographic_database(
+                                          Initial[,!c("countynhg","countynhg_1910")][!is.na(metarea_1940)],
+                                          metarea_1940)
+census_sample_1910_agg_metarea_1940_no_new_sec_all <- f_geographic_database(
+                                          Initial[!(ind1950 %in% c(376,377,466,556,606,667,668,816,856)), !c("countynhg","countynhg_1910")][!is.na(metarea_1940)],
+                                          metarea_1940)
+census_sample_1910_agg_metarea_1940_no_new_sec_main <- f_geographic_database(
+                                          Initial[!(ind1950 %in% c(376,377,466,856)), !c("countynhg","countynhg_1910")][!is.na(metarea_1940)],
+                                          metarea_1940)
+write_fst(census_sample_1910_agg_metarea_1940, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1910_agg_metarea_1940.fst"))
+write_fst(census_sample_1910_agg_metarea_1940_no_new_sec_all, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1910_agg_metarea_1940_no_new_sec_all.fst"))
+write_fst(census_sample_1910_agg_metarea_1940_no_new_sec_main, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1910_agg_metarea_1940_no_new_sec_main.fst"))
+
+rm(list = ls(pattern="^census_sample_1910_agg_") )
+rm(Initial)
+
+```
+
+
+### 1920
+NOTE: NO empstat in 1920
+```{r}
+Initial <-read_fst(paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1920.fst"),as.data.table=TRUE,columns=c("statefip","countynhg","countynhg_1910","metarea_1940","urban","farm","ownershp","perwt","famsize","sex","school","lit","age","marst","race","bpl","mbpl","fbpl","labforce","classwkr","occ1950","ind1950","occscore"))
+
+# Division variable
+Initial <- merge(Initial,division_statefip,by="statefip",all.x=TRUE,all.y=FALSE)
+
+# countynhg
+census_sample_1920_agg_countynhg <- f_geographic_database(
+                                          Initial[,!c("countynhg_1910","metarea_1940")][!is.na(countynhg)],
+                                          countynhg)
+write_fst(census_sample_1920_agg_countynhg, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1920_agg_countynhg.fst"))
+
+# countynhg_1910
+census_sample_1920_agg_countynhg_1910 <- f_geographic_database(
+                                          Initial[,!c("countynhg","metarea_1940")][!is.na(countynhg_1910)],
+                                          countynhg_1910)
+census_sample_1920_agg_countynhg_1910_no_new_sec_all <- f_geographic_database(
+                    Initial[!(ind1950 %in% c(376,377,466,556,606,667,668,816,856)),!c("countynhg","metarea_1940")][!is.na(countynhg_1910)],
+                    countynhg_1910)
+census_sample_1920_agg_countynhg_1910_no_new_sec_main <- f_geographic_database(
+                    Initial[!(ind1950 %in% c(376,377,466,856)),!c("countynhg","metarea_1940")][!is.na(countynhg_1910)],
+                    countynhg_1910)
+write_fst(census_sample_1920_agg_countynhg_1910, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1920_agg_countynhg_1910.fst"))
+write_fst(census_sample_1920_agg_countynhg_1910_no_new_sec_all, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1920_agg_countynhg_1910_no_new_sec_all.fst"))
+write_fst(census_sample_1920_agg_countynhg_1910_no_new_sec_main, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1920_agg_countynhg_1910_no_new_sec_main.fst"))
+
+# metarea_1940
+census_sample_1920_agg_metarea_1940 <- f_geographic_database(
+                                          Initial[,!c("countynhg","countynhg_1910")][!is.na(metarea_1940)],
+                                          metarea_1940)
+census_sample_1920_agg_metarea_1940_no_new_sec_all <- f_geographic_database(
+                                          Initial[!(ind1950 %in% c(376,377,466,556,606,667,668,816,856)), !c("countynhg","countynhg_1910")][!is.na(metarea_1940)],
+                                          metarea_1940)
+census_sample_1920_agg_metarea_1940_no_new_sec_main <- f_geographic_database(
+                                          Initial[!(ind1950 %in% c(376,377,466,856)), !c("countynhg","countynhg_1910")][!is.na(metarea_1940)],
+                                          metarea_1940)
+write_fst(census_sample_1920_agg_metarea_1940, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1920_agg_metarea_1940.fst"))
+write_fst(census_sample_1920_agg_metarea_1940_no_new_sec_all, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1920_agg_metarea_1940_no_new_sec_all.fst"))
+write_fst(census_sample_1920_agg_metarea_1940_no_new_sec_main, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1920_agg_metarea_1940_no_new_sec_main.fst"))
+
+rm(list = ls(pattern="^census_sample_1920_agg_") )
+rm(Initial)
+```
+
+### 1930
+```{r}
+Initial <-read_fst(paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1930.fst"),as.data.table=TRUE,columns=c("statefip","countynhg","countynhg_1910","metarea_1940","urban","farm","ownershp","perwt","famsize","sex","school","lit","age","marst","race","bpl","mbpl","fbpl","empstat","labforce","classwkr","occ1950","ind1950","occscore"))
+
+# countynhg
+census_sample_1930_agg_countynhg <- f_geographic_database(
+              Initial[,!c("countynhg_1910","metarea_1940")][!is.na(countynhg)],
+              countynhg,
+              new_titles_agg_all[!is.na(countynhg)][,lapply(.SD,weighted.mean,w=perwt),by=c("countynhg"),.SDcols=c("sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind")])
+# Division variable
+census_sample_1930_agg_countynhg <- merge(census_sample_1930_agg_countynhg,division_statefip,by="statefip",all.x=TRUE,all.y=FALSE)
+
+write_fst(census_sample_1930_agg_countynhg, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1930_agg_countynhg.fst"))
+
+# countynhg_1910
+census_sample_1930_agg_countynhg_1910 <- f_geographic_database(
+            Initial[,!c("countynhg","metarea_1940")][!is.na(countynhg_1910)],
+            countynhg_1910,
+            new_titles_agg_all[!is.na(countynhg_1910)][,lapply(.SD,weighted.mean,w=perwt),by=c("countynhg_1910"),.SDcols=c("sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind")])
+census_sample_1930_agg_countynhg_1910_no_new_sec_all <- f_geographic_database(
+            Initial[!(ind1950 %in% c(376,377,466,556,606,667,668,816,856)),!c("countynhg","metarea_1940")][!is.na(countynhg_1910)],
+            countynhg_1910,
+            new_titles_agg_no_new_sec_all[!is.na(countynhg_1910)][,lapply(.SD,weighted.mean,w=perwt),by=c("countynhg_1910"),.SDcols=c("sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind")])
+census_sample_1930_agg_countynhg_1910_no_new_sec_main <- f_geographic_database(
+            Initial[!(ind1950 %in% c(376,377,466,856)),!c("countynhg","metarea_1940")][!is.na(countynhg_1910)],
+            countynhg_1910,
+            new_titles_agg_no_new_sec_main[!is.na(countynhg_1910)][,lapply(.SD,weighted.mean,w=perwt),by=c("countynhg_1910"),.SDcols=c("sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind")])
+
+# Division variable
+census_sample_1930_agg_countynhg_1910 <- merge(census_sample_1930_agg_countynhg_1910,division_statefip,by="statefip",all.x=TRUE,all.y=FALSE)
+census_sample_1930_agg_countynhg_1910_no_new_sec_all <- merge(census_sample_1930_agg_countynhg_1910_no_new_sec_all,division_statefip,by="statefip",all.x=TRUE,all.y=FALSE)
+census_sample_1930_agg_countynhg_1910_no_new_sec_main <- merge(census_sample_1930_agg_countynhg_1910_no_new_sec_main,division_statefip,by="statefip",all.x=TRUE,all.y=FALSE)
+
+write_fst(census_sample_1930_agg_countynhg_1910, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1930_agg_countynhg_1910.fst"))
+write_fst(census_sample_1930_agg_countynhg_1910_no_new_sec_all, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1930_agg_countynhg_1910_no_new_sec_all.fst"))
+write_fst(census_sample_1930_agg_countynhg_1910_no_new_sec_main, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1930_agg_countynhg_1910_no_new_sec_main.fst"))
+
+# metarea_1940
+census_sample_1930_agg_metarea_1940 <- f_geographic_database(
+          Initial[,!c("countynhg","countynhg_1910")][!is.na(metarea_1940)],
+          metarea_1940,
+          new_titles_agg_all[!is.na(metarea_1940)][,lapply(.SD,weighted.mean,w=perwt),by=c("metarea_1940"),.SDcols=c("sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind")])
+census_sample_1930_agg_metarea_1940_no_new_sec_all <- f_geographic_database(
+          Initial[!(ind1950 %in% c(376,377,466,556,606,667,668,816,856)), !c("countynhg","countynhg_1910")][!is.na(metarea_1940)],
+          metarea_1940,
+          new_titles_agg_no_new_sec_all[!is.na(metarea_1940)][,lapply(.SD,weighted.mean,w=perwt),by=c("metarea_1940"),.SDcols=c("sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind")])
+census_sample_1930_agg_metarea_1940_no_new_sec_main <- f_geographic_database(
+          Initial[!(ind1950 %in% c(376,377,466,856)), !c("countynhg","countynhg_1910")][!is.na(metarea_1940)],
+          metarea_1940,
+          new_titles_agg_no_new_sec_main[!is.na(metarea_1940)][,lapply(.SD,weighted.mean,w=perwt),by=c("metarea_1940"),.SDcols=c("sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind")])
+
+# Division variable
+census_sample_1930_agg_metarea_1940 <- merge(census_sample_1930_agg_metarea_1940,division_statefip,by="statefip",all.x=TRUE,all.y=FALSE)
+census_sample_1930_agg_metarea_1940_no_new_sec_all <- merge(census_sample_1930_agg_metarea_1940_no_new_sec_all,division_statefip,by="statefip",all.x=TRUE,all.y=FALSE)
+census_sample_1930_agg_metarea_1940_no_new_sec_main <- merge(census_sample_1930_agg_metarea_1940_no_new_sec_main,division_statefip,by="statefip",all.x=TRUE,all.y=FALSE)
+
+write_fst(census_sample_1930_agg_metarea_1940, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1930_agg_metarea_1940.fst"))
+write_fst(census_sample_1930_agg_metarea_1940_no_new_sec_all, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1930_agg_metarea_1940_no_new_sec_all.fst"))
+write_fst(census_sample_1930_agg_metarea_1940_no_new_sec_main, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1930_agg_metarea_1940_no_new_sec_main.fst"))
+
+rm(list = ls(pattern="^census_sample_1930_agg_") )
+rm(Initial)
+
+
+```
+
+
+### 1940
+*** NOTE and TO-DO: We need to define what workers are we going to use. One of the standards in the literature is to focus on workers that were considered as fully employed (i.e. working more than 40 weeks a year and more than 35 hours a week)
+
+************ TO-DO: include the new work variable ***************
+
+*** TO-DO: How should we work with the usual occupation and industry?
+```{r}
+# If we want to restrict the set (only workers working more than 40 weeks and more than 35 hours per week)
+if (FALSE) {
+  ... <- ...[wkswork2>=4 & ( (hrswork2>=4 & hrswork2!=.) | (uhrswork>=35	& uhrswork!=.) )]
+}
+```
+
+```{r}
+Initial <-read_fst(paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1940.fst"),as.data.table=TRUE,columns=c("statefip","icpsrfip","countynhg_1910","metarea_1940","urban","farm","ownershp","perwt","famsize","sex","educ","school","age","marst","race","bpl","mbpl","fbpl","migrate5","migrate5d","empstat","labforce","classwkr","incwage","wkswork1","wkswork2","hrswork1","hrswork2","occ1950","ind1950","occscore"))
+
+# Division variable
+Initial <- merge(Initial,division_statefip,by="statefip",all.x=TRUE,all.y=FALSE)
+
+# icpsrfip
+census_sample_1940_agg_icpsrfip <- f_geographic_database(
+              Initial[,!c("countynhg_1910","metarea_1940")][!is.na(icpsrfip)],
+              icpsrfip,
+              new_titles_agg_all_1940[!is.na(icpsrfip)][,lapply(.SD,weighted.mean,w=perwt),by=c("icpsrfip"),.SDcols=names(new_titles_agg_all_1940[,!c("countynhg_1910","metarea_1940","icpsrfip","perwt","occ1940","name_ind1940_subgroup")])]
+              )
+# Division variable
+census_sample_1940_agg_icpsrfip <- merge(census_sample_1940_agg_icpsrfip,division_statefip,by="statefip",all.x=TRUE,all.y=FALSE)
+
+write_fst(census_sample_1940_agg_icpsrfip, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1940_agg_icpsrfip.fst"))
+
+# countynhg_1910
+census_sample_1940_agg_countynhg_1910 <- f_geographic_database(
+            Initial[,!c("icpsrfip","metarea_1940")][!is.na(countynhg_1910)],
+            countynhg_1910,
+            new_titles_agg_all_1940[!is.na(countynhg_1910)][,lapply(.SD,weighted.mean,w=perwt),by=c("countynhg_1910"),.SDcols=names(new_titles_agg_all_1940[,!c("countynhg_1910","metarea_1940","icpsrfip","perwt","occ1940","name_ind1940_subgroup")])]
+            )
+census_sample_1940_agg_countynhg_1910_no_new_sec_all <- f_geographic_database(
+            Initial[!(ind1950 %in% c(376,377,466,556,606,667,668,816,856)),!c("icpsrfip","metarea_1940")][!is.na(countynhg_1910)],
+            countynhg_1910,
+            new_titles_agg_all_1940[!is.na(countynhg_1910)][,lapply(.SD,weighted.mean,w=perwt),by=c("countynhg_1910"),.SDcols=names(new_titles_agg_all_1940[,!c("countynhg_1910","metarea_1940","icpsrfip","perwt","occ1940","name_ind1940_subgroup")])])
+census_sample_1940_agg_countynhg_1910_no_new_sec_main <- f_geographic_database(
+            Initial[!(ind1950 %in% c(376,377,466,856)),!c("icpsrfip","metarea_1940")][!is.na(countynhg_1910)],
+            countynhg_1910,
+            new_titles_agg_all_1940[!is.na(countynhg_1910)][,lapply(.SD,weighted.mean,w=perwt),by=c("countynhg_1910"),.SDcols=names(new_titles_agg_all_1940[,!c("countynhg_1910","metarea_1940","icpsrfip","perwt","occ1940","name_ind1940_subgroup")])])
+
+# Division variable
+census_sample_1940_agg_countynhg_1910 <- merge(census_sample_1940_agg_countynhg_1910,division_statefip,by="statefip",all.x=TRUE,all.y=FALSE)
+census_sample_1940_agg_countynhg_1910_no_new_sec_all <- merge(census_sample_1940_agg_countynhg_1910_no_new_sec_all,division_statefip,by="statefip",all.x=TRUE,all.y=FALSE)
+census_sample_1940_agg_countynhg_1910_no_new_sec_main <- merge(census_sample_1940_agg_countynhg_1910_no_new_sec_main,division_statefip,by="statefip",all.x=TRUE,all.y=FALSE)
+
+write_fst(census_sample_1940_agg_countynhg_1910, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1940_agg_countynhg_1910.fst"))
+write_fst(census_sample_1940_agg_countynhg_1910_no_new_sec_all, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1940_agg_countynhg_1910_no_new_sec_all.fst"))
+write_fst(census_sample_1940_agg_countynhg_1910_no_new_sec_main, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1940_agg_countynhg_1910_no_new_sec_main.fst"))
+
+# metarea_1940
+census_sample_1940_agg_metarea_1940 <- f_geographic_database(
+          Initial[,!c("icpsrfip","countynhg_1910")][!is.na(metarea_1940)],
+          metarea_1940,
+          new_titles_agg_all_1940[!is.na(metarea_1940)][,lapply(.SD,weighted.mean,w=perwt),by=c("metarea_1940"),.SDcols=names(new_titles_agg_all_1940[,!c("countynhg_1910","metarea_1940","icpsrfip","perwt","occ1940","name_ind1940_subgroup")])]
+          )
+census_sample_1940_agg_metarea_1940_no_new_sec_all <- f_geographic_database(
+          Initial[!(ind1950 %in% c(376,377,466,556,606,667,668,816,856)), !c("icpsrfip","countynhg_1910")][!is.na(metarea_1940)],
+          metarea_1940,
+          new_titles_agg_all_1940[!is.na(metarea_1940)][,lapply(.SD,weighted.mean,w=perwt),by=c("metarea_1940"),.SDcols=names(new_titles_agg_all_1940[,!c("countynhg_1910","metarea_1940","icpsrfip","perwt","occ1940","name_ind1940_subgroup")])]
+          )
+census_sample_1940_agg_metarea_1940_no_new_sec_main <- f_geographic_database(
+          Initial[!(ind1950 %in% c(376,377,466,856)), !c("icpsrfip","countynhg_1910")][!is.na(metarea_1940)],
+          metarea_1940,
+          new_titles_agg_all_1940[!is.na(metarea_1940)][,lapply(.SD,weighted.mean,w=perwt),by=c("metarea_1940"),.SDcols=names(new_titles_agg_all_1940[,!c("countynhg_1910","metarea_1940","icpsrfip","perwt","occ1940","name_ind1940_subgroup")])]
+          )
+
+# Division variable
+census_sample_1940_agg_metarea_1940 <- merge(census_sample_1940_agg_metarea_1940,division_statefip,by="statefip",all.x=TRUE,all.y=FALSE)
+census_sample_1940_agg_metarea_1940_no_new_sec_all <- merge(census_sample_1940_agg_metarea_1940_no_new_sec_all,division_statefip,by="statefip",all.x=TRUE,all.y=FALSE)
+census_sample_1940_agg_metarea_1940_no_new_sec_main <- merge(census_sample_1940_agg_metarea_1940_no_new_sec_main,division_statefip,by="statefip",all.x=TRUE,all.y=FALSE)
+
+write_fst(census_sample_1940_agg_metarea_1940, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1940_agg_metarea_1940.fst"))
+write_fst(census_sample_1940_agg_metarea_1940_no_new_sec_all, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1940_agg_metarea_1940_no_new_sec_all.fst"))
+write_fst(census_sample_1940_agg_metarea_1940_no_new_sec_main, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1940_agg_metarea_1940_no_new_sec_main.fst"))
+
+rm(list = ls(pattern="^census_sample_1940_agg_") )
+rm(Initial)
+```
+
+
+
+# 5. Individual database, some changes (only workers, include new work variable)
+- If a person appears in more than one region keep only the location with the highest area
+- Keep only persons working
+- Drop workers without a valid occupation
+- Merge share of new work
+- Simplify some variables (uses different functions)
+
+## 5.1. 1930
+NOTE: We don't do this for the 1920 database as we don't have information about new sectors and we won't use it later.
+
+### 5.1.1. Importing, selecting the appropriate data
+```{r}
+census_sample_1930_individual_data <-read_fst(paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1930.fst"),as.data.table=TRUE,columns=c("ID","perwt_ID","sh_area","statefip","countynhg_1910","metarea_1940","urban","farm","ownershp","famsize","sex","lit","age","marst","race","bpl","mbpl","fbpl","empstat","labforce","classwkr","occ1950","ind1950","occind","occscore"))[!is.na(countynhg_1910)]
+
+# Keep only workers that are working (we use any of the three variables to determine if a worker is working)
+census_sample_1930_individual_data <- census_sample_1930_individual_data[labforce==2 | empstat==1 | empstat==2 | classwkr!=0]
+
+# Associate each ID with the location that has a highest sh_area
+setorderv(census_sample_1930_individual_data,c("ID","sh_area"),c(1,-1))
+census_sample_1930_individual_data <- census_sample_1930_individual_data[,.SD[1],by="ID",.SDcols=names(census_sample_1930_individual_data)[-which(names(census_sample_1930_individual_data)=="ID")]][,sh_area:=NULL]
+
+# Observations without occind
+print(paste0((sum(census_sample_1930_individual_data[is.na(occind)]$perwt)/sum(census_sample_1930_individual_data$perwt))*100,"% of the working population has not a valid occupation code and will be dropped"))
+census_sample_1930_individual_data <- census_sample_1930_individual_data[!is.na(occind)]
+
+```
+
+### 5.1.2. Simplify some variables
+```{r}
+census_sample_1930_individual_data <- f_bpl(census_sample_1930_individual_data,statefip,birth_v=bpl,flag=0,name=c("mig_us","mig_ab")) 
+census_sample_1930_individual_data <- f_bpl(census_sample_1930_individual_data,statefip,birth_v=mbpl,flag=0,name=c("m_mig_us","m_mig_ab"))
+census_sample_1930_individual_data <- f_bpl(census_sample_1930_individual_data,statefip,birth_v=fbpl,flag=0,name=c("f_mig_us","f_mig_ab")) 
+  
+census_sample_1930_individual_data <- f_lit(census_sample_1930_individual_data,lit)    
+census_sample_1930_individual_data <- f_age(census_sample_1930_individual_data,age,flag=0)
+census_sample_1930_individual_data <- f_ind1950(census_sample_1930_individual_data,ind1950,flag=0) 
+census_sample_1930_individual_data <- f_occ1950(census_sample_1930_individual_data,occ1950,flag=0)
+census_sample_1930_individual_data <- f_mar(census_sample_1930_individual_data,marst) 
+census_sample_1930_individual_data <- f_race(census_sample_1930_individual_data,race)
+census_sample_1930_individual_data[,male:=ifelse(sex==1,1,0)][,sex:=NULL]
+census_sample_1930_individual_data[,urban:=ifelse(urban==2,1,0)] 
+census_sample_1930_individual_data[,farm:=ifelse(farm==2,1,0)]  
+census_sample_1930_individual_data[,ownershp:=na_if(ownershp,0)][!is.na(ownershp),ownershp:=ifelse(ownershp==1,1,0)] 
+census_sample_1930_individual_data[,wwages:=ifelse(classwkr==2,1,0)]   # Works for wages
+
+```
+
+### 5.1.3. Adding the new work variable
+```{r}
+# Variable
+if (!exists("new_titles.occind1930")) {
+  occ1930.codes <- as.data.table( read_excel(paste0(main_directory,"R - Processing data/input/1930 - Cleaned.xlsx"), sheet = "1930 main groups",guess_max=10000) )[,!c("occ_ini_1930","occ1930","occ_name")]
+  
+  new_titles.occind1930 <- list(
+                                  read_fst(paste0(main_directory,"R - Processing data/output/Rdata/new_titles_1930_by_occind.fst"),as.data.table=TRUE),
+                                  read_fst(paste0(main_directory,"R - Processing data/output/Rdata/new_titles_1930_by_occind.all.fst"),as.data.table=TRUE)
+  )
+  
+  new_titles.occind1930[[1]] <- merge(new_titles.occind1930[[1]],occ1930.codes[,c("occind1930","occind1930_name","occ","ind","occind","flag")],by="occind1930",all=TRUE)
+  new_titles.occind1930[[2]] <- merge(new_titles.occind1930[[2]],occ1930.codes[,c("occind1930","occind1930_name","occ","ind","occind","flag")],by="occind1930",all=TRUE)
+}
+
+census_sample_1930_individual_data <- merge(census_sample_1930_individual_data,new_titles.occind1930[[1]][,c("occind","sh_base_tit","sh_red_tit")],by="occind",all.x=TRUE,all.y=FALSE)
+
+```
+
+### 5.1.4. Saving individual data (without aggregate variables at the geographical level)
+
+```{r}
+write_fst(census_sample_1930_individual_data, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1930_individual_data.fst"))
+rm(census_sample_1930_individual_data,new_titles.occind1930,occ1930.codes)
+```
+
+## 5.2. 1940
+NOTE: We don't do this for the 1920 database as we don't have information about new sectors and we won't use it later.
+
+### 5.2.1. Importing, selecting the appropriate data
+*** NOTE: We could further select the individuals that work a certain amount of time (weeks or hours) or that have a positive income
+```{r}
+census_sample_1940_individual_data <-read_fst(paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1940.fst"),as.data.table=TRUE,columns=c("ID","perwt_ID","sh_area","statefip","icpsrfip","countynhg_1910","metarea_1940","urban","farm","ownershp","perwt","famsize","sex","educ","school","age","marst","race","bpl","mbpl","fbpl","migrate5","migrate5d","empstat","labforce","classwkr","incwage","wkswork1","wkswork2","hrswork1","hrswork2","occ1940","ind1940","name_ind1940_subgroup","occ1950","ind1950","occscore"))[!is.na(countynhg_1910)]
+
+# Keep only workers that are working (we use any of the three variables to determine if a worker is working)
+census_sample_1940_individual_data <- census_sample_1940_individual_data[labforce==2 | empstat==1 | empstat==2 | classwkr!=0]
+
+# Associate each ID with the location that has a highest sh_area
+setorderv(census_sample_1940_individual_data,c("ID","sh_area"),c(1,-1))
+census_sample_1940_individual_data <- census_sample_1940_individual_data[,.SD[1],by="ID",.SDcols=names(census_sample_1940_individual_data)[-which(names(census_sample_1940_individual_data)=="ID")]][,sh_area:=NULL]
+
+# Observations without occ1940
+print(paste0("We dropped ",(sum(census_sample_1940_individual_data[is.na(occ1940)]$perwt)/sum(census_sample_1940_individual_data$perwt))*100,"% of the working population that has not a valid occupation code"))
+census_sample_1940_individual_data <- census_sample_1940_individual_data[!is.na(occ1940)]
+
+# Observations without name_ind1940_subgroup or with name_ind1940_subgroup=="NONCLASSIFIABLE"
+print(paste0((sum(census_sample_1940_individual_data[(name_ind1940_subgroup=="NONCLASSIFIABLE" | is.na(name_ind1940_subgroup))]$perwt)/sum(census_sample_1940_individual_data$perwt))*100,"% of the remaining working population has not a valid name_ind1940_subgroup code or is nonclassifiable"))
+
+# Observations with name_ind1940_subgroup different than "NONCLASSIFIABLE", but without either working weeks, working hours or income
+print(
+  paste0(
+    (sum(census_sample_1940_individual_data[name_ind1940_subgroup!="NONCLASSIFIABLE" & !is.na(name_ind1940_subgroup)][!(!is.na(incwage) & incwage>0 & !is.na(wkswork1) & wkswork1>0)]$perwt)/sum(census_sample_1940_individual_data$perwt))*100,
+    "% of the remaining working population has a valid name_ind1940_subgroup but has no income and no weeks worked"
+    )
+  )
+
+print(
+  paste0(
+    sum(census_sample_1940_individual_data[name_ind1940_subgroup!="NONCLASSIFIABLE" & !is.na(name_ind1940_subgroup)][!(!is.na(incwage) & incwage>0 & !is.na(wkswork1) & wkswork1>0)][name_ind1940_subgroup !="AGRICULTURE, FORESTRY, AND FISHERY"]$perwt)/sum(census_sample_1940_individual_data[name_ind1940_subgroup!="NONCLASSIFIABLE" & !is.na(name_ind1940_subgroup)][!(!is.na(incwage) & incwage>0 & !is.na(wkswork1) & wkswork1>0)]$perwt)*100,
+     "% of the remaining working population with a valid name_ind1940_subgroup but no income and no weeks worked, is employed in the Agriculture sector"
+    ) 
+  )
+
+
+```
+*** NOTE: 
+- We don't drop observations that don't have a subindustry or that have a NONCLASSIFIABLE subindustry. In a later step we will associate the dataset3 share of new sector variables to those individuals.
+- We also don't drop workers without income or weeks worked (aprox 24%). More than 50% of them work in the Agriculture sector
+
+
+### 5.2.2. Simplify some variables
+```{r}
+census_sample_1940_individual_data <- f_census_simplify(census_sample_1940_individual_data)
+```
+
+### 5.2.3. Adding the new work variable
+```{r}
+# Adding the new work variable
+census_sample_1940_individual_data <- 
+  merge(
+    census_sample_1940_individual_data,
+    new_titles_1940.by_occ_subind[,!c("sh_new_all_dataset3","sh_new_method1_dataset3","sh_new_method2_dataset3","N_dataset3","N_red_inv_dataset3","N_red1_inv_dataset3")],
+    by=c("occ1940","name_ind1940_subgroup"),all.x=TRUE,all.y=FALSE)
+
+# For dataset 3, we don't care if the individual has no subindustry or the subindustry is non-classifiable
+census_sample_1940_individual_data <- 
+  merge(
+    census_sample_1940_individual_data,
+    new_titles_1940.by_occ_subind[,.SD[1],by="occ1940",.SDcols=c("sh_new_all_dataset3","sh_new_method1_dataset3","sh_new_method2_dataset3","N_dataset3","N_red_inv_dataset3","N_red1_inv_dataset3")],
+    by=c("occ1940"),all.x=TRUE,all.y=FALSE)
+```
+* NOTE:
+- We don't assign a share of new jobs variable using dataset1 and dataset2 for workers with a NONCLASSIFIABLE occupation.
+- The Share of new jobs variable using dataset3 is assigned to all the workers with a valid occupation, no matter if the subindustry is valid.
+
+### 5.2.4. Saving individual data (without aggregate variables at the geographical level)
+
+```{r}
+write_fst(census_sample_1940_individual_data, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1940_individual_data.fst"))
+rm(census_sample_1940_individual_data,new_titles_1940.by_occ_subind,occ1940.codes)
+```
+
+
+# 6. Constructing database at the individual level that contains also aggregate variables used in main regression
+
+## 6.1. countynhg_1910
+### 6.1.1 Call individual level data
+#### 1930
+```{r}
+census_sample_1930_individual_data_x_countynhg_1910 <-read_fst(paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1930_individual_data.fst"),as.data.table=TRUE)
+```
+
+#### 1940
+```{r}
+census_sample_1940_individual_data_x_countynhg_1910 <-read_fst(paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1940_individual_data.fst"),as.data.table=TRUE)
+```
+
+### 6.1.2. Linking with county level variables
+***!!!! NOTE-REVIEW: Why are we dropping some variables (e.g. "statefip")????
+
+#### 1920
+```{r}
+temp_1920 <- read_fst(paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1920_agg_countynhg_1910.fst"),as.data.table=TRUE)[,!c("statefip","sh_m_mig_us","sh_m_mig_ab","sh_f_mig_us","sh_f_mig_ab","sh_marst_1","sh_marst_2","sh_marst_3","sh_ownershp","sh_labforce_cl")][,new_sec_all:=sh_new_sector_ind1950_376+sh_new_sector_ind1950_377+sh_new_sector_ind1950_466 +sh_new_sector_ind1950_556+sh_new_sector_ind1950_606+sh_new_sector_ind1950_667+sh_new_sector_ind1950_668+sh_new_sector_ind1950_816]
+setorder(temp_1920,-new_sec_all)
+temp_1920[,rank_new_sec:=1:.N][,new_sec_all:=NULL]
+
+col <- names(temp_1920[,!c("countynhg_1910")])
+setnames(temp_1920,col,paste0(col,"_1920"))
+
+census_sample_1930_individual_data_x_countynhg_1910 <- merge(census_sample_1930_individual_data_x_countynhg_1910,temp_1920,by="countynhg_1910",all.x=TRUE,all.y=FALSE)
+
+```
+***!!!! NOTE: Why are we dropping some variables (e.g. "statefip", "sh_age_main_0", "sh_age_main_1", "sh_age_main_2", "sh_age_main_3", "sh_age_main_4", "sh_age_main_5", "sh_age_main_6", "sh_age_main_7")????
+
+#### 1930
+```{r}
+temp_1930 <- read_fst(paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1930_agg_countynhg_1910.fst"),as.data.table=TRUE)[,!c("sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind","statefip","sh_m_mig_us","sh_m_mig_ab","sh_f_mig_us","sh_f_mig_ab","sh_marst_1","sh_marst_2","sh_marst_3","sh_ownershp","sh_labforce_cl")][,new_sec_all:=sh_new_sector_ind1950_376+sh_new_sector_ind1950_377+sh_new_sector_ind1950_466 +sh_new_sector_ind1950_556+sh_new_sector_ind1950_606+sh_new_sector_ind1950_667+sh_new_sector_ind1950_668+sh_new_sector_ind1950_816 + sh_new_sector_ind1950_856]
+setorder(temp_1930,-new_sec_all)
+temp_1930[,rank_new_sec:=1:.N][,new_sec_all:=NULL]
+
+col <- names(temp_1930[,!c("countynhg_1910")])
+setnames(temp_1930,col,paste0(col,"_1930"))
+
+census_sample_1930_individual_data_x_countynhg_1910 <- merge(census_sample_1930_individual_data_x_countynhg_1910,temp_1930,by="countynhg_1910",all.x=TRUE,all.y=FALSE)
+
+```
+
+#### 1940
+```{r}
+temp_1940 <- read_fst(paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1940_agg_countynhg_1910.fst"),as.data.table=TRUE)[,!c("statefip","sh_m_mig_us","sh_m_mig_ab","sh_f_mig_us","sh_f_mig_ab","sh_marst_1","sh_marst_2","sh_marst_3","sh_ownershp","sh_labforce_cl")][,new_sec_all:=sh_new_sector_ind1950_376+sh_new_sector_ind1950_377+sh_new_sector_ind1950_466 +sh_new_sector_ind1950_556+sh_new_sector_ind1950_667+sh_new_sector_ind1950_668+sh_new_sector_ind1950_816 + sh_new_sector_ind1950_856]
+# Dropping new titles variables
+col <- names(temp_1940)[grepl('dataset',names(temp_1940))]
+temp_1940 <- temp_1940[,!..col]
+
+setorder(temp_1940,-new_sec_all)
+temp_1940[,rank_new_sec:=1:.N][,new_sec_all:=NULL]
+
+col <- names(temp_1940[,!c("countynhg_1910")])
+setnames(temp_1940,col,paste0(col,"_1940"))
+
+# Adding 1940s regional variables
+census_sample_1940_individual_data_x_countynhg_1910 <- merge(census_sample_1940_individual_data_x_countynhg_1910,temp_1940,by="countynhg_1910",all.x=TRUE,all.y=FALSE)
+
+# Adding 1930s regional variables
+census_sample_1940_individual_data_x_countynhg_1910 <- merge(census_sample_1940_individual_data_x_countynhg_1910,temp_1930,by="countynhg_1910",all.x=TRUE,all.y=FALSE)
+
+
+rm(temp_1920,temp_1930,temp_1940)
+```
+
+### 6.1.3 Create (grouping) share variables
+NOTE: Sector ind1950=856 (Radio Broadcasting) didn't exist in 1920
+NOTE: We also included ind1950=466 (Synthetic fibers as a new sector)
+#### 1930
+```{r}
+# Sector
+census_sample_1930_individual_data_x_countynhg_1910 <- census_sample_1930_individual_data_x_countynhg_1910[,                                                                                                        `:=`(new_sec_all_1920 = sh_new_sector_ind1950_376_1920 + sh_new_sector_ind1950_377_1920 + sh_new_sector_ind1950_556_1920 +sh_new_sector_ind1950_606_1920 + sh_new_sector_ind1950_667_1920 + sh_new_sector_ind1950_668_1920 + sh_new_sector_ind1950_816_1920 + sh_new_sector_ind1950_466_1920,                                                                               new_sec_all_1930 = sh_new_sector_ind1950_376_1930 +sh_new_sector_ind1950_377_1930 + sh_new_sector_ind1950_556_1930 + sh_new_sector_ind1950_606_1930  + sh_new_sector_ind1950_667_1930 + sh_new_sector_ind1950_668_1930 +sh_new_sector_ind1950_816_1930 + sh_new_sector_ind1950_856_1930 + sh_new_sector_ind1950_466_1930)][,
+                    `:=`(new_sec_main_1920 =sh_new_sector_ind1950_376_1920 + sh_new_sector_ind1950_377_1920 + sh_new_sector_ind1950_466_1920,
+                         new_sec_main_1930 = sh_new_sector_ind1950_376_1930 +sh_new_sector_ind1950_377_1930 + sh_new_sector_ind1950_466_1930 + sh_new_sector_ind1950_856_1930)][,
+                    `:=`(new_sec_serv_1920 = sh_new_sector_ind1950_556_1920 + sh_new_sector_ind1950_606_1920 + sh_new_sector_ind1950_667_1920 + sh_new_sector_ind1950_668_1920+sh_new_sector_ind1950_816_1920,
+                         new_sec_serv_1930 = sh_new_sector_ind1950_556_1930 + sh_new_sector_ind1950_606_1930 + sh_new_sector_ind1950_667_1930 + sh_new_sector_ind1950_668_1930+sh_new_sector_ind1950_816_1930)]
+
+# Age
+census_sample_1930_individual_data_x_countynhg_1910[,`:=`(sh_age_less16_1930 = sh_age_main_0_1930+sh_age_main_1_1930,sh_age_16_49_1930 = sh_age_main_2_1930+sh_age_main_3_1930+sh_age_main_4_1930+sh_age_main_5_1930,sh_age_more50_1930 = sh_age_main_6_1930+sh_age_main_7_1930)][,`:=`(sh_age_less16_1920 = sh_age_main_0_1920+sh_age_main_1_1920,sh_age_16_49_1920 = sh_age_main_2_1920+sh_age_main_3_1920+sh_age_main_4_1920+sh_age_main_5_1920,sh_age_more50_1920 = sh_age_main_6_1920+sh_age_main_7_1920)]
+
+## Removing sh_age_main...
+col <- grep("^sh_age_main",names(census_sample_1930_individual_data_x_countynhg_1910),value=TRUE)
+census_sample_1930_individual_data_x_countynhg_1910 <-
+  census_sample_1930_individual_data_x_countynhg_1910[,!..col]
+```
+
+#### 1940
+```{r}
+census_sample_1940_individual_data_x_countynhg_1910 <- census_sample_1940_individual_data_x_countynhg_1910[,                                                                                                        `:=`(new_sec_all_1930 = sh_new_sector_ind1950_376_1930 + sh_new_sector_ind1950_377_1930 + sh_new_sector_ind1950_556_1930 +sh_new_sector_ind1950_606_1930 + sh_new_sector_ind1950_667_1930 + sh_new_sector_ind1950_668_1930 + sh_new_sector_ind1950_816_1930 + sh_new_sector_ind1950_466_1930,                                                                               new_sec_all_1940 = sh_new_sector_ind1950_376_1940 +sh_new_sector_ind1950_377_1940 + sh_new_sector_ind1950_556_1940 + sh_new_sector_ind1950_667_1940 + sh_new_sector_ind1950_668_1940 +sh_new_sector_ind1950_816_1940 + sh_new_sector_ind1950_856_1940 + sh_new_sector_ind1950_466_1940)][,
+                    `:=`(new_sec_main_1930 =sh_new_sector_ind1950_376_1930 + sh_new_sector_ind1950_377_1930 + sh_new_sector_ind1950_466_1930,
+                         new_sec_main_1940 = sh_new_sector_ind1950_376_1940 +sh_new_sector_ind1950_377_1940 + sh_new_sector_ind1950_466_1940 + sh_new_sector_ind1950_856_1940)][,
+                    `:=`(new_sec_serv_1930 = sh_new_sector_ind1950_556_1930 + sh_new_sector_ind1950_606_1930 + sh_new_sector_ind1950_667_1930 + sh_new_sector_ind1950_668_1930+sh_new_sector_ind1950_816_1930,
+                         new_sec_serv_1940 = sh_new_sector_ind1950_556_1940 + sh_new_sector_ind1950_667_1940 + sh_new_sector_ind1950_668_1940+sh_new_sector_ind1950_816_1940)]
+
+# Age
+census_sample_1940_individual_data_x_countynhg_1910[,`:=`(sh_age_less16_1940 = sh_age_main_0_1940+sh_age_main_1_1940,sh_age_16_49_1940 = sh_age_main_2_1940+sh_age_main_3_1940+sh_age_main_4_1940+sh_age_main_5_1940,sh_age_more50_1940 = sh_age_main_6_1940+sh_age_main_7_1940)][,`:=`(sh_age_less16_1930 = sh_age_main_0_1930+sh_age_main_1_1930,sh_age_16_49_1930 = sh_age_main_2_1930+sh_age_main_3_1930+sh_age_main_4_1930+sh_age_main_5_1930,sh_age_more50_1930 = sh_age_main_6_1930+sh_age_main_7_1930)]
+
+## Removing sh_age_main...
+col <- grep("^sh_age_main",names(census_sample_1940_individual_data_x_countynhg_1910),value=TRUE)
+census_sample_1940_individual_data_x_countynhg_1910 <-
+  census_sample_1940_individual_data_x_countynhg_1910[,!..col]
+```
+
+### 6.1.4. Save database
+```{r}
+# 1930
+write_fst(census_sample_1930_individual_data_x_countynhg_1910, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1930_individual_data_x_countynhg_1910.fst"))
+
+# 1940
+write_fst(census_sample_1940_individual_data_x_countynhg_1910, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1940_individual_data_x_countynhg_1910.fst"))
+rm(census_sample_1930_individual_data_x_countynhg_1910,census_sample_1940_individual_data_x_countynhg_1910)
+```
+
+## 6.2. metarea_1940
+****!!! To-DO: REVIEW, DO THE SAME AS WAS DONE TO countynhg_1910
+## 6.2.1. Call individual level data
+```{r}
+# 1930
+census_sample_1930_individual_data_x_metarea_1940 <-read_fst(paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1930_individual_data.fst"),as.data.table=TRUE)
+
+# 1940
+census_sample_1940_individual_data_x_metarea_1940 <-read_fst(paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1940_individual_data.fst"),as.data.table=TRUE)
+```
+
+## 6.2.2. Linking with metarea level variables
+### 1920
+```{r}
+temp_1920 <- read_fst(paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1920_agg_metarea_1940.fst"),as.data.table=TRUE)[,!c("statefip","sh_age_main_0","sh_age_main_1","sh_age_main_2","sh_age_main_3","sh_age_main_4","sh_age_main_5","sh_age_main_6","sh_age_main_7","sh_m_mig_us","sh_m_mig_ab","sh_f_mig_us","sh_f_mig_ab","sh_marst_1","sh_marst_2","sh_marst_3","sh_ownershp","sh_labforce_cl","sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind")][,new_sec_all:=sh_new_sector_ind1950_376+sh_new_sector_ind1950_377+sh_new_sector_ind1950_466 +sh_new_sector_ind1950_556+sh_new_sector_ind1950_606+sh_new_sector_ind1950_667+sh_new_sector_ind1950_668+sh_new_sector_ind1950_816]
+setorder(temp_1920,-new_sec_all)
+temp_1920[,rank_new_sec:=1:.N][,new_sec_all:=NULL]
+
+col <- names(temp_1920[,!c("metarea_1940")])
+setnames(temp_1920,col,paste0(col,"_1920"))
+
+census_sample_1930_individual_data_x_metarea_1940 <- merge(census_sample_1930_individual_data_x_metarea_1940,temp_1920,by="metarea_1940",all.x=TRUE,all.y=FALSE)
+```
+
+### 1930
+```{r}
+temp_1930 <- read_fst(paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1930_agg_metarea_1940.fst"),as.data.table=TRUE)[,!c("sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind","statefip","sh_age_main_0","sh_age_main_1","sh_age_main_2","sh_age_main_3","sh_age_main_4","sh_age_main_5","sh_age_main_6","sh_age_main_7","sh_m_mig_us","sh_m_mig_ab","sh_f_mig_us","sh_f_mig_ab","sh_marst_1","sh_marst_2","sh_marst_3","sh_ownershp","sh_labforce_cl","sh_labforce")][,new_sec_all:=sh_new_sector_ind1950_376+sh_new_sector_ind1950_377+sh_new_sector_ind1950_466 +sh_new_sector_ind1950_556+sh_new_sector_ind1950_606+sh_new_sector_ind1950_667+sh_new_sector_ind1950_668+sh_new_sector_ind1950_816 + sh_new_sector_ind1950_856]
+setorder(temp_1930,-new_sec_all)
+temp_1930[,rank_new_sec:=1:.N][,new_sec_all:=NULL]
+
+col <- names(temp_1930[,!c("metarea_1940")])
+setnames(temp_1930,col,paste0(col,"_1930"))
+
+census_sample_1930_individual_data_x_metarea_1940 <- merge(census_sample_1930_individual_data_x_metarea_1940,temp_1930,by="metarea_1940",all.x=TRUE,all.y=FALSE)
+```
+
+### 1940
+```{r}
+temp_1940 <- read_fst(paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1940_agg_metarea_1940.fst"),as.data.table=TRUE)[,!c("statefip","sh_age_main_0","sh_age_main_1","sh_age_main_2","sh_age_main_3","sh_age_main_4","sh_age_main_5","sh_age_main_6","sh_age_main_7","sh_m_mig_us","sh_m_mig_ab","sh_f_mig_us","sh_f_mig_ab","sh_marst_1","sh_marst_2","sh_marst_3","sh_ownershp","sh_labforce_cl","sh_labforce")][,new_sec_all:=sh_new_sector_ind1950_376+sh_new_sector_ind1950_377+sh_new_sector_ind1950_466 +sh_new_sector_ind1950_556+sh_new_sector_ind1950_667+sh_new_sector_ind1950_668+sh_new_sector_ind1950_816 + sh_new_sector_ind1950_856]
+# Dropping new titles variables
+col <- names(temp_1940)[grepl('dataset',names(temp_1940))]
+temp_1940 <- temp_1940[,!..col]
+
+setorder(temp_1940,-new_sec_all)
+temp_1940[,rank_new_sec:=1:.N][,new_sec_all:=NULL]
+
+col <- names(temp_1940[,!c("metarea_1940")])
+setnames(temp_1940,col,paste0(col,"_1940"))
+
+census_sample_1940_individual_data_x_metarea_1940 <- merge(census_sample_1940_individual_data_x_metarea_1940,temp_1940,by="metarea_1940",all.x=TRUE,all.y=FALSE)
+census_sample_1940_individual_data_x_metarea_1940 <- merge(census_sample_1940_individual_data_x_metarea_1940,temp_1930,by="metarea_1940",all.x=TRUE,all.y=FALSE)
+
+rm(temp_1920,temp_1930,temp_1940)
+```
+
+
+### 6.2.3 Create (grouping) share variables
+NOTE: Sector ind1950=856 (Radio Broadcasting) didn't exist in 1920
+NOTE: We also included ind1950=466 (Synthetic fibers as a new sector)
+#### 1930
+```{r}
+census_sample_1930_individual_data_x_metarea_1940 <- census_sample_1930_individual_data_x_metarea_1940[,                                                                                                        `:=`(new_sec_all_1920 = sh_new_sector_ind1950_376_1920 + sh_new_sector_ind1950_377_1920 + sh_new_sector_ind1950_556_1920 +sh_new_sector_ind1950_606_1920 + sh_new_sector_ind1950_667_1920 + sh_new_sector_ind1950_668_1920 + sh_new_sector_ind1950_816_1920 + sh_new_sector_ind1950_466_1920,                                                                               new_sec_all_1930 = sh_new_sector_ind1950_376_1930 +sh_new_sector_ind1950_377_1930 + sh_new_sector_ind1950_556_1930 + sh_new_sector_ind1950_606_1930  + sh_new_sector_ind1950_667_1930 + sh_new_sector_ind1950_668_1930 +sh_new_sector_ind1950_816_1930 + sh_new_sector_ind1950_856_1930 + sh_new_sector_ind1950_466_1930)][,
+                    `:=`(new_sec_main_1920 =sh_new_sector_ind1950_376_1920 + sh_new_sector_ind1950_377_1920 + sh_new_sector_ind1950_466_1920,
+                         new_sec_main_1930 = sh_new_sector_ind1950_376_1930 +sh_new_sector_ind1950_377_1930 + sh_new_sector_ind1950_466_1930 + sh_new_sector_ind1950_856_1930)][,
+                    `:=`(new_sec_serv_1920 = sh_new_sector_ind1950_556_1920 + sh_new_sector_ind1950_606_1920 + sh_new_sector_ind1950_667_1920 + sh_new_sector_ind1950_668_1920+sh_new_sector_ind1950_816_1920,
+                         new_sec_serv_1930 = sh_new_sector_ind1950_556_1930 + sh_new_sector_ind1950_606_1930 + sh_new_sector_ind1950_667_1930 + sh_new_sector_ind1950_668_1930+sh_new_sector_ind1950_816_1930)]
+```
+
+#### 1940
+```{r}
+census_sample_1940_individual_data_x_metarea_1940 <- census_sample_1940_individual_data_x_metarea_1940[,                                                                                                        `:=`(new_sec_all_1930 = sh_new_sector_ind1950_376_1930 + sh_new_sector_ind1950_377_1930 + sh_new_sector_ind1950_556_1930 +sh_new_sector_ind1950_606_1930 + sh_new_sector_ind1950_667_1930 + sh_new_sector_ind1950_668_1930 + sh_new_sector_ind1950_816_1930 + sh_new_sector_ind1950_466_1930,                                                                               new_sec_all_1940 = sh_new_sector_ind1950_376_1940 +sh_new_sector_ind1950_377_1940 + sh_new_sector_ind1950_556_1940 + sh_new_sector_ind1950_667_1940 + sh_new_sector_ind1950_668_1940 +sh_new_sector_ind1950_816_1940 + sh_new_sector_ind1950_856_1940 + sh_new_sector_ind1950_466_1940)][,
+                    `:=`(new_sec_main_1930 =sh_new_sector_ind1950_376_1930 + sh_new_sector_ind1950_377_1930 + sh_new_sector_ind1950_466_1930,
+                         new_sec_main_1940 = sh_new_sector_ind1950_376_1940 +sh_new_sector_ind1950_377_1940 + sh_new_sector_ind1950_466_1940 + sh_new_sector_ind1950_856_1940)][,
+                    `:=`(new_sec_serv_1930 = sh_new_sector_ind1950_556_1930 + sh_new_sector_ind1950_606_1930 + sh_new_sector_ind1950_667_1930 + sh_new_sector_ind1950_668_1930+sh_new_sector_ind1950_816_1930,
+                         new_sec_serv_1940 = sh_new_sector_ind1950_556_1940 + sh_new_sector_ind1950_667_1940 + sh_new_sector_ind1950_668_1940+sh_new_sector_ind1950_816_1940)]
+```
+
+### 6.2.4. Save database
+```{r}
+# 1930
+write_fst(census_sample_1930_individual_data_x_metarea_1940, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1930_individual_data_x_metarea_1940.fst"))
+
+write_fst(census_sample_1940_individual_data_x_metarea_1940, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1940_individual_data_x_metarea_1940.fst"))
+rm(census_sample_1930_individual_data_x_metarea_1940,census_sample_1940_individual_data_x_metarea_1940)
+```

@@ -1,0 +1,832 @@
+---
+title: "Importing Census data"
+output: html_document
+---
+(TO CONTINUE) Overview of the file:
+- Inputs: 
+  (1) Censuses for 1880, 1910, 1920, 1930 and 1940 downloaded from IPUMS as .dta files
+
+
+# Delete Workspace and load packages
+## Function to load necessary packages
+```{r}
+f_load_pk <- function() {
+  
+  # Pacman: packages manager. It does different things, here I use it to load multiple packages at the same time
+  library (pacman)
+  p_load(readxl,foreign,readstata13,data.table,plyr,dplyr,stringr,openxlsx,stringdist,reshape2,qdap,fst,ipumsr,tm,textreg,tmap,tmaptools,sf,leaflet,ipumsr)
+  p_load(tictoc)
+  
+  # Statistical packages
+  p_load(fastDummies,sandwich,lmtest,estimatr)
+  p_load(weights)  # To perform weighted correlations
+  
+  #graphs
+  p_load(ggplot2,maps,ggthemes,sjPlot,sjmisc,sjlabelled,jtools,ggstance,broom.mixed)
+  p_load(ggpubr)   # Contains ggarrange, used to plot more than one grpah in the same figure
+  p_load(scales)   # Used in histogram to show percent format
+}
+```
+
+## Using function
+```{r}
+rm(list=setdiff(ls(all.names = TRUE), "f_load_pk"))
+f_load_pk()
+```
+
+# Defining main and other directories
+```{r}
+main_directory <- "/Volumes/GoogleDrive/My Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/"
+
+```
+
+# Some functions
+## 0.1. Cleaning functions
+```{r}
+# Cleaning punctuation signs
+f_clean_punct <- function(x,flag=1){
+  y=gsub("\\."," ",x)
+  if (flag==1) y=gsub(","," ",y)
+  y=gsub(",$","",y)
+  y=gsub("’|`|'|‘|;|\"|”|“","",y) 
+  y=gsub("-"," ",y)
+  # Use capture and backtracking 
+  y=gsub("([a-z0-9])\\(","\\1 \\(",y)
+  y=gsub("\\)([a-z0-9])","\\) \\1",y)
+  
+  y=gsub("\\( ","\\(",y)
+  y=gsub(" \\)","\\)",y)
+  y=gsub("\\( \\)|\\(\\)","",y)
+  y=gsub("\\)\\(","\\) \\(",y)
+  y=str_squish(y)
+  
+  y=gsub(" , ",", ",y)
+  y=gsub(", , |, , , ",", ",y)
+  y=gsub("\\(, |\\(,","\\(",y)
+  y=gsub(", \\)|,\\)","\\)",y)
+  y=gsub("\\( *","\\(",y)
+  y=gsub(" *\\)","\\)",y)
+  y=gsub("\\( *\\)|\\(\\)","",y)
+  y=gsub("\\(([vx0-9]) ","\\1 ",y)
+  y=str_squish(y)
+  y
+}
+
+f_change_syms <- function(x){
+   # NOTE: For 1940: private and government worker are separated. To be able to compare it with 1930 I assigned them w
+  # worker
+  ## Parentheses
+  y=gsub("\\(oa, pw, or gw\\)|\\( *[0o]a p* w *or g *w *\\)|\\([0o]a, p* w *or g *w *\\)|\\([0o]a, p* w, *or g *w *\\)|\\( *[0o]a p* w *dr g *w *\\)|\\( *[0o] *a p *w g *w *\\)","\\(o w\\)",x)
+  y=gsub("\\( *p *w or *g *w\\)|\\( *g *w or *p *w\\)","\\(w\\)",y)
+  y=gsub("\\(oa or pw\\)|\\([0o]a or p *w\\)|\\( *[0o]a *or p *w *\\)|\\( *[0o] *a dr p *w *\\)|\\( *[0o] *a p *w *\\)","\\(o w\\)",y)
+  y=gsub("\\( *[0o]a *or g *w *\\)|\\( *[0o] *a dr g *w *\\)|\\( *[0o] *a g *w *\\)","\\(o w\\)",y)
+  # Employer or own account
+  y=gsub("\\( *e *m or [0o] *a *\\)|\\( *e *m *[0o] *a *\\)","\\(e o\\)",y)
+  y=gsub("\\( *e *[0o] *\\)|\\( *e *or *[0o] *\\)|\\( *e *[0o] *\\)","\\(e o\\)",y)
+  y=gsub("\\( *e *[0o]a *\\)|\\( *e *or *[0o]a *\\)|\\( *e *[0o]a *\\)","\\(e o\\)",y)
+  # Employer
+  y=gsub("\\( *e *m *\\)|\\( *e *\\)|\\<€\\>","\\(e\\)",y)
+  # Own account
+  y=gsub("\\( *[0o] *a *\\)|\\( *o *\\)","\\(o\\)",y)
+  #government, private worker
+  y=gsub("\\( *p *w\\)","\\(w\\)",y)
+  y=gsub("\\( *g *w\\)","\\(w\\)",y)
+  # worker
+  y=gsub("\\( *working out *\\)|\\( *w *\\)","\\(w\\)",y)
+  # owner or worker (no such symbol for 1920)
+  y=gsub("\\( *[0o] *or *w *\\)|\\( *[0o] *w *\\)","\\(o w\\)",y)
+  # non paid worker
+  y=gsub("\\( *n *p *\\)|\\( *n *r *\\)","\\(np\\)",y)
+  
+ 
+  ## No parentheses
+  # Employer or own account
+  y=gsub("\\<e *m or [0o] *a\\>|\\<e *m *[0o] *a\\>","e o",y)
+  y=gsub("\\<e *[0o]\\>|\\<e *or *[0o]\\>|\\<e *[0o]\\>","e o",y)
+  y=gsub("\\<e *[0o]a\\>|\\<e *or *[0o]a\\>|\\<e *[0o]a\\>","e o",y)
+  #Employer
+  y=gsub("\\<e *m\\>|\\<e\\>","e",y)
+  #own account
+  y=gsub("\\<[0o] *a\\>|\\<o\\>","o",y)
+  # worker
+  y=gsub("\\<working out\\>|\\<w\\>","w",y)
+  # owner or worker (no such symbol for 1920)
+  y=gsub("\\<[0o] *or *w\\>|\\<[0o] *w\\>|\\<[0o]a *or *w\\>","o w",y)
+  # non paid worker
+  y=gsub("\\<n *p\\>|\\<n *r\\>","np",y)
+  
+  # NOTE: For 1940: private and government worker are separated. To be able to compare it with 1930 I assigned them w
+  # worker
+  y=gsub("\\<[0o]a, p* w, *or g *w\\>|\\<[0o]a p* w *or g *w\\>|\\<[0o]a p* w *dr g *w\\>|\\<[0o] *a p *w g *w\\>","o w",y)
+  y=gsub("\\<p *w or *g *w\\>|\\<g *w or *p *w\\>","w",y)
+  y=gsub("\\<[0o]a *or p *w\\>|\\<[0o] *a dr p *w\\>|\\<[0o] *a p *w\\>","o w",y)
+  y=gsub("\\<[0o]a *or g *w\\>|\\<[0o] *a dr g *w\\>|\\<[0o] *a g *w\\>","o w",y)
+  y=gsub("\\<p *w\\>","w",y)
+  y=gsub("\\<g *w\\>","w",y)
+  
+  
+  y=gsub("\\<unless\\>","except",y)
+  
+  y=str_squish(y)
+  y=gsub(" , ",", ",y)
+  y=gsub(", , |, , , ",", ",y)
+  y=gsub("\\(, |\\(,","\\(",y)
+  y=gsub(", \\)|,\\)","\\)",y)
+  y=gsub("\\( *","\\(",y)
+   y=gsub(" *\\)","\\)",y)
+   y=gsub("\\( *\\)|\\(\\)","",y)
+   y=str_squish(y)
+  y
+}
+
+f_change_words <- function(x){
+   y=gsub("\\( *e *t *c *\\)|\\( *e *t *e *\\)","\\(etc\\)",x)
+   y=gsub("\\( *n *e *c *\\)|\\( *n *s *c *\\)|\\( *n *c *c *\\)","\\(nec\\)",y)
+   y=gsub("\\( *a *o *s *\\)|\\( *n *o *s *\\)","\\(nos\\)",y)
+   y=gsub("\\( *n *s *\\)|\\( *n *a *\\)|\\( *n *g *\\)|\\( *not specified *\\)|\\( *not .*specified *\\)","\\(ns\\)",y)
+   y=gsub("\\(orns\\)","\\(or ns\\)",y)
+   y=gsub("\\(not elsewhere classified\\)","\\(nec\\)",y)
+   y=gsub("\\( *m *d *\\)","\\(md\\)",y)
+   
+   y=gsub("\\<e *t *c\\>|\\<e *t *e\\>","etc",y)
+   y=gsub("\\<n *e *c\\>|\\<n *s *c\\>|\\<n *c *c\\>","nec",y)
+   y=gsub("\\<a *o *s\\>|\\<n *o *s\\>","nos",y)
+   y=gsub("\\<n *s\\>|\\<n *a\\>|\\<n *g\\>|\\<not specified\\>","ns",y)
+   y=gsub("\\<orns\\>","or ns",y)
+   y=gsub("\\<not elsewhere classified\\>","nec",y)
+   y=gsub("\\<m *d\\>","md",y)
+   y=gsub("\\<u *s\\>|\\<united states\\>","us",y)
+   y=gsub("\\<b *r\\>","or",y)
+   y=str_squish(y)
+   y=gsub(" , ",", ",y)
+   y=gsub(", , |, , , ",", ",y)
+   y=gsub("\\(, |\\(,","\\(",y)
+   y=gsub(", \\)|,\\)","\\)",y)
+   y=gsub("\\( *","\\(",y)
+   y=gsub(" *\\)","\\)",y)
+   y=gsub("\\( *\\)|\\(\\)","",y)
+   y=str_squish(y)
+   y
+}
+
+f_clean_syms <- function(x){
+  ## Parentheses
+  # Employer or own account
+  y=gsub("\\( *e *m or [0o] *a *\\)|\\( *e *m *[0o] *a *\\)|\\(e o\\)","",x)
+  y=gsub("\\( *e *[0o] *\\)|\\( *e *or *[0o] *\\)|\\( *e *[0o] *\\)|\\(e o\\)","",y)
+  y=gsub("\\( *e *[0o]a *\\)|\\( *e *or *[0o]a *\\)|\\( *e *[0o]a *\\)|\\(e o\\)","",y)
+  # Employer
+  y=gsub("\\( *e *m *\\)|\\( *e *\\)|\\(e\\)","",y)
+  # Own account
+  y=gsub("\\( *[0o] *a *\\)|\\( *o *\\)|\\(o\\)","",y)
+  # worker
+  y=gsub("\\( *working out *\\)|\\( *w *\\)|\\(w\\)","",y)
+  # owner or worker (no such symbol for 1920)
+  y=gsub("\\( *[0o] *or *w *\\)|\\( *[0o] *w *\\)|\\(o w\\)","",y)
+  
+  y=gsub("\\( *n *p *\\)|\\( *n *r *\\)|\\(np\\)","",y)
+  
+  # NOTE: For 1940: private and government worker are separated. To be able to compare it with 1930 I assigned them w
+  # worker
+  y=gsub("\\( *[0o]a p* w *or g *w *\\)|\\( *[0o]a p* w *dr g *w *\\)|\\( *[0o] *a p *w g *w *\\)","",y)
+  y=gsub("\\( *p *w or *g *w\\)","",y)
+  y=gsub("\\( *[0o]a *or p *w *\\)|\\( *[0o] *a dr p *w *\\)|\\( *[0o] *a p *w *\\)","",y)
+  y=gsub("\\( *[0o]a *or g *w *\\)|\\( *[0o] *a dr g *w *\\)|\\( *[0o] *a g *w *\\)","",y)
+  y=gsub("\\( *p *w\\)","",y)
+  y=gsub("\\( *g *w\\)","",y)
+  
+  
+  #Eliminate when (any) appears. We could also eliminate when \\<any\\> appears, but that might affect phrases that contain any
+  y=gsub("\\( *any *\\)","",y)
+  
+  ## No parentheses
+  # Employer or own account
+  y=gsub("\\<e *m or [0o] *a\\>|\\<e *m *[0o] *a\\>|\\<e o\\>","",x)
+  y=gsub("\\<e *[0o]\\>|\\<e *or *[0o]\\>|\\<e *[0o]\\>|\\<e o\\>","",y)
+  y=gsub("\\<e *[0o]a\\>|\\<e *or *[0o]a\\>|\\<e *[0o]a\\>|\\<e o\\>","",y)
+  #Employer
+  y=gsub("\\<e *m\\>|\\<e\\>","",y)
+  #own account
+  y=gsub("\\<[0o] *a\\>|\\<o\\>","",y)
+  # worker
+  y=gsub("\\<working out\\>|\\<w\\>","",y)
+  # owner or worker (no such symbol for 1920)
+  y=gsub("\\<[0o] *or *w\\>|\\<[0o] *w\\>","",y)
+  
+  y=gsub("\\<n *p\\>|\\<n *r\\>|\\<np\\>","",y)
+  y=str_squish(y)
+  y=str_squish(gsub("\\( *\\)|\\( *or *\\)","",y))
+  y=gsub(" , ",", ",y)
+  y=gsub(", , |, , , ",", ",y)
+  y=gsub("\\(, |\\(,","\\(",y)
+  y=gsub(", \\)|,\\)","\\)",y)
+  y=gsub("\\( *","\\(",y)
+  y=gsub(" *\\)","\\)",y)
+  y=gsub("\\( *\\)|\\(\\)","",y)
+  y=str_squish(y)
+}
+
+
+f_clean_words <- function(x){
+   y=gsub("\\( *e *t *c *\\)|\\( *e *t *e *\\)|\\(etc\\)","",x)
+   y=gsub("\\( *n *e *c *\\)|\\( *n *s *c *\\)|\\( *n *c *c *\\)|\\(n e c\\)|\\(nec\\)","",y)
+   y=gsub("\\( *a *o *s *\\)|\\( *n *o *s *\\)|\\(n o s\\)|\\(nos\\)","",y)
+   y=gsub("\\( *n *s *\\)|\\( *n *a *\\)|\\(n s\\)|\\(ns\\)","",y)
+   y=gsub("\\(not elsewhere classified\\)|\\(n e c\\)|\\(nec\\)","",y)
+   y=gsub("\\( *m *d *\\)|\\(m d\\)|\\(md\\)","",y)
+   
+
+   y=gsub("\\<e *t *c\\>|\\<e *t *e\\>|\\<etc\\>","",y)
+   y=gsub("\\<n *e *c\\>|\\<n *s *c\\>|\\<n *c *c\\>|\\<n e c\\>|\\<nec\\>","",y)
+   y=gsub("\\<a *o *s\\>|\\<n *o *s\\>|\\<n o s\\>|\\<nos\\>","",y)
+   y=gsub("\\<n *s\\>|\\<n *a\\>|\\<n s\\>|\\<ns\\>","",y)
+   y=gsub("\\<not elsewhere classified\\>|\\<n e c\\>|\\<nec\\>","",y)
+   y=gsub("\\<m *d\\>","",y)
+#  y=gsub("\\<u *s\\>|\\<united states\\>|\\<us\\>","",y)
+   y=str_squish(y)
+   y=gsub(" , ",", ",y)
+   y=gsub(", , |, , , ",", ",y)
+   y=gsub("\\(, |\\(,","\\(",y)
+   y=gsub(", \\)|,\\)","\\)",y)
+   y=gsub("\\( *","\\(",y)
+   y=gsub(" *\\)","\\)",y)
+   y=gsub("\\( *\\)|\\(\\)","",y)
+   y=str_squish(y)
+   y
+}
+
+f_clean_conj <- function(x){
+  # Note: We might/should(?) other conjunctions/pronouns different than "or"
+  y=gsub("\\<in\\>|\\<and\\>|\\<of\\>|\\<on\\>|\\<for\\>|\\<to\\>","",x)
+  y=gsub(" , ",", ",y)
+  y=gsub(", , |, , , ",", ",y)
+  y=gsub("\\(, |\\(,","\\(",y)
+  y=gsub(", \\)|,\\)","\\)",y)
+  y=gsub("\\( *","\\(",y)
+  y=gsub(" *\\)","\\)",y)
+  y=gsub("\\( *\\)|\\(\\)","",y)
+  y=str_squish(y)
+  y
+}
+
+f_adjust_ind_number_1940 <- function(x){
+  y=gsub("\\(([vx][0-9])$","\\(\\1\\)",x)
+  y=gsub("\\(([vx][vx])$","\\(\\1\\)",y)
+  y=gsub("\\(([0-9][xv])$","\\(\\1\\)",y)
+  y=gsub("\\(([0-9]+)$","\\(\\1\\)",y)
+  y=gsub("\\(([0-9]+)$","\\(\\1\\)",y)
+  y=gsub("^ ([vx][0-9])\\)$","\\(\\1\\)",y)
+  y=gsub("^ ([vx][vx])\\)$","\\(\\1\\)",y)
+  y=gsub("^ ([0-9][xv])\\)$","\\(\\1\\)",y)
+  y=gsub("^([vx][0-9])\\)$","\\(\\1\\)",y)
+  y=gsub("^([vx][vx])\\)$","\\(\\1\\)",y)
+  y=gsub("^([0-9][xv])\\)$","\\(\\1\\)",y)
+  y=gsub("^([vx][0-9])$","\\(\\1\\)",y)
+  y=gsub("^([vx][vx])$","\\(\\1\\)",y)
+  y=gsub("^([0-9][vx])$","\\(\\1\\)",y)
+  y=gsub("^([0-9][0-9])$","\\(\\1\\)",y)
+  y=gsub(" ([vx][0-9])$","\\(\\1\\)",y)
+  y=gsub(" ([vx][vx])$","\\(\\1\\)",y)
+  y=gsub(" ([0-9][vx])$"," \\(\\1\\)",y)
+  y=gsub(" ([0-9][0-9])$"," \\(\\1\\)",y)
+  y=str_squish(y)
+  y
+}
+
+```
+
+# 0. Importing databases to be used
+
+## 0.1. Importing Census data from Stata or IPUMS
+This code imports the dataset from a previously download dta file. We convert it to an fst file
+```{r}
+# The initial files were either imported from stata or directly from R. I stored them as fst files, so that they can be loaded faster.
+if (FALSE) {
+    census_sample <- data.table(read.dta13("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Stata/1900-1940 US Census Exercises/processed_data/processed_data.dta",convert.factors=FALSE,select.cols=c("year","perwt","age","empstat","occ","occ1950","ind","ind1950","classwkr","occstr")))
+    
+    write_fst(census_sample[year==1910 & empstat!=3], "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/R/Census_sample/input/census_sample_1910.fst")
+    write_fst(census_sample[year==1920 & classwkr!=0], "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/R/Census_sample/input/census_sample_1920.fst")
+    #write_fst(census_sample[year==1930 & empstat!=3], "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/R/Census_sample/input/census_sample_1930.fst")
+    write_fst(census_sample_1930.countynhg[empstat!=3,!c("empstatd","occ1930")], "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/R/Census_sample/input/census_sample_1930.countynhg.fst")
+    write_fst(census_sample[year==1940 & empstat!=3], "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/R/Census_sample/input/census_sample_1940.fst")
+    
+    rm(census_sample)
+    rm(ddi,census_sample_1930)
+}
+
+```
+
+## 0.2 Data downloaded directly from IPUMS
+```{r}
+#if (FALSE) {
+# 1880
+ # This one has geographical variables
+    ddi <- read_ipums_ddi(paste0(main_directory,"R - Processing data/input/raw_data/usa_census_1880.xml"))
+    ## From IPUMS names of variables are in uppercase letters. Change to lower case
+    ddi$var_info$var_name <- tolower(ddi$var_info$var_name)
+    census_sample_1880 <- as.data.table(read_ipums_micro(ddi))[,c("metaread","raced","bpld","mbpld","fbpld"):=NULL]
+    
+    write_fst(census_sample_1880,paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1880.fst"))
+
+rm(ddi)
+
+# 1900
+ # This one has geographical variables
+    ddi <- read_ipums_ddi(paste0(main_directory,"R - Processing data/input/raw_data/usa_census_1900.xml"))
+    ## From IPUMS names of variables are in uppercase letters. Change to lower case
+    ddi$var_info$var_name <- tolower(ddi$var_info$var_name)
+    census_sample_1900 <- as.data.table(read_ipums_micro(ddi))[,c("metaread","ownershpd","raced","bpld","mbpld","fbpld"):=NULL]
+    
+    write_fst(census_sample_1900,paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1900.fst"))
+
+rm(ddi)
+
+# 1910
+ # This one has geographical variables
+    ddi <- read_ipums_ddi(paste0(main_directory,"R - Processing data/input/raw_data/usa_census_1910.xml"))
+    ## From IPUMS names of variables are in uppercase letters. Change to lower case
+    ddi$var_info$var_name <- tolower(ddi$var_info$var_name)
+    census_sample_1910 <- as.data.table(read_ipums_micro(ddi))[,c("metaread","ownershpd","raced","bpld","mbpld","fbpld"):=NULL]
+    
+    write_fst(census_sample_1910,paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1910.fst"))
+
+rm(ddi)
+
+# 1920
+ # Used to load year 1930. This one has geographical variables
+    ddi <- read_ipums_ddi(paste0(main_directory,"R - Processing data/input/raw_data/usa_census_1920.xml"))
+    ## From IPUMS names of variables are in uppercase letters. Change to lower case
+    ddi$var_info$var_name <- tolower(ddi$var_info$var_name)
+    census_sample_1920 <- as.data.table(read_ipums_micro(ddi))[,c("metaread","ownershpd","raced","bpld","mbpld","fbpld"):=NULL]
+    
+    write_fst(census_sample_1920,paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1920.fst"))
+
+rm(ddi)
+
+# 1930
+ # Used to load year 1930. This one has geographical variables
+    ddi <- read_ipums_ddi(paste0(main_directory,"R - Processing data/input/raw_data/usa_census_1930.xml"))
+    ## From IPUMS names of variables are in uppercase letters. Change to lower case
+    ddi$var_info$var_name <- tolower(ddi$var_info$var_name)
+    census_sample_1930 <- as.data.table(read_ipums_micro(ddi))[,c("metaread","ownershpd","raced","bpld","mbpld","fbpld"):=NULL]
+    
+    write_fst(census_sample_1930,paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1930.fst"))
+#}
+    
+rm(ddi)
+
+# 1940
+ # Used to load year 1940. This one has geographical variables
+    ddi <- read_ipums_ddi(paste0(main_directory,"R - Processing data/input/raw_data/usa_census_1940.xml"))
+    ## From IPUMS names of variables are in uppercase letters. Change to lower case
+    ddi$var_info$var_name <- tolower(ddi$var_info$var_name)
+    census_sample_1940 <- as.data.table(read_ipums_micro(ddi))[,c("metaread","ownershpd","raced","bpld","mbpld","fbpld"):=NULL]
+    
+    write_fst(census_sample_1940,paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1940.fst"))
+#}
+    
+rm(ddi)
+    
+```
+
+# 1. Merging the Census Data with geographic location that is homogenenous across years
+## 1.1. Load the crosswalk files
+We will work with base counties in 1910 and with 1940 metropolitan areas. We could use different base counties
+NOTE: The files used here (countynhg_x_metarea...) were constructed in Stata and then imported to R. The original .dta file can be found in the directory /Volumes/GoogleDrive/My Drive/New York 2015-2020/NYU/Stata/Automobile Sector 1880-1940/support_data/Cty_cross/dta
+### 1880
+```{r}
+countynhg_x_metarea1940_1880to1910 <- read_fst(paste0(main_directory,"R - Processing data/input/Cty_cross/fst/countynhg_x_metarea1940_1880to1910_1.fst"),as.data.table=TRUE)
+countynhg_x_metarea1940_1880to1910 <- countynhg_x_metarea1940_1880to1910[,.(sh_area=sum(sh_area)),by=c("year","countynhg","metarea_1940","icpsrfip","icpsrfip_1910","countynhg_1910")]
+
+countynhg_x_metarea1940_1880to1910 <- countynhg_x_metarea1940_1880to1910[,`:=`(metarea_1940_code=as.numeric(metarea_1940),metarea_1940_name=as.character(metarea_1940))]
+
+countynhg_1880to1910 <- read_fst(paste0(main_directory,"R - Processing data/input/Cty_cross/fst/countynhg_1880to1910_1.fst"),as.data.table=TRUE)
+
+countynhg_1880to1910 <- countynhg_1880to1910[,.(sh_area=sum(sh_area)),by=c("year","countynhg","icpsrfip","icpsrfip_1910","countynhg_1910")]
+```
+
+### 1900
+```{r}
+countynhg_x_metarea1940_1900to1910 <- read_fst(paste0(main_directory,"R - Processing data/input/Cty_cross/fst/countynhg_x_metarea1940_1900to1910_1.fst"),as.data.table=TRUE)
+countynhg_x_metarea1940_1900to1910 <- countynhg_x_metarea1940_1900to1910[,.(sh_area=sum(sh_area)),by=c("year","countynhg","metarea_1940","icpsrfip","icpsrfip_1910","countynhg_1910")]
+
+countynhg_x_metarea1940_1900to1910 <- countynhg_x_metarea1940_1900to1910[,`:=`(metarea_1940_code=as.numeric(metarea_1940),metarea_1940_name=as.character(metarea_1940))]
+
+countynhg_1900to1910 <- read_fst(paste0(main_directory,"R - Processing data/input/Cty_cross/fst/countynhg_1900to1910_1.fst"),as.data.table=TRUE)
+
+countynhg_1900to1910 <- countynhg_1900to1910[,.(sh_area=sum(sh_area)),by=c("year","countynhg","icpsrfip","icpsrfip_1910","countynhg_1910")]
+```
+
+### 1910
+```{r}
+countynhg_x_metarea1940_1910to1910 <- read_fst(paste0(main_directory,"R - Processing data/input/Cty_cross/fst/countynhg_x_metarea1940_1910to1910_1.fst"),as.data.table=TRUE)
+countynhg_x_metarea1940_1910to1910 <- countynhg_x_metarea1940_1910to1910[,.(sh_area=sum(sh_area)),by=c("year","countynhg","metarea_1940","icpsrfip","icpsrfip_1910","countynhg_1910")]
+
+countynhg_x_metarea1940_1910to1910 <- countynhg_x_metarea1940_1910to1910[,`:=`(metarea_1940_code=as.numeric(metarea_1940),metarea_1940_name=as.character(metarea_1940))]
+
+countynhg_1910to1910 <- read_fst(paste0(main_directory,"R - Processing data/input/Cty_cross/fst/countynhg_1910to1910_1.fst"),as.data.table=TRUE)
+
+countynhg_1910to1910 <- countynhg_1910to1910[,.(sh_area=sum(sh_area)),by=c("year","countynhg","icpsrfip","icpsrfip_1910","countynhg_1910")]
+```
+
+1940 1pct. year, sample, serial hhwt, pernum, perwt,statefip,countyicp, countynhg, urban, metarea, farm, ownership, valueh, famsize, sex, age, marst, race, bpl, mbpl,fbpl,school, lit, empstat, labforce, classwkr,occ, occ1950, ind,ind1950,occscore,occstr,indstr)))
+### 1920
+```{r}
+countynhg_x_metarea1940_1920to1910 <- read_fst(paste0(main_directory,"R - Processing data/input/Cty_cross/fst/countynhg_x_metarea1940_1920to1910_1.fst"),as.data.table=TRUE)
+countynhg_x_metarea1940_1920to1910 <- countynhg_x_metarea1940_1920to1910[,.(sh_area=sum(sh_area)),by=c("year","countynhg","metarea_1940","icpsrfip","icpsrfip_1910","countynhg_1910")]
+
+countynhg_x_metarea1940_1920to1910 <- countynhg_x_metarea1940_1920to1910[,`:=`(metarea_1940_code=as.numeric(metarea_1940),metarea_1940_name=as.character(metarea_1940))]
+
+countynhg_1920to1910 <- read_fst(paste0(main_directory,"R - Processing data/input/Cty_cross/fst/countynhg_1920to1910_1.fst"),as.data.table=TRUE)
+
+countynhg_1920to1910 <- countynhg_1920to1910[,.(sh_area=sum(sh_area)),by=c("year","countynhg","icpsrfip","icpsrfip_1910","countynhg_1910")]
+```
+
+
+### 1930
+```{r}
+countynhg_x_metarea1940_1930to1910 <- read_fst(paste0(main_directory,"R - Processing data/input/Cty_cross/fst/countynhg_x_metarea1940_1930to1910_1.fst"),as.data.table=TRUE)
+countynhg_x_metarea1940_1930to1910 <- countynhg_x_metarea1940_1930to1910[,.(sh_area=sum(sh_area)),by=c("year","countynhg","metarea_1940","icpsrfip","icpsrfip_1910","countynhg_1910")]
+
+countynhg_x_metarea1940_1930to1910 <- countynhg_x_metarea1940_1930to1910[,`:=`(metarea_1940_code=as.numeric(metarea_1940),metarea_1940_name=as.character(metarea_1940))]
+
+countynhg_1930to1910 <- read_fst(paste0(main_directory,"R - Processing data/input/Cty_cross/fst/countynhg_1930to1910_1.fst"),as.data.table=TRUE)
+
+countynhg_1930to1910 <- countynhg_1930to1910[,.(sh_area=sum(sh_area)),by=c("year","countynhg","icpsrfip","icpsrfip_1910","countynhg_1910")]
+```
+
+### 1940
+```{r}
+countynhg_x_metarea1940_1940to1910 <- read_fst(paste0(main_directory,"R - Processing data/input/Cty_cross/fst/countynhg_x_metarea1940_1940to1910_1.fst"),as.data.table=TRUE)
+countynhg_x_metarea1940_1940to1910 <- countynhg_x_metarea1940_1940to1910[,.(sh_area=sum(sh_area)),by=c("year","countynhg","metarea_1940","icpsrfip","icpsrfip_1910","countynhg_1910")]
+
+countynhg_x_metarea1940_1940to1910 <- countynhg_x_metarea1940_1940to1910[,`:=`(metarea_1940_code=as.numeric(metarea_1940),metarea_1940_name=as.character(metarea_1940))]
+
+countynhg_1940to1910 <- read_fst(paste0(main_directory,"R - Processing data/input/Cty_cross/fst/countynhg_1940to1910_1.fst"),as.data.table=TRUE)
+
+countynhg_1940to1910 <- countynhg_1940to1910[,.(sh_area=sum(sh_area)),by=c("year","countynhg","icpsrfip","icpsrfip_1910","countynhg_1910")]
+```
+
+## 1.2. Load Census data and merge with geographic variables
+### 1880
+```{r}
+census_sample_1880 <- read_fst(paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1880.fst"),as.data.table=TRUE)
+
+# Create an ID variable
+census_sample_1880[,ID:=1:.N]
+
+census_sample_1880 <- merge(census_sample_1880,countynhg_x_metarea1940_1880to1910[,c("countynhg","countynhg_1910","metarea_1940","sh_area")],by="countynhg",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)
+
+# Use share_area to recalculate the perwt vector
+setnames(census_sample_1880,c("perwt"),c("perwt_ID"))
+census_sample_1880[,perwt:=ifelse(!is.na(sh_area),sh_area*perwt_ID,perwt_ID)]
+
+# Modify metarea_1940. For each state we create a region corresponding to all the counties that don't belong to a metarea_1940
+# Transform on-identifiable metareas into different meareas by state
+census_sample_1880[,metarea_1940:=as.numeric(metarea_1940)][metarea_1940==1,metarea_1940:=statefip*1000+999]
+
+
+print(paste0("We lose ",(1-sum(census_sample_1880[!is.na(countynhg_1910)]$perwt)/sum(census_sample_1880$perwt))*100,"% of the population\n when we work with countynhg_1910/metarea_1940"))
+
+```
+
+### 1900
+```{r}
+census_sample_1900 <- read_fst(paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1900.fst"),as.data.table=TRUE)
+
+# Create an ID variable
+census_sample_1900[,ID:=1:.N]
+
+census_sample_1900 <- merge(census_sample_1900,countynhg_x_metarea1940_1900to1910[,c("countynhg","countynhg_1910","metarea_1940","sh_area")],by="countynhg",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)
+
+# Use share_area to recalculate the perwt vector
+setnames(census_sample_1900,c("perwt"),c("perwt_ID"))
+census_sample_1900[,perwt:=ifelse(!is.na(sh_area),sh_area*perwt_ID,perwt_ID)]
+
+# Modify metarea_1940. For each state we create a region corresponding to all the counties that don't belong to a metarea_1940
+# Transform on-identifiable metareas into different meareas by state
+census_sample_1900[,metarea_1940:=as.numeric(metarea_1940)][metarea_1940==1,metarea_1940:=statefip*1000+999]
+
+
+print(paste0("We lose ",(1-sum(census_sample_1900[!is.na(countynhg_1910)]$perwt)/sum(census_sample_1900$perwt))*100,"% of the population\n when we work with countynhg_1910/metarea_1940"))
+
+```
+
+
+### 1910
+```{r}
+census_sample_1910 <- read_fst(paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1910.fst"),as.data.table=TRUE)
+
+# Create an ID variable
+census_sample_1910[,ID:=1:.N]
+
+census_sample_1910 <- merge(census_sample_1910,countynhg_x_metarea1940_1910to1910[,c("countynhg","countynhg_1910","metarea_1940","sh_area")],by="countynhg",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)
+
+# Use share_area to recalculate the perwt vector
+setnames(census_sample_1910,c("perwt"),c("perwt_ID"))
+census_sample_1910[,perwt:=ifelse(!is.na(sh_area),sh_area*perwt_ID,perwt_ID)]
+
+# Modify metarea_1940. For each state we create a region corresponding to all the counties that don't belong to a metarea_1940
+# Transform on-identifiable metareas into different meareas by state
+census_sample_1910[,metarea_1940:=as.numeric(metarea_1940)][metarea_1940==1,metarea_1940:=statefip*1000+999]
+
+
+print(paste0("We lose ",(1-sum(census_sample_1910[!is.na(countynhg_1910)]$perwt)/sum(census_sample_1910$perwt))*100,"% of the population\n when we work with countynhg_1910/metarea_1940"))
+
+```
+
+### 1920
+```{r}
+census_sample_1920 <- read_fst(paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1920.fst"),as.data.table=TRUE)
+
+# Create an ID variable
+census_sample_1920[,ID:=1:.N]
+
+census_sample_1920 <- merge(census_sample_1920,countynhg_x_metarea1940_1920to1910[,c("countynhg","countynhg_1910","metarea_1940","sh_area")],by="countynhg",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)
+
+# Use share_area to recalculate the perwt vector
+setnames(census_sample_1920,c("perwt"),c("perwt_ID"))
+census_sample_1920[,perwt:=ifelse(!is.na(sh_area),sh_area*perwt_ID,perwt_ID)]
+
+# Modify metarea_1940. For each state we create a region corresponding to all the counties that don't belong to a metarea_1940
+# Transform on-identifiable metareas into different meareas by state
+census_sample_1920[,metarea_1940:=as.numeric(metarea_1940)][metarea_1940==1,metarea_1940:=statefip*1000+999]
+
+
+print(paste0("We lose ",(1-sum(census_sample_1920[!is.na(countynhg_1910)]$perwt)/sum(census_sample_1920$perwt))*100,"% of the population\n when we work with countynhg_1910/metarea_1940"))
+
+```
+
+### 1930
+```{r}
+census_sample_1930 <- read_fst(paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1930.fst"),as.data.table=TRUE)
+
+# Create an ID variable
+census_sample_1930[,ID:=1:.N]
+
+census_sample_1930 <- merge(census_sample_1930,countynhg_x_metarea1940_1930to1910[,c("countynhg","countynhg_1910","metarea_1940","sh_area")],by="countynhg",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)
+
+# Use share_area to recalculate the perwt vector
+setnames(census_sample_1930,c("perwt"),c("perwt_ID"))
+census_sample_1930[,perwt:=ifelse(!is.na(sh_area),sh_area*perwt_ID,perwt_ID)]
+
+# Modify metarea_1940. For each state we create a region corresponding to all the counties that don't belong to a metarea_1940
+# Transform on-identifiable metareas into different meareas by state
+census_sample_1930[,metarea_1940:=as.numeric(metarea_1940)][metarea_1940==1,metarea_1940:=statefip*1000+999]
+
+
+print(paste0("We lose ",(1-sum(census_sample_1930[!is.na(countynhg_1910)]$perwt)/sum(census_sample_1930$perwt))*100,"% of the population\n when we work with countynhg_1910/metarea_1940"))
+```
+
+### 1940
+```{r}
+census_sample_1940 <- read_fst(paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1940.fst"),as.data.table=TRUE)
+
+# Census 1940 doesn't have a countynhg variable. Instead, we work with the icpsrfip variable
+census_sample_1940[,icpsrfip:= statefip*1000 + countyicp/10]
+
+# Create an ID variable
+census_sample_1940[,ID:=1:.N]
+
+# Merge with crooswork table
+census_sample_1940 <- merge(census_sample_1940,countynhg_x_metarea1940_1940to1910[,c("icpsrfip","countynhg_1910","metarea_1940","sh_area")],by="icpsrfip",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)
+
+# Use share_area to recalculate the perwt vector
+setnames(census_sample_1940,c("perwt"),c("perwt_ID"))
+census_sample_1940[,perwt:=ifelse(!is.na(sh_area),sh_area*perwt_ID,perwt_ID)]
+
+# Modify metarea_1940. For each state we create a region corresponding to all the counties that don't belong to a metarea_1940
+# Transform on-identifiable metareas into different meareas by state
+census_sample_1940[,metarea_1940:=as.numeric(metarea_1940)][metarea_1940==1,metarea_1940:=statefip*1000+999]
+
+
+print(paste0("We lose ",(1-sum(census_sample_1940[!is.na(countynhg_1910)]$perwt)/sum(census_sample_1940$perwt))*100,"% of the population\n when we work with countynhg_1910/metarea_1940"))
+```
+
+#### Some caveats about 1940 Census
+The 1940 Census has a larger set of variables. The new variables most relevant to our analysis are: (i) wage, (ii) education, (iii) migration status and location 5 years ago, (iv) usual occupation 5 years ago. The variable with migration information provides either the state where the person lived 5 years ago or the MIGMET5 variable, which ends up being similar to the State Economic Area (SEA). This variable is not exactly the same as the metropolitan area used as geographical variable in the different exercises (i.e. metarea_1940). 
+*** TO-DO: To be able to exploit the more specific MIGMET5 variable we would need to match SEA with metarea_1940 and countynhg_1910.
+In the code chunk below we explore some simple relations between metarea and metarea_1940 (they are basically the same) and between occupation and usual occupation 5 years ago, industry and usual industry 5 years ago
+
+uocc: "that occupation at which he has worked longest during the past ten years and at which he is still physically able to work. Used in conjunction with OCC, which indicates the respondent's current occupation, UOCC allows users to identify persons currently working at an occupation different from their usual one."
+
+```{r}
+A <- census_sample_1940[,c("metarea","metarea_1940","perwt_ID")][,.(pop=sum(perwt_ID)),by=c("metarea","metarea_1940")][order(metarea,metarea_1940)]
+
+B <- census_sample_1940[,c("occ","uocc","perwt_ID")][,.(pop=sum(perwt_ID)),by=c("occ","uocc")][order(occ,uocc)]
+
+C <- census_sample_1940[,c("ind","uind","perwt_ID")][,.(pop=sum(perwt_ID)),by=c("ind","uind")][order(ind,uind)]
+
+D <- census_sample_1940[,c("migrate5d","perwt_ID")][,.(pop=sum(perwt_ID)),by=c("migrate5d")][order(migrate5d)]
+
+E <- census_sample_1940[incwage == 0 | incwage == 999999, incwage:=NA]
+E <- E[,c("incwage","perwt_ID")][,.(pop=sum(perwt_ID)),by=c("incwage")][order(incwage)]
+
+F <- census_sample_1940[,lapply(.SD,weighted.mean,w=perwt_ID,na.rm=TRUE),by="countynhg_1910",.SDcols=c("incwage")]
+
+F <- f_average(census_sample_1940[,c("countynhg_1910","perwt_ID","incwage")],geof=countynhg_1910,weight=perwt_ID,var=incwage,flag=1)
+
+rm(A,B,C,D,E,F)
+```
+
+
+## 1.3. Save the Census data
+NOTE: Here we won't drop observations for which we don't have countynhg_1910 or metarea_1940
+###1880
+```{r}
+write_fst(census_sample_1880,paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1880.fst"))
+```
+
+###1900
+```{r}
+write_fst(census_sample_1900,paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1900.fst"))
+```
+
+###1910
+```{r}
+write_fst(census_sample_1910,paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1910.fst"))
+```
+
+###1920
+```{r}
+write_fst(census_sample_1920,paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1920.fst"))
+```
+
+###1930
+```{r}
+write_fst(census_sample_1930,paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1930.fst"))
+```
+
+###1940
+```{r}
+write_fst(census_sample_1940,paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1940.fst"))
+```
+
+# 2. Merging the Census data with an occind code
+The occind code was created to be able to match the occ1930 code that appears in the Alphabetical Index with the occ code used by IPUMS. In most cases there is one-to-one relation between occ1930 and occ, but in a few cases an occ corresponds to more than one occ1930. In those cases we need to use both occ and ind to find a match
+
+
+## 2.1. Import occupational and industry groups for 1920, 1930 and 1950
+### 1920
+```{r}
+occ1920.codes <- as.data.table( read_excel(paste0(main_directory,"R - Processing data/input/1920 - Cleaned.xlsx"), sheet = "1920 main groups",guess_max=10000) )
+```
+
+### 1930
+```{r}
+occ1930.codes <- as.data.table( read_excel(paste0(main_directory,"R - Processing data/input/1930 - Cleaned.xlsx"), sheet = "1930 main groups",guess_max=10000) )[,!c("occ_ini_1930","occ1930","occ_name")]
+ind1930.codes <- as.data.table( read_excel(paste0(main_directory,"R - Processing data/input/1930 - Cleaned.xlsx"), sheet = "ind_ind1930",guess_max=10000) )[,!c("ind1930_ind")]
+
+```
+
+### 1940
+```{r}
+occ1940.codes <- as.data.table( read_excel(paste0(main_directory,"R - Processing data/input/1940 - Cleaned.xlsx"), sheet = "occ1940",guess_max=10000) )
+# We only work with occupation codes, omitting the industry part
+occ1940.codes <- occ1940.codes[,`:=`(occ1940_IPUMS=as.numeric(occ1940_IPUMS),occ1940=tolower(occ1940))][,!c("ind1940_IPUMS","ind1940","occind1940")][,.SD[1],by="occ1940"]
+
+ind1940.codes <- as.data.table( read_excel(paste0(main_directory,"R - Processing data/input/1940 - Cleaned.xlsx"), sheet = "ind1940",guess_max=10000) )[,ind1940:=tolower(ind1940)][,name_ind1940:=f_clean_conj(f_change_words(f_change_syms(f_clean_punct(tolower(name_ind1940),flag=0) )) )][is.na(name_ind1940_subgroup),name_ind1940_subgroup:=name_ind1940_main]
+```
+
+
+### 1950
+```{r}
+occ1950.codes <- as.data.table( read_excel(paste0(main_directory,"R - Processing data/input/1930 - Cleaned.xlsx"), sheet = "occ1950",guess_max=10000) )
+ind1950.codes <- as.data.table( read_excel(paste0(main_directory,"R - Processing data/input/1930 - Cleaned.xlsx"), sheet = "ind1950",guess_max=10000) )
+```
+
+## 2.2. Merging Census data with crosswalks to other occupational or industry codes
+
+### 2.2.1 1930: occ (and ind) to occind
+#### Call Census 1930
+```{r}
+census_sample_1930 <-read_fst(paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1930.fst"),as.data.table=TRUE)
+```
+
+#### Merge with occ1930.codes
+```{r}
+# flag==0: One on one relation between occ and occind
+census_sample_1930 <- merge(census_sample_1930,occ1930.codes[flag==0,c("occ","occind","flag")],by="occ",all.x=TRUE,all.y=FALSE)
+census_sample_1930 <- merge(census_sample_1930,occ1930.codes[flag==1,c("occ","occind","ind","flag")][,`:=`(f=flag,o=occind, flag=NULL, occind=NULL)],by=c("occ","ind"),all.x=TRUE,all.y=FALSE)
+
+# flag==1: an occ/ind combination is assigned an occind
+census_sample_1930 <- census_sample_1930[f==1,`:=`(flag=f,occind=o)][,`:=`(f=NULL,o=NULL)][(occ %in% c(126,51,57,6,7,52,87,88,259)) & is.na(flag),flag:=2]
+# NOTE (TODO): instead of providing the occ codes that have flag==2, we could do find these observations... HOW?
+
+# flag==2: occ codes used in flag==1 case, but where the industry is different than those cases
+# e.g. occ=126, ind=105 -> occind=126105, occ=126, ind=107 -> occind=126107
+#      occ=126, ind!=105,107 -> occind=126000
+census_sample_1930 <- merge(census_sample_1930,occ1930.codes[flag==2,c("occ","occind","flag")][,`:=`(o=occind, occind=NULL)],by=c("occ","flag"),all.x=TRUE,all.y=FALSE)
+census_sample_1930[flag==2,`:=`(occind=o)][,`:=`(o=NULL,flag=NULL)]
+
+
+# Check that all occ (/ind) were assigned an occind
+if (nrow(census_sample_1930[!is.na(occ) & occ!=999 & is.na(occind),c("occ","ind","occind")])>0) {
+  warning("At least one occ (ind) different than 999 or NA, couldn't be assigned an occind")
+  View(census_sample_1930[!is.na(occ) & occ!=999 & is.na(occind),c("occ","ind","occind")])
+}
+
+```
+
+#### Save the Census data
+```{r}
+write_fst(census_sample_1930,paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1930.fst"))
+```
+Note: If you are going to use the dataset to construct a different dataset that aggregates and thus doesn't require individual level information, you can use perwt (and drop perwt_ID, ID and sh_area). If that is not the case, you should use variables perwt_ID, ID and sh_area
+
+### 2.2.2 1940: occ (and ind) to occind
+#### Call Census 1940
+```{r}
+census_sample_1940 <-read_fst(paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1940.fst"),as.data.table=TRUE)
+```
+
+#### Merge with occ1940.codes and ind1940.code
+```{r}
+# Merging with occ1940.codes
+census_sample_1940 <- merge(census_sample_1940,occ1940.codes[,c("occ1940_IPUMS","occ1940","name_occ1940")],by.x="occ",by.y="occ1940_IPUMS",all.x=TRUE,all.y=FALSE)
+
+# Merging with ind1940.codes
+census_sample_1940 <- merge(census_sample_1940,ind1940.codes[,c("ind1940_IPUMS","ind1940","name_ind1940","name_ind1940_subgroup")],by.x="ind",by.y="ind1940_IPUMS",all.x=TRUE,all.y=FALSE)
+```
+
+#### Save the Census data
+```{r}
+write_fst(
+  census_sample_1940[,`:=`(ind1940=tolower(ind1940),occ1940=tolower(occ1940))],
+  paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1940.fst")
+  )
+```
+Note: If you are going to use the dataset to construct a different dataset that aggregates and thus doesn't require individual level information, you can use perwt (and drop perwt_ID, ID and sh_area). If that is not the case, you should use variables perwt_ID, ID and sh_area
+
+
+
+```{r}
+knitr::knit_exit()
+```
+
+
+
+
+# ADDITIONAL NOT USED IN THIS FILE
+
+## 2.3. Associating Census with share of new sectors variable
+### 2.3.1. Import variable with new titles using the Index
+In the Rmd file "Process_main_1920x1930" we created two files that associate 1930 occ codes to the share of new titles. We use different criteria to find out new titles. We also did it either by looking at within occ group to find our duplicated titles, or by looking at the whole set of observations. Both of these cases are imported in the new_titles_occind1930
+```{r}
+new_titles.occind1930 <- list(
+                                read_fst(paste0(main_directory,"R - Processing data/output/Rdata/new_titles_1930_by_occind.fst"),as.data.table=TRUE),
+                                read_fst(paste0(main_directory,"R - Processing data/output/Rdata/new_titles_1930_by_occind.all.fst"),as.data.table=TRUE)
+)
+
+new_titles.occind1930[[1]] <- merge(new_titles.occind1930[[1]],occ1930.codes[,c("occind1930","occind1930_name","occ","ind","occind","flag")],by="occind1930",all=TRUE)
+new_titles.occind1930[[2]] <- merge(new_titles.occind1930[[2]],occ1930.codes[,c("occind1930","occind1930_name","occ","ind","occind","flag")],by="occind1930",all=TRUE)
+```
+
+
+
+#### ******2.3.1. Associate IPUMS occupational codes with Index occupational codes
+We won't create this variable in advance. 
+
+## Function
+```{r}
+f_merge_mew_titles <- function(X_census,X_new_titles,var_sh_new,occ_n,occind_n,ind_n,occ_c,occind_c,ind_c) {
+  X_n <- copy(X_new_titles)
+  setnames(X_n, c(deparse(substitute(var_sh_new))),c("sh_new"))
+  # X_census should have columns occ, occind, ind
+  if (!missing(occ_c))  { setnames(X_census, c(deparse(substitute(occ_c))),c("occ")) 
+  } else if (length(X_census$occ)==0) print("Provide the occ_n variable for X_census")
+  if (!missing(occind_c))  { setnames(X_census, c(deparse(substitute(occind_c))),c("occind"))
+  } else if (length(X_census$occind)==0) print("Provide the occind_n variable for X_census")
+  if (!missing(ind_c))  {setnames(X_census, c(deparse(substitute(ind_c))),c("ind"))
+  } else if (length(X_census$ind)==0) print("Provide the ind_c variable for X_census")
+  
+  # If occ, occind, ind are not specified, we assume that X_new_titles has variables with those names
+  # We are assuming that X_census has those variables
+  if (!missing(occ_n))  setnames(X_n, c(deparse(substitute(occ_n))),c("occ"))
+  if (!missing(occind_n))  setnames(X_n, c(deparse(substitute(occind_n))),c("occind"))
+  if (!missing(ind_n))  setnames(X_n, c(deparse(substitute(ind_n))),c("ind"))
+  
+  
+  
+  X_census <- merge(X_census,X_n[flag==0,c("occ","occind","flag","sh_new")],by="occ",all.x=TRUE,all.y=FALSE)
+  X_census <- merge(X_census,X_n[flag==1,c("occ","occind","ind","flag","sh_new")][,`:=`(f=flag,o=occind,a = sh_new, flag=NULL, occind=NULL, sh_new=NULL)],by=c("occ","ind"),all.x=TRUE,all.y=FALSE)
+  X_census[f==1 & !is.na(a),`:=`(flag=f,occind=o,sh_new=a)][,`:=`(f=NULL,o=NULL,a=NULL)][(occ %in% c(126,51,57,6,7,52,87,88,259)) & is.na(flag),flag:=2]
+  X_census <- merge(X_census,X_n[flag==2,c("occ","occind","flag","sh_new")][,`:=`(o=occind,a = sh_new, occind=NULL, sh_new=NULL)],by=c("occ","flag"),all.x=TRUE,all.y=FALSE)
+  X_census[flag==2 & !is.na(a),`:=`(occind=o,sh_new=a)][,`:=`(o=NULL,a=NULL)]
+  
+  setnames(X_census, c("sh_new"), c(deparse(substitute(var_sh_new))) )
+  if (!missing(occ_c))     { setnames(X_census,c("occ"),    c(deparse(substitute(occ_c))))    }
+  if (!missing(occind_c))  { setnames(X_census,c("occind"), c(deparse(substitute(occind_c)))) }
+  if (!missing(ind_c))     { setnames(X_census,c("ind"),    c(deparse(substitute(ind_c))))    }
+
+  return(X_census[,!c("flag")])
+}
+
+#census_sample_1930.countynhg <- f_merge_mew_titles(X_census=census_sample_1930.countynhg,X_new_titles=new_titles.occind1930[[1]],var_sh_new=sh_base_tit,occ_n=occ,occind_n=occind,ind_n=ind)
+#census_sample_1930.countynhg <- f_merge_mew_titles(X_census=census_sample_1930.countynhg,X_new_titles=new_titles.occind1930[[1]],var_sh_new=sh_red_tit,occ_n=occ,occind_n=occind,ind_n=ind)
+
+```
+
+
+
+

@@ -1,0 +1,193 @@
+---
+title: "Problem with bootstrap"
+output: html_document
+---
+
+# Delete Workspace and load packages
+## Function to load necessary packages
+```{r}
+f_load_pk <- function() {
+  
+  # Pacman: packages manager. It does different things, here I use it to load multiple packages at the same time
+  library (pacman)
+  p_load(readxl,foreign,readstata13,data.table,plyr,dplyr,stringr,openxlsx,stringdist,reshape2,qdap,fst,ipumsr,tm,textreg,tmap,tmaptools,sf,leaflet,ipumsr)
+  p_load(tictoc)
+  
+  # Statistical packages
+  p_load(fastDummies,sandwich,lmtest,estimatr)
+  p_load(lfe)
+  p_load(weights)  # To perform weighted correlations
+  
+  #graphs
+  p_load(ggplot2,maps,ggthemes,sjPlot,sjmisc,sjlabelled,jtools,ggstance,broom.mixed)
+  p_load(ggpubr)   # Contains ggarrange, used to plot more than one grpah in the same figure
+  p_load(scales)   # Used in histogram to show percent format
+  
+  # Parallel
+  p_load(snow,iterators,doParallel)
+
+}
+```
+
+## Using function
+```{r}
+rm(list = setdiff(ls(),c(lsf.str(),"main_directory" )) )
+f_load_pk()
+```
+
+# Defining main and other directories
+```{r}
+main_directory <- "/Volumes/GoogleDrive/My Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/"
+```
+
+# 0 . Some functions
+## Function to export things to excel
+```{r}
+wrapper_Excel <- function(list_table,list_name,output) {
+  t <- createWorkbook()
+  for (i in 1:length(list_table)) {
+    addWorksheet(t, list_name[[i]])
+    writeData(t, list_name[[i]],list_table[[i]])
+  }
+  saveWorkbook(t, output,overwrite=TRUE)
+}
+```
+
+# Part 1: Exercise using year 1930
+## 1. Regressions following Lin (2011) - At the countynhg_1910 level
+### 1.1. Call individual level data
+```{r}
+DT <-read_fst(paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1930_individual_data_x_countynhg_1910.fst"),as.data.table=TRUE)[occ1950_main!=979 & ind1950_main!=0 & perwt_1930 > 10000][,c("countynhg_1910","perwt_1930","sh_red_tit","occind","statefip","urban","male","lit","marst","race","wwages","mig_us","mig_ab","age_main","ind1950","ind1950_main","famsize","ownershp","m_mig_us","f_mig_us")][!is.na(lit)][order(countynhg_1910,occind)]
+```
+
+### 1.2. Creating dummy variables and county fixed effects
+```{r}
+# Change categorical variables to factors
+# Note: - using factors allows R to easily create dummies
+#       - We don't change binary variables, as they are already interpreted as Dummy variables  
+#       - We don't create the state dummies here because the number of states changes depending on the dataset
+cols <- c("race","marst","age_main","ind1950_main")
+
+# Dealing with dummies
+# option 1.: convert variables that are dummies to factors
+#            R can handle these factors in regressions. The problem is that we can't specify which one is the NULL category. This becomes problematic when we want to extract the county fixed effect.
+#DT[,(cols):=lapply(.SD,as.factor),.SDcols=cols]
+# option 2.: Create independent variable for each dummy variable
+DT <- dummy_cols(DT,select_columns = cols,remove_first_dummy = TRUE)
+
+# Immigrants parents
+DT[,imm_parents:=ifelse(m_mig_us==1 | f_mig_us==1,1,0)]
+
+# County fixed effect
+#DT[,countynhg_1910:=as.factor(countynhg_1910)]
+
+```
+
+### 1.3 Creating some variables for regressions
+```{r}
+# Base
+base_individual <- c("male","lit","wwages","mig_us","mig_ab","urban")
+extra_individual <- c("famsize","ownershp","imm_parents")
+marst_vars <- grep("^marst_[^1]",names(DT),value=TRUE)
+race_vars <- grep("^race_[^1]",names(DT),value=TRUE)
+age_main_vars <- grep("^age_main_[^1]",names(DT),value=TRUE)
+ind1950_main_vars <- grep("^ind1950_main_",names(DT),value=TRUE)
+# statefip_vars <- grep("^statefip_",names(DT),value=TRUE)
+
+```
+
+### 1.4. First stage regression (following Lin (2011))
+*** TO-DO: Construct regressions for this part. The main problem is that the algorithm collapses when we include countynhg_1910 dummies
+#### 1.4.0 Creating the reduced set
+```{r}
+pop <- 10000
+
+# Selecting dataset of interest
+DT_res <- DT[perwt_1930 >= pop & !(ind1950 %in% c(376,377,466,556,606,667,668,816,856))]
+
+# Creating state dummies
+DT_res <- dummy_cols(DT_res,select_columns = "statefip",remove_first_dummy = TRUE)
+statefip_vars <- grep("^statefip_",names(DT_res),value=TRUE)
+
+# FE variable has to be treated as a factor
+DT_res[, `:=` (countynhg_1910 = as.factor(countynhg_1910),occind = as.factor(occind),statefip_fe = as.factor(statefip)) ]
+
+# Counting state-fixed effects
+statefip_all     <- length(unique(DT$statefip))
+statefip_reduced <- length(unique(DT_res$statefip))
+statefip_dummies_reduced <- length(grep("^statefip_",names(DT_res),value=TRUE))
+
+print(paste0("Number of different statefip values in the whole dataset: ", statefip_all))
+print(paste0("Number of different statefip values in the reduced dataset: ", statefip_reduced))
+print(paste0("Number of statefip dummies in the reduced dataset: ", statefip_dummies_reduced))
+```
+#### 1.4.1. Regression equations
+```{r}
+a <- b <- vector(mode = "list")
+
+#   Directly computing county fixed effects
+##  NO statefip
+### Only Base
+a[[1]] <- as.formula(paste("sh_red_tit ~ ",paste0(base_individual,collapse=" + ")," + countynhg_1910 -1 | 0 | 0 | occind"))
+### More controls
+a[[2]] <- as.formula(paste("sh_red_tit ~ ",paste0(base_individual,collapse=" + ")," + ",paste0(marst_vars,collapse=" + ")," + ",paste0(race_vars,collapse=" + ")," + ",paste0(age_main_vars,collapse=" + ")," + countynhg_1910 -1 | 0 | 0 | occind"))
+
+##  WITH statefip
+### Only Base
+a[[3]] <- as.formula(paste("sh_red_tit ~ ",paste0(base_individual,collapse=" + ")," + ",paste0(statefip_vars,collapse=" + ")," + countynhg_1910 -1 | 0 | 0 | occind"))
+### More controls
+a[[4]] <- as.formula(paste("sh_red_tit ~ ",paste0(base_individual,collapse=" + ")," + ",paste0(marst_vars,collapse=" + ")," + ",paste0(race_vars,collapse=" + ")," + ",paste0(age_main_vars,collapse=" + ")," + ",paste0(statefip_vars,collapse=" + ")," + countynhg_1910 -1 | 0 | 0 | occind"))
+
+#   Absorbing county fixed effects
+##  No statefip
+### Only Base
+b[[1]] <- as.formula(paste("sh_red_tit ~ ",paste0(base_individual,collapse=" + "),"| countynhg_1910 | 0 | occind"))
+### More controls
+b[[2]] <- as.formula(paste("sh_red_tit ~ ",paste0(base_individual,collapse=" + ")," + ",paste0(marst_vars,collapse=" + ")," + ",paste0(race_vars,collapse=" + ")," + ",paste0(age_main_vars,collapse=" + ")," | countynhg_1910 | 0 | occind"))
+
+##  WITH statefip
+### Only Base
+b[[3]] <- as.formula(paste("sh_red_tit ~ ",paste0(base_individual,collapse=" + ")," + ",paste0(statefip_vars,collapse=" + ")," | countynhg_1910 | 0 | occind"))
+### More controls
+b[[4]] <- as.formula(paste("sh_red_tit ~ ",paste0(base_individual,collapse=" + ")," + ",paste0(marst_vars,collapse=" + ")," + ",paste0(race_vars,collapse=" + ")," + ",paste0(age_main_vars,collapse=" + ")," + ",paste0(statefip_vars,collapse=" + ")," | countynhg_1910 | 0 | occind"))
+
+### Absorbing both the county and the state fixed effect
+b[[5]] <- as.formula(paste("sh_red_tit ~ ",paste0(base_individual,collapse=" + ")," | countynhg_1910 + statefip_fe | 0 | occind"))
+b[[6]] <- as.formula(paste("sh_red_tit ~ ",paste0(base_individual,collapse=" + ")," + ",paste0(marst_vars,collapse=" + ")," + ",paste0(race_vars,collapse=" + ")," + ",paste0(age_main_vars,collapse=" + ")," | countynhg_1910 +statefip_fe | 0 | occind"))
+
+```
+
+#### 1.4.2. Running regressions
+```{r}
+# No statefip
+A <- felm(b[[2]], data=DT_res)
+A_fe <- as.data.table(getfe(A)[c("idx","effect")])
+setnames(A_fe,c(1,2),c("rn","coef"))
+A <- as.data.table(A[c("coefficients","cse","se")],keep.rownames=TRUE)
+  setnames(A,c(1,2),c("rn","coef"))
+coef.b2 <- rbind(A,A_fe,fill=TRUE)
+
+# With statefip
+A <- felm(b[[4]], data=DT_res)
+A_fe <- as.data.table(getfe(A)[c("idx","effect")])
+setnames(A_fe,c(1,2),c("rn","coef"))
+A <- as.data.table(A[c("coefficients","cse","se")],keep.rownames=TRUE)
+  setnames(A,c(1,2),c("rn","coef"))
+coef.b4 <- rbind(A,A_fe,fill=TRUE)
+summary(A)
+
+# Including statefip in the absorbing fixed effects
+A <- felm(b[[6]], data=DT_res)
+A_fe <- as.data.table(getfe(A)[c("idx","effect")])
+setnames(A_fe,c(1,2),c("rn","coef"))
+A <- as.data.table(A[c("coefficients","cse","se")],keep.rownames=TRUE)
+  setnames(A,c(1,2),c("rn","coef"))
+coef.b6 <- rbind(A,A_fe,fill=TRUE)
+summary(A)
+
+```
+
+In the three previous regressions, R was able to run only the first one without a problem. In the case of the second one there was rank deficiency matrix and the coefficient for the state variables was NaN. In the case of the third regression when we extract the absorbed the fixed effects we observe that all except one of the statefixed effects is equal to 0. 
+The most likely reason for this results is that counties belong to states. Therefore once we include county fixed effects we don't need to include state fixed effects.
+
+

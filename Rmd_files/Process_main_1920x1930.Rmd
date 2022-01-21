@@ -1,0 +1,2217 @@
+---
+title: "Processing cleaned list of occupational titles, 1920-1930"
+output: html_document
+---
+
+```{r}
+rm(list = ls())   # erase the workspace
+# Pacman: packages manager. It does different things, here I use it to load multiple packages at the same time
+library (pacman)
+p_load(readxl,foreign,readstata13,data.table,plyr,dplyr,stringr,openxlsx,stringdist,reshape2,qdap,tm,textreg,fst)
+
+# Note: the syntax used of mgsub corresponds to the function loaded with the package qdap.
+
+```
+### 0. Some functions used
+
+## 0.1. Cleaning functions
+```{r}
+# Cleaning punctuation signs
+f_clean_punct <- function(x,flag=1){
+  y=gsub("\\."," ",x)
+  if (flag==1) y=gsub(","," ",y)
+  y=gsub("’|`|'|;|\"|”|“","",y) 
+  y=gsub("-"," ",y)
+  # Use capture and backtracking 
+  y=gsub("([a-z0-9])\\(","\\1 \\(",y)
+  y=gsub("\\)([a-z0-9])","\\) \\1",y)
+  y=gsub("\\( ","\\(",y)
+  y=gsub(" \\)","\\)",y)
+  y=gsub("\\( \\)|\\(\\)","",y)
+  y=str_squish(y)
+  y=gsub("\\( *","\\(",y)
+   y=gsub(" *\\)","\\)",y)
+   y=gsub("\\( *\\)|\\(\\)","",y)
+   y=str_squish(y)
+  y
+}
+
+f_change_syms <- function(x){
+  ## Parentheses
+  # Employer or own account
+  y=gsub("\\( *e *m or [0o] *a *\\)|\\( *e *m *[0o] *a *\\)","\\(e o\\)",x)
+  y=gsub("\\( *e *[0o] *\\)|\\( *e *or *[0o] *\\)|\\( *e *[0o] *\\)","\\(e o\\)",y)
+  y=gsub("\\( *e *[0o]a *\\)|\\( *e *or *[0o]a *\\)|\\( *e *[0o]a *\\)","\\(e o\\)",y)
+  # Employer
+  y=gsub("\\( *e *m *\\)|\\( *e *\\)|\\<€\\>","\\(e\\)",y)
+  # Own account
+  y=gsub("\\( *[0o] *a *\\)|\\( *o *\\)","\\(o\\)",y)
+  # worker
+  y=gsub("\\( *working out *\\)|\\( *w *\\)","\\(w\\)",y)
+  # owner or worker (no such symbol for 1920)
+  y=gsub("\\( *[0o] *or *w *\\)|\\( *[0o] *w *\\)","\\(o w\\)",y)
+  # non paid worker
+  y=gsub("\\( *n *p *\\)|\\( *n *r *\\)","\\(np\\)",y)
+  
+  ## No parentheses
+  # Employer or own account
+  y=gsub("\\<e *m or [0o] *a\\>|\\<e *m *[0o] *a\\>","e o",x)
+  y=gsub("\\<e *[0o]\\>|\\<e *or *[0o]\\>|\\<e *[0o]\\>","e o",y)
+  y=gsub("\\<e *[0o]a\\>|\\<e *or *[0o]a\\>|\\<e *[0o]a\\>","e o",y)
+  #Employer
+  y=gsub("\\<e *m\\>|\\<e\\>","e",y)
+  #own account
+  y=gsub("\\<[0o] *a\\>|\\<o\\>","o",y)
+  # worker
+  y=gsub("\\<working out\\>|\\<w\\>","w",y)
+  # owner or worker (no such symbol for 1920)
+  y=gsub("\\<[0o] *or *w\\>|\\<[0o] *w\\>","o w",y)
+  # non paid worker
+  y=gsub("\\<n *p\\>|\\<n *r\\>","np",y)
+  
+  y=gsub("\\<unless\\>","except",y)
+  
+  y=str_squish(y)
+  y=gsub("\\( *","\\(",y)
+   y=gsub(" *\\)","\\)",y)
+   y=gsub("\\( *\\)|\\(\\)","",y)
+   y=str_squish(y)
+  y
+}
+
+f_change_words <- function(x){
+   y=gsub("\\( *e *t *c *\\)|\\( *e *t *e *\\)","\\(etc\\)",x)
+   y=gsub("\\( *n *e *c *\\)|\\( *n *s *c *\\)|\\( *n *c *c *\\)","\\(nec\\)",y)
+   y=gsub("\\( *a *o *s *\\)|\\( *n *o *s *\\)","\\(nos\\)",y)
+   y=gsub("\\( *n *s *\\)|\\( *n *a *\\)|\\( *n *g *\\)|\\( *not specified *\\)","\\(ns\\)",y)
+   y=gsub("\\(not elsewhere classified\\)","\\(nec\\)",y)
+   y=gsub("\\( *m *d *\\)","\\(md\\)",y)
+   
+   y=gsub("\\<e *t *c\\>|\\<e *t *e\\>","etc",y)
+   y=gsub("\\<n *e *c\\>|\\<n *s *c\\>|\\<n *c *c\\>","nec",y)
+   y=gsub("\\<a *o *s\\>|\\<n *o *s\\>","nos",y)
+   y=gsub("\\<n *s\\>|\\<n *a\\>|\\<n *g\\>|\\<not specified\\>","ns",y)
+   y=gsub("\\<not elsewhere classified\\>","nec",y)
+   y=gsub("\\<m *d\\>","md",y)
+   y=gsub("\\<u *s\\>|\\<united states\\>","us",y)
+   y=gsub("\\<b *r\\>","or",y)
+   y=str_squish(y)
+   y=gsub("\\( *","\\(",y)
+   y=gsub(" *\\)","\\)",y)
+   y=gsub("\\( *\\)|\\(\\)","",y)
+   y=str_squish(y)
+   y
+}
+
+f_clean_syms <- function(x){
+  ## Parentheses
+  # Employer or own account
+  y=gsub("\\( *e *m or [0o] *a *\\)|\\( *e *m *[0o] *a *\\)|\\(e o\\)","",x)
+  y=gsub("\\( *e *[0o] *\\)|\\( *e *or *[0o] *\\)|\\( *e *[0o] *\\)|\\(e o\\)","",y)
+  y=gsub("\\( *e *[0o]a *\\)|\\( *e *or *[0o]a *\\)|\\( *e *[0o]a *\\)|\\(e o\\)","",y)
+  # Employer
+  y=gsub("\\( *e *m *\\)|\\( *e *\\)|\\(e\\)","",y)
+  # Own account
+  y=gsub("\\( *[0o] *a *\\)|\\( *o *\\)|\\(o\\)","",y)
+  # worker
+  y=gsub("\\( *working out *\\)|\\( *w *\\)|\\(w\\)","",y)
+  # owner or worker (no such symbol for 1920)
+  y=gsub("\\( *[0o] *or *w *\\)|\\( *[0o] *w *\\)|\\(o w\\)","",y)
+  
+  y=gsub("\\( *n *p *\\)|\\( *n *r *\\)|\\(np\\)","",y)
+  
+  #Eliminate when (any) appears. We could also eliminate when \\<any\\> appears, but that might affect phrases that contain any
+  y=gsub("\\( *any *\\)","",y)
+  
+  ## No parentheses
+  # Employer or own account
+  y=gsub("\\<e *m or [0o] *a\\>|\\<e *m *[0o] *a\\>|\\<e o\\>","",x)
+  y=gsub("\\<e *[0o]\\>|\\<e *or *[0o]\\>|\\<e *[0o]\\>|\\<e o\\>","",y)
+  y=gsub("\\<e *[0o]a\\>|\\<e *or *[0o]a\\>|\\<e *[0o]a\\>|\\<e o\\>","",y)
+  #Employer
+  y=gsub("\\<e *m\\>|\\<e\\>","",y)
+  #own account
+  y=gsub("\\<[0o] *a\\>|\\<o\\>","",y)
+  # worker
+  y=gsub("\\<working out\\>|\\<w\\>","",y)
+  # owner or worker (no such symbol for 1920)
+  y=gsub("\\<[0o] *or *w\\>|\\<[0o] *w\\>","",y)
+  
+  y=gsub("\\<n *p\\>|\\<n *r\\>|\\<np\\>","",y)
+  y=str_squish(y)
+  y=str_squish(gsub("\\( *\\)|\\( *or *\\)","",y))
+  y=gsub("\\( *","\\(",y)
+   y=gsub(" *\\)","\\)",y)
+   y=gsub("\\( *\\)|\\(\\)","",y)
+   y=str_squish(y)
+}
+
+
+f_clean_words <- function(x){
+   y=gsub("\\( *e *t *c *\\)|\\( *e *t *e *\\)|\\(etc\\)","",x)
+   y=gsub("\\( *n *e *c *\\)|\\( *n *s *c *\\)|\\( *n *c *c *\\)|\\(n e c\\)|\\(nec\\)","",y)
+   y=gsub("\\( *a *o *s *\\)|\\( *n *o *s *\\)|\\(n o s\\)|\\(nos\\)","",y)
+   y=gsub("\\( *n *s *\\)|\\( *n *a *\\)|\\(n s\\)|\\(ns\\)","",y)
+   y=gsub("\\(not elsewhere classified\\)|\\(n e c\\)|\\(nec\\)","",y)
+   y=gsub("\\( *m *d *\\)|\\(m d\\)|\\(md\\)","",y)
+   
+
+   y=gsub("\\<e *t *c\\>|\\<e *t *e\\>|\\<etc\\>","",y)
+   y=gsub("\\<n *e *c\\>|\\<n *s *c\\>|\\<n *c *c\\>|\\<n e c\\>|\\<nec\\>","",y)
+   y=gsub("\\<a *o *s\\>|\\<n *o *s\\>|\\<n o s\\>|\\<nos\\>","",y)
+   y=gsub("\\<n *s\\>|\\<n *a\\>|\\<n s\\>|\\<ns\\>","",y)
+   y=gsub("\\<not elsewhere classified\\>|\\<n e c\\>|\\<nec\\>","",y)
+   y=gsub("\\<m *d\\>","",y)
+#  y=gsub("\\<u *s\\>|\\<united states\\>|\\<us\\>","",y)
+   y=str_squish(y)
+   y=gsub("\\( *","\\(",y)
+   y=gsub(" *\\)","\\)",y)
+   y=gsub("\\( *\\)|\\(\\)","",y)
+   y=str_squish(y)
+   y
+}
+
+f_clean_conj <- function(x){
+  # Note: We might/should(?) other conjunctions/pronouns different than "or"
+  y=gsub("\\<in\\>|\\<and\\>|\\<of\\>|\\<on\\>|\\<for\\>|\\<to\\>","",x)
+  y=gsub("\\( *","\\(",y)
+  y=gsub(" *\\)","\\)",y)
+  y=gsub("\\( *\\)|\\(\\)","",y)
+  y=str_squish(y)
+  y
+}
+
+```
+
+## 0.2 Paste 3 function
+```{r}
+
+paste3 <- function(x1,x2,s=" ") {
+  # Problems if we have a separator different than " "
+  x1 <- unlist(lapply(x1,function(x) {x[is.na(x)] <- ""; x}))
+  x2 <- unlist(lapply(x2,function(x) {x[is.na(x)] <- ""; x}))
+  t=str_squish(paste(x1,x2,sep=s))
+  return(t)
+}
+```
+
+### 1. Importing the databases
+
+The following database was constructed from the information in the Alphabetical and Classified index to occupations (1910, 1920, 1930, 1940). In addition we create an observation ID and organize the database by original_1910, occ1910, indname_1910
+
+```{r}
+## 1920
+index_1920 <- as.data.table( read_excel("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/input/1920 - Cleaned.xlsx", sheet = "1920 final",guess_max=10000) )
+setorderv(index_1920,c("original_1920","occ1920","indname_1920_original"))  #order index_1990 by a vector
+
+occ1920.names <- as.data.table( read_excel("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/input/1920 - Cleaned.xlsx", sheet = "1920 main groups",guess_max=10000) )
+
+## 1930
+index_1930 <- as.data.table( read_excel("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/input/1930 - Cleaned.xlsx", sheet = "1930 final",guess_max=10000) )
+#setorderv(index_1930,c("original_1930","occ1930","ind1930","indname_1930_original"))  #order index_1990 by a vector
+
+occ1930.names <- as.data.table( read_excel("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/input/1930 - Cleaned.xlsx", sheet = "1930 main groups",guess_max=10000) )
+
+
+# Table with common typos in words
+words_subs1 <- as.data.table( read_excel("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/temp/words_subs.xlsx", sheet = "Sheet1") )
+words_subs2 <- as.data.table( read_excel("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/temp/words_subs.xlsx", sheet = "Sheet2") )
+words_subs3 <- as.data.table( read_excel("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/temp/words_subs.xlsx", sheet = "Sheet3") )
+words_subs4 <- as.data.table( read_excel("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/temp/words_subs.xlsx", sheet = "Sheet4") )
+# Create the vectors that will be used in the substitution
+setorderv(words_subs1,c("term","length"),c("1","-1"))
+setorderv(words_subs2,c("term","length"),c("1","-1"))
+setorderv(words_subs3,c("term","length"),c("1","-1"))
+setorderv(words_subs4,c("term","length"),c("1","-1"))
+words_subs1$term <- paste0(paste0("\\<",words_subs1$term),"\\>")
+words_subs2$term <- paste0(paste0("\\(",words_subs2$term),"\\)")
+words_subs3$term <- paste0(paste0("\\<",words_subs3$term),"\\>")
+words_subs4$term <- paste0(paste0("\\<",words_subs4$term),"\\>")
+
+```
+
+### 2. Quick Cleaning  
+All the changes that we introduce here are minor and don't affect the meaning of the title
+- Clean punctuation
+- Clean words
+- Change words: I provide a list that corrects for typos
+- Clean conjunctions (except or, which carries additional information)
+
+## 2.1. Original
+```{r}
+#1920
+# Note: We don't eliminate commas here (flag=0), as they might be informative. In a later stage we will eliminate them
+index_1920[,original_1920:=tolower(original_1920)][,original_1920:=f_clean_conj(f_change_words(f_change_syms(f_clean_punct(original_1920,flag=0) )))][,original_1920:=str_squish(gsub(", or | or, |, or, | ,or, | or ,|, or ,"," or ",original_1920))]
+# Change words that are misspelled
+index_1920$original_1920 <- mgsub(words_subs1$term,words_subs1$change,index_1920$original_1920,fixed=FALSE)
+
+#1930
+# Note: We don't eliminate commas here (flag=0), as they might be informative. In a later stage we will eliminate them
+index_1930[,original_1930:=tolower(original_1930)][,original_1930:=f_clean_conj(f_change_words(f_change_syms(f_clean_punct(original_1930,flag=0) )))][,original_1930:=str_squish(gsub(", or | or, |, or, | ,or, | or ,|, or ,"," or ",original_1930))]
+# Change words that are misspelled
+index_1930$original_1930 <- mgsub(words_subs1$term,words_subs1$change,index_1930$original_1930,fixed=FALSE)
+
+
+
+```
+
+## 2.2. Title
+```{r}
+## 1920
+# Note: We don't care about commas here (flag=1).
+index_1920[,title_1920:=tolower(title_1920)][,title_1920:=f_clean_conj(f_change_words(f_change_syms(f_clean_punct(title_1920,flag=1) )))]
+# Change words that are misspelled
+index_1920$title_1920 <- mgsub(words_subs1$term,words_subs1$change,index_1920$title_1920,fixed=FALSE)
+
+
+# 1930
+# Note: We don't care about commas here (flag=1).
+index_1930[,title_1930:=tolower(title_1930)][,title_1930:=f_clean_conj(f_change_words(f_change_syms(f_clean_punct(title_1930,flag=1) )) )]
+# Change words that are misspelled
+index_1930$title_1930 <- mgsub(words_subs1$term,words_subs1$change,index_1930$title_1930,fixed=FALSE)
+
+if (FALSE) { 
+# We are not using the edited variables  
+  # Manual changes
+  # Call changes file
+  changes_1910_1920 <- as.data.table( read_excel("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/input/merged_1910_1920_edited.xlsx", sheet = "Sheet 1_edited") )
+  changes_1910_1920.small <- changes_1910_1920[small_edits==1,c("title","title_edited")]
+  changes_1910_1920.large <- changes_1910_1920[large_edits==1,c("title","title_edited")]
+  
+  
+    
+    #Introduce small changes
+    ## Create 2 additional title lists: (1) introducing small changes and dropping "(enlisted)" and "(worker)", (2) additionally introducing large changes
+    ## List (1)
+    #Introduce small changes
+    # Merge index_1910 with changes file
+    index_1920 <- merge(index_1920,changes_1910_1920.small,by.x="title_1920",by.y="title",all.x=TRUE)
+    index_1920$title_1920_edited <- index_1920$title_1920
+    index_1920[!is.na(title_edited)]$title_1920_edited <- index_1920[!is.na(title_edited)]$title_edited
+    index_1920$title_edited <- NULL
+    
+    #  Edited list where I drop other signs and change other things
+    index_1920[,title_1920_edited:=gsub("\\(enlisted\\)|\\(not enlisted\\)|\\<enlisted>\\|\\<not enlisted>\\|\\(worker\\)","",title_1920_edited)][,title_1920_edited:=gsub("\\(|\\)","",title_1920_edited)][,title_1920_edited:=gsub("\\<or\\>|\\<and\\>"," ",title_1920_edited)][,title_1920_edited:=str_squish(title_1920_edited)]
+    
+    # List (2) I introduce the larger changes
+    index_1920 <- merge(index_1920,changes_1910_1920.large,by.x="title_1920",by.y="title",all.x=TRUE)
+    index_1920$title_1920_edited2 <-index_1920$title_1920_edited
+    index_1920[!is.na(title_edited)]$title_1920_edited2 <- index_1920[!is.na(title_edited)]$title_edited
+    index_1920$title_edited <- NULL
+    # retail wholesale proprietor(?) clerk(?) worker (?) waiter (?) (truck)?? tender? book? temaster truckman contractor??
+}
+if (FALSE) {
+# We are not using the edited variables  
+  ## Create 2 additional title lists: (1) dropping "(enlisted)" and "(worker)", (2) additionally introducing large changes
+  # List (1) Edited list where I drop other signs and change other things
+  index_1930[,title_1930_edited:=gsub("\\(enlisted\\)|\\(not enlisted\\)|\\<enlisted>\\|\\<not enlisted>\\|\\(worker\\)","",title_1930)][,title_1930_edited:=gsub("\\(|\\)","",title_1930_edited)][,title_1930_edited:=gsub("\\<or\\>|\\<and\\>"," ",title_1930_edited)][,title_1930_edited:=str_squish(title_1930_edited)]
+}
+
+```
+
+## 2.3. indname_original
+```{r}
+## 1920
+# Note: We care about commas here (flag=0).
+index_1920[,indname_1920_original:=tolower(indname_1920_original)][,indname_1920_original:=f_clean_conj(f_change_words(f_change_syms(f_clean_punct(indname_1920_original,flag=0) )) )]
+# Change words that are misspelled
+index_1920$indname_1920_original <- mgsub(words_subs1$term,words_subs1$change,index_1920$indname_1920_original,fixed=FALSE)
+index_1920[,indname_1920_original:=str_squish(gsub(", or | or, |, or, | ,or, | or ,|, or ,"," or ",indname_1920_original))]
+
+
+# 1930
+# Note: We care about commas here (flag=0).
+index_1930[,indname_1930_original:=tolower(indname_1930_original)][,indname_1930_original:=f_clean_conj(f_change_words(f_change_syms(f_clean_punct(indname_1930_original,flag=0) )) )]
+# Change words that are misspelled
+index_1930$indname_1930_original <- mgsub(words_subs1$term,words_subs1$change,index_1930$indname_1930_original,fixed=FALSE)
+# Correct for , before or after or
+# Note: we don't eliminate "or" because it will be ussed in a later step
+index_1930[,indname_1930_original:=str_squish(gsub(", or | or, |, or, | ,or, | or ,|, or ,"," or ",indname_1930_original))]
+
+```
+
+## 2.4. Create indexes for the terms np, o, e , o w, w
+
+```{r} 
+# Create flags for the different terms
+index_1920[,w:=1][,c("np","e","o"):=0]
+index_1920[grepl('\\<o\\>|\\<e o\\>|\\<o w\\>',indname_1920_original),o:=1][grepl('\\<e\\>|\\<e o\\>',indname_1920_original),e:=1][grepl('\\<np\\>',indname_1920_original),np:=1][grepl('\\<e\\>|\\<o\\>|\\<np\\>|\\<e o\\>',indname_1920_original),w:=0][grepl('\\<o w\\>',indname_1920_original),w:=1]
+
+index_1930[,w:=1][,c("np","e","o"):=0]
+index_1930[grepl('\\<o\\>|\\<e o\\>|\\<o w\\>',indname_1930_original),o:=1][grepl('\\<e\\>|\\<e o\\>',indname_1930_original),e:=1][grepl('\\<np\\>',indname_1930_original),np:=1][grepl('\\<e\\>|\\<o\\>|\\<np\\>|\\<e o\\>',indname_1930_original),w:=0][grepl('\\<o w\\>',indname_1930_original),w:=1]
+
+# Eliminate the terms
+index_1920[,indname_1920_original:=gsub("\\<or w\\>|\\<or ns\\>|\\<w or ns\\>|\\(any nec\\)","",indname_1920_original)][,indname_1920_original:=f_clean_words(f_clean_syms(indname_1920_original))]
+index_1930[,indname_1930_original:=gsub("\\<or w\\>|\\<or ns\\>|\\<w or ns\\>|\\(any nec\\)","",indname_1930_original)][,indname_1930_original:=f_clean_words(f_clean_syms(indname_1930_original))]
+
+
+```
+
+
+## 2.5. Dealing with parentheses
+
+# Creation of indname excluding parentheses
+Here we eliminate what is in parentheses, change phrases of the form "a, b or c" to "a or b or c" and finally eliminate commas
+
+```{r}
+# 1920
+index_1920[,indname_1920:=str_squish(gsub("\\(.*?)","",indname_1920_original))][,indname_1920:=gsub("\\(|\\)","",indname_1920)][,indname_1920:=str_squish(indname_1920)]
+# Change "aa, bb or cc" to "aa or bb or cc". This will allow us later to separate the industries 
+index_1920[,indname_1920:= gsub("([^,]+), ([^,]+), ([^ ]+) or ([^ ]+)","\\1 or \\2 or \\3 or \\4",indname_1920)][,indname_1920:= gsub("([^,]+), ([^ ]+) or (.+)","\\1 or \\2 or \\3",indname_1920)][,indname_1920:=str_squish(gsub(","," ",indname_1920))]
+
+
+# 1930
+index_1930[,indname_1930:=tolower(str_squish(gsub("\\(.*?)","",indname_1930_original)))][,indname_1930:=gsub("\\(|\\)","",indname_1930)][,indname_1930:=str_squish(indname_1930)]
+# Change "aa, bb or cc" to "aa or bb or cc". This will allow us later to separate the industries 
+index_1930[,indname_1930:=gsub("([^,]+), ([^,]+), ([^ ]+) or ([^ ]+)","\\1 or \\2 or \\3 or \\4",indname_1930)][,indname_1930:=gsub("([^,]+), ([^ ]+) or ([^ ]+)","\\1 or \\2 or \\3",indname_1930)][,indname_1930:=str_squish(gsub(","," ",indname_1930))]
+
+# less than 5 observations with any, except
+#View(index_1930[grepl("\\<any\\>",indname_1930),c("original_1930","indname_1930")])
+
+```
+
+# Creating vectors with elements in parentheses
+Here we create vectors with elements in parentheses and change phrases of the form "a, b or c" to "a or b or c" and finally eliminate commas
+```{r}
+# FUNCTION
+# Extracts elements inside the y parenthesis of a character vector
+f_par <- function(x,y){
+  unlist( 
+    lapply(
+      str_extract_all(x, "\\([^()]+\\)"), function(l) l[y]
+    )
+  )
+}
+# #NOTE: 
+# - The regular expression "\\([^()]+\\)": 
+#     first a LHS parentheses, 
+#     then any element except () "[^()]", repeated one or more times "+"
+#     and finally a RHS parentheses
+# - The regular expression "\\(.+?\\)":
+#     first a LHS parentheses, 
+#     then any element repeated one or more time, but evaluated in a lazy way, i.e. as few as needed to allow the overall pattern to match (lazy)
+#     and finally a RHS parentheses
+# 
+# - str_extract_all(x, "regular expression"): given a vector x, it extracts the elements inside each element of x that satisfy the condition. If inside the element of a vector there is more than one match, then it puts them in a vector
+# - I use lapply because I want to extract the first element of the vector, for each component of the list
+# - Unlist so as to flatten the list. It creates a vector of dimension the number of levels of the initial list
+
+#1920
+index_1920[,parentheses1_1920:=f_par(index_1920$indname_1920_original,1)][,parentheses1_1920:=gsub("([^,]+), ([^,]+), ([^ ]+) or ([^ ]+)","\\1 or \\2 or \\3 or \\4",parentheses1_1920)][,parentheses1_1920:=gsub("([^,]+), ([^ ]+) or (.+)","\\1 or \\2 or \\3",parentheses1_1920)][,parentheses1_1920:=str_squish(gsub(","," ",parentheses1_1920))]
+index_1920[,parentheses2_1920:=f_par(index_1920$indname_1920_original,2)][,parentheses2_1920:=gsub("([^,]+), ([^,]+), ([^ ]+) or ([^ ]+)","\\1 or \\2 or \\3 or \\4",parentheses2_1920)][,parentheses2_1920:=gsub("([^,]+), ([^ ]+) or (.+)","\\1 or \\2 or \\3",parentheses2_1920)][,parentheses2_1920:=str_squish(gsub(","," ",parentheses2_1920))]
+
+#1930
+index_1930[,parentheses1_1930:=f_par(index_1930$indname_1930_original,1)][,parentheses1_1930:=gsub("([^,]+), ([^,]+), ([^ ]+) or ([^ ]+)","\\1 or \\2 or \\3 or \\4",parentheses1_1930)][,parentheses1_1930:=gsub("([^,]+), ([^ ]+) or (.+)","\\1 or \\2 or \\3",parentheses1_1930)][,parentheses1_1930:=str_squish(gsub(","," ",parentheses1_1930))]
+index_1930[,parentheses2_1930:=f_par(index_1930$indname_1930_original,2)][,parentheses2_1930:=gsub("([^,]+), ([^,]+), ([^ ]+) or ([^ ]+)","\\1 or \\2 or \\3 or \\4",parentheses2_1930)][,parentheses2_1930:=gsub("([^,]+), ([^ ]+) or (.+)","\\1 or \\2 or \\3",parentheses2_1930)][,parentheses2_1930:=str_squish(gsub(","," ",parentheses2_1930))]
+
+```
+
+# 2.6. Creation of tables index_[t].indpar_edits.
+This Table  simplifies industry, parentheses1 and info about any, except, army, no_army
+
+# Function to extract information about any, except, army, no_army
+```{r}
+# Compressed version
+f_any_except <- function(X,var,name="") {
+  y <- copy(X)
+  var_ch <- deparse(substitute(var))
+  setnames(y, c(var_ch),c("var")) 
+  y  <- y[,initial:=gsub("\\(|\\)","",var)][,initial:=gsub("\\<except any\\>","except",initial)]
+  y  <- y[,plain:=gsub("(^any| any) .*|(^except| except|^not| not) .*|^any$","",initial)]
+  y[,any:=gsub("any (.*)","\\1",str_squish(str_extract(initial,"(^any| any) .*")))]
+  y[,except:=gsub("(except|not) (.*)","\\2",str_squish(str_extract(any,"(^except| except|^not| not) .*")))]
+  y[,any:=gsub("(^except| except|^not| not) .*","",any)][grepl("^any$",initial),any:=""]
+  
+  y[!grepl("(?=( any |^any | any$))",initial,perl=TRUE),except:=str_squish( gsub("(except|not) (.*)","\\2",    str_extract(initial,"(^except| except|^not| not) .*") ) )]  
+  y[,no_army:=0][grepl("(?=( army |^army | army$|^army$| navy |^navy | navyy$|^navy$))",except,perl=TRUE),no_army:=1]
+  y[,army:=0][grepl("(?=( army |^army | army$|^army$| navy |^navy | navyy$|^navy$))",any,perl=TRUE),army:=1][grepl("(?=( army |^army | army$|^army$| navy |^navy | navyy$|^navy$))",plain,perl=TRUE),army:=1]
+  y[,initial:=NULL]
+  setnames(y,c("var","plain","any","except","army","no_army"),c(var_ch, paste0(var_ch,"_plain"),  paste0("any",substitute(name)) , paste0("except",substitute(name)) , paste0("army",substitute(name)) , paste0("no_army",substitute(name)) ) )
+  return(y)
+}
+
+#a <- f_any_except(index_1930[,c("id_1930","indname_1930")],indname_1930,name="_ind")
+#View(unique(a[army==1],by="indname_1930_plain"))
+# Just a handful of unique observations with army==1. We can decide to eliminate the info and create and extra column with the army info
+
+```
+
+
+```{r}
+#1920
+a <- f_any_except(index_1920[,c("id_1920","indname_1920")],indname_1920,name="_ind")
+b <- f_any_except(index_1920[,c("id_1920","parentheses1_1920")],parentheses1_1920,name="_par1")
+index_1920.indpar_edits <- merge(a[,indname_1920:=NULL],b[,parentheses1_1920:=NULL],by="id_1920",all=TRUE)
+index_1920.indpar_edits[,`:=`(army=pmax(army_ind, army_par1),no_army=pmax(no_army_ind, no_army_par1))][,c("army_ind","no_army_ind","army_par1","no_army_par1"):=NULL]
+# pmax is vectorized (parallel) max
+index_1920.indpar_edits[,any:=ifelse(!is.na(any_ind),any_ind,any_par1)][,except:=ifelse(!is.na(except_ind),except_ind,except_par1)][,c("any_ind","except_ind","any_par1","except_par1"):=NULL]
+# Replace empty cell with NA
+index_1920.indpar_edits <- index_1920.indpar_edits[,c("indname_1920_plain","parentheses1_1920_plain"):=lapply(.SD,function(x) ifelse(x=="",NA,x)),.SDcols=c("indname_1920_plain","parentheses1_1920_plain")]
+
+rm(a,b)
+
+#1930
+a <- f_any_except(index_1930[,c("id_1930","indname_1930")],indname_1930,name="_ind")
+b <- f_any_except(index_1930[,c("id_1930","parentheses1_1930")],parentheses1_1930,name="_par1")
+index_1930.indpar_edits <- merge(a[,indname_1930:=NULL],b[,parentheses1_1930:=NULL],by="id_1930",all=TRUE)
+index_1930.indpar_edits[,`:=`(army=pmax(army_ind, army_par1),no_army=pmax(no_army_ind, no_army_par1))][,c("army_ind","no_army_ind","army_par1","no_army_par1"):=NULL]
+# pmax is vectorized (parallel) max
+index_1930.indpar_edits[,any:=ifelse(!is.na(any_ind),any_ind,any_par1)][,except:=ifelse(!is.na(except_ind),except_ind,except_par1)][,c("any_ind","except_ind","any_par1","except_par1"):=NULL]
+# Replace empty cell with NA
+index_1930.indpar_edits <- index_1930.indpar_edits[,c("indname_1930_plain","parentheses1_1930_plain"):=lapply(.SD,function(x) ifelse(x=="",NA,x)),.SDcols=c("indname_1930_plain","parentheses1_1930_plain")]
+
+rm(a,b)
+```
+
+
+### 3. Create dictionary of titles
+We introduce some changes in the title's names and construct an ordered and unstemmed edited title.
+
+## 3.1.  Change title names
+Introduce some changes to the title name so as to reduce the number of unique titles later
+
+# 3.1.1. Some functions
+# Functions to edit the titles 
+```{r}
+# Function that keeps all the different transformation of the title variable
+f_title_edits_all <- function(X,tit,flag_par=0) {
+  y <- copy(X)
+  tit_ch <- deparse(substitute(tit))
+  # Through the code we will simply use varp as the variable
+  setnames(y, c(tit_ch),c("tit")) 
+  y[,tit2:=f_clean_syms ( f_clean_words (  f_clean_conj( f_clean_punct ( tit )   )  ) )][,tit2:=mgsub(words_subs1$term,words_subs1$change,y$tit2,fixed=FALSE)][,tit2:=str_squish(tit2)]
+  if (flag_par==0) {
+    y[,tit3:=gsub("\\(|\\)","",tit2)][,tit3:=gsub("not enlisted|enlisted","",tit3)][,tit3:=str_squish(tit3)]
+  } else {
+    y[,tit3:=gsub("not enlisted|enlisted","",tit2)][,tit3:=gsub("\\(any\\)","",tit3)][,tit3:=gsub("\\( *\\)","",tit3)][,tit3:=str_squish(tit3)]
+  }
+  y[,tit4:=gsub("\\<manager superintendent\\>","manager",tit3)][,tit4:=gsub("\\<superintendent\\>","manager",tit4)][,tit4:=gsub("\\( *\\)","",tit4)][,tit4:=str_squish(tit4)]
+  y[,tit5:=gsub("\\<foreman boss\\>|\\<boss foreman\\>|\\<boss master\\>|\\<foreman overseer\\>","foreman",tit4)][,tit5:=gsub("\\<boss\\>|\\<overseer\\>","foreman",tit5)][,tit5:=gsub("\\( *\\)","",tit5)][,tit5:=str_squish(tit5)]
+  y[,tit6:=gsub("\\<hand man\\>|\\hand worker\\>|\\<man worker\\>","worker",tit5)][,tit6:=gsub("\\<yard man yard hand\\>","yard worker",tit6)][,tit6:=gsub("\\<hand\\>|\\<operative\\>|\\<employee\\>|\\<tender\\>","worker",tit6)][,tit6:=gsub("\\( *\\)","",tit6)][,tit6:=str_squish(tit6)]
+  y[,tit7:=gsub("\\<machine hand\\>|\\<machine operator\\>|\\<machine tender\\>|\\<machine man\\>|\\<machine runner\\>","machine worker",tit6)][,tit7:=gsub("\\( *\\)","",tit7)][,tit7:=str_squish(tit7)]
+  # Note: problem with occupations like hand cutter, hand sewer... The meaning is lost when we change it to worker cutter, worker sewer
+  y[,tit8:=gsub("\\<proprietor\\>","owner",tit7)][,tit8:=gsub("\\( *\\)","",tit8)][,tit8:=gsub("\\<working out\\>","",tit8)][,tit8:=str_squish(tit8)]
+  
+  
+  
+  y[,tit9:=gsub("\\<day laborer\\>|\\<plantation laborer\\>|\\<farm laborer\\>","laborer",tit8)][,tit8:=gsub("\\( *\\)","",tit8)][,tit9:=str_squish(tit9)]
+  
+  setnames(y, c("tit","tit2","tit3","tit4","tit5","tit6","tit7","tit8","tit9"), c(tit_ch,paste0(deparse(substitute(tit)),"_round2"),paste0(deparse(substitute(tit)),"_round3"),paste0(deparse(substitute(tit)),"_round4"),paste0(deparse(substitute(tit)),"_round5"),paste0(deparse(substitute(tit)),"_round6"),paste0(deparse(substitute(tit)),"_round7"),paste0(deparse(substitute(tit)),"_round8"),paste0(deparse(substitute(tit)),"_round9")    )   
+  )
+
+}
+# Function that only keeps the transformation of the specified round
+f_title_edits <- function(X,tit,round,flag_par=0) {
+  y <- copy(X)
+  tit_ch <- deparse(substitute(tit))
+  # Through the code we will simply use varp as the variable
+  setnames(y, c(tit_ch),c("tit")) 
+  
+  if (round>=2) {
+    y[,titnew:=f_clean_syms ( f_clean_words (  f_clean_conj( f_clean_punct ( tit )   )  ) )][,titnew:=mgsub(words_subs1$term,words_subs1$change,y$titnew,fixed=FALSE)][,titnew:=str_squish(titnew)]
+    
+    if (round>=3){
+      if (flag_par==0) {
+        y[,titnew:=gsub("\\(|\\)","",titnew)][,titnew:=gsub("not enlisted|enlisted|\\( *any *\\)","",titnew)][,titnew:=str_squish(titnew)]
+      } else if (flag_par==1) {
+        y[,titnew:=gsub("not enlisted|enlisted","",titnew)][,titnew:=gsub("\\( *any *\\)","",titnew)][,titnew:=gsub("\\( *\\)","",titnew)][,titnew:=str_squish(titnew)]
+      }
+      if (round>=4){
+        y[,titnew:=gsub("\\<manager superintendent\\>","manager",titnew)][,titnew:=gsub("\\<superintendent\\>","manager",titnew)][,titnew:=gsub("\\( *\\)","",titnew)][,titnew:=str_squish(titnew)]
+        
+        if (round>=5){
+          y[,titnew:=gsub("\\<foreman boss\\>|\\<boss foreman\\>|\\<boss master\\>|\\<foreman overseer\\>","foreman",titnew)][,titnew:=gsub("\\<boss\\>|\\<overseer\\>","foreman",titnew)][,titnew:=gsub("\\( *\\)","",titnew)][,titnew:=str_squish(titnew)]
+          
+          if (round>=6){
+            # Note: problem with occupations like hand cutter, hand sewer... The meaning is lost when we change it to worker cutter, worker sewer
+            y[,titnew:=gsub("\\<hand man\\>|\\hand worker\\>|\\<man worker\\>","worker",titnew)][,titnew:=gsub("\\<yard man yard hand\\>","yard worker",titnew)][,titnew:=gsub("\\<hand\\>|\\<operative\\>|\\<employee\\>|\\<tender\\>","worker",titnew)][,titnew:=gsub("\\( *\\)","",titnew)][,titnew:=str_squish(titnew)]
+            
+            if (round>=7){
+              y[,titnew:=gsub("\\<machine hand\\>|\\<machine operator\\>|\\<machine tender\\>|\\<machine man\\>|\\<machine runner\\>","machine worker",titnew)][,titnew:=gsub("\\( *\\)","",titnew)][,titnew:=str_squish(titnew)]
+              
+              if (round>=8){
+                y[,titnew:=gsub("\\<proprietor\\>","owner",titnew)][,titnew:=gsub("\\<working out\\>","",titnew)][,titnew:=gsub("\\( *\\)","",titnew)][,titnew:=str_squish(titnew)]
+                
+                if (round>=9){
+                  y[,titnew:=gsub("\\<day laborer\\>|\\<plantation laborer\\>|\\<farm laborer\\>","laborer",titnew)][,titnew:=gsub("\\( *\\)","",titnew)][,titnew:=str_squish(tit)]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  setnames(y, 
+            c("tit","titnew"), 
+            c(   tit_ch,  paste0(deparse(substitute(tit)),"_round",deparse(substitute(round)))  )
+   )
+  
+  return(y)
+}
+
+```
+
+# Function to split titles with "or" word
+```{r}
+f_split_or <- function(y,id,obs_var) {
+  # var: variable that has the strings with the or options that we want to split
+  # Note: We only consider cases that have at most 3 or. Any other cases will just be treated as a unique case, e.g. only one value associated to the variable
+  
+  if (missing(obs_var)) {
+    stop("You need to provide an observation variable")
+  } 
+  X <- copy(y)
+  id_ch <- deparse(substitute(id))
+  setnames(X, c(id_ch),c("id")) 
+  obs_ch <- deparse(substitute(obs_var))
+  setnames(X, c(obs_ch),c("obs")) 
+  
+  X <- X[,rep_or:=str_count(id, pattern=" or ")]
+
+  if ( nrow(X[rep_or==0]) > 0 | nrow(X[rep_or>=4]) >  0)     X[rep_or==0 | rep_or>=4,var1:=id]
+  if (nrow(X[rep_or==1]) > 0) {
+    X[rep_or==1,var1:=gsub("([^ ]+) or ([^ ]+)","\\1",id)][rep_or==1,var2:=gsub("([^ ]+) or ([^ ]+)","\\2",id)]
+    X[rep_or==1,var3:=gsub("(.+) or (.+)","\\1",id)][rep_or==1,var4:=gsub("(.+) or (.+)","\\2",id)]
+  } 
+  if (nrow(X[rep_or==2]) > 0) {
+    X[rep_or==2,var1:=gsub("([^ ]+) or (.+) or ([^ ]+)","\\1",id)][rep_or==2,var2:=gsub("([^ ]+) or (.+) or ([^ ]+)","\\2",id)][rep_or==2,var3:=gsub("([^ ]+) or (.+) or ([^ ]+)","\\3",id)]
+    X[rep_or==2,var4:=gsub("(.+) or (.+) or (.+)","\\1",id)][rep_or==2,var5:=gsub("(.+) or (.+) or (.+)","\\2",id)][rep_or==2,var6:=gsub("(.+) or (.+) or (.+)","\\3",id)]
+  }
+  if (nrow(X[rep_or==3]) > 0) {
+    X[rep_or==3,var1:=gsub("([^ ]+) or (.+) or (.+) or ([^ ]+)","\\1",id)][rep_or==3,var2:=gsub("([^ ]+) or (.+) or (.+) or ([^ ]+)","\\2",id)][rep_or==3,var3:=gsub("([^ ]+) or (.+) or (.+) or ([^ ]+)","\\3",id)][rep_or==3,var4:=gsub("([^ ]+) or (.+) or (.+) or ([^ ]+)","\\4",id)]
+    X[rep_or==3,var5:=gsub("(.+) or (.+) or (.+) or (.+)","\\1",id)][rep_or==3,var6:=gsub("(.+) or (.+) or (.+) or (.+)","\\2",id)][rep_or==3,var7:=gsub("(.+) or (.+) or (.+) or (.+)","\\3",id)][rep_or==3,var8:=gsub("(.+) or (.+) or (.+) or (.+)","\\4",id)]
+  }
+  
+  X <- as.data.table( melt(X[,!c("rep_or")],id.vars=c("id","obs"), measure.vars = colnames(X)[grepl( "var" , names(X) )],variable.name="t",value.name="var",na.rm=TRUE) )
+  X <- X[, .SD[1], by = c("obs","id","var")][,t:=NULL]
+  
+  setnames(X, c("obs","id","var"), c(obs_ch,id_ch,paste0(deparse(substitute(id)),"_l"))  )
+  
+
+  return(X)
+}
+
+
+
+```
+
+
+
+# 3.1.2. Changing titles for 1920 and 1930
+```{r}
+title_edits.1920 <- f_title_edits(index_1920[,c("id_1920","title_1920")],title_1920,8)
+title_edits.1930 <- f_title_edits(index_1930[,c("id_1930","title_1930")],title_1930,8)
+
+
+```
+
+## 3.2. Reorder titles (to find repeated titles written in an inverse order) and stem words
+
+## 3.2.1. Some functions
+# Function to reorder and stem titles
+```{r}
+f_reorder_stem <- function(X,var,r=reordered,s=reordered_stemmed,flag_stem=0) {
+  # Note: the user can change the name of the reordered and stemmed variable
+  temp <- copy(X)
+  var_ch <- deparse(substitute(var))
+  # Through the code we will simply use varp as the variable
+  setnames(temp, c(var_ch),c("var")) 
+  r <- deparse(substitute(r))
+  s <- deparse(substitute(s))
+  
+  temp <- temp[,c("var")][,var_r:=sapply(sapply(strsplit(var," "),sort),function(x) paste(x,collapse=' '))]
+  
+  if (flag_stem==0) {
+    # Create corpus to unstem words
+    texts <- temp$var
+    corpus <- VCorpus(VectorSource(texts))
+    stemmed_corpus<-stem.corpus(corpus, verbose=FALSE)
+    
+    temp$var_s <- data.table(text=unlist(sapply(stemmed_corpus, `[`, "content")), 
+        stringsAsFactors=F)
+    temp <- temp[,.SD[1],by="var"]
+    setnames(temp,c("var","var_r","var_s"),c(var_ch, paste0(deparse(substitute(var)),"_",r)  , paste0(deparse(substitute(var)),"_",s)  ))
+  } else if (flag_stem==1) {
+    temp <- temp[,.SD[1],by="var"]
+    setnames(temp,c("var","var_r"),c(var_ch, paste0(deparse(substitute(var)),"_",r)  ))
+  }
+  return(temp)
+}
+
+f_stem <- function(X,var,s=reordered_stemmed) {
+  # Note: the user can change the name of the reordered and stemmed variable
+  temp <- copy(X)
+  var_ch <- deparse(substitute(var))
+  # Through the code we will simply use varp as the variable
+  setnames(temp, c(var_ch),c("var")) 
+  s <- deparse(substitute(s))
+  
+  temp <- temp[,c("var")][!is.na(var)]
+  texts <- temp$var
+  corpus <- VCorpus(VectorSource(texts))
+  stemmed_corpus<-stem.corpus(corpus, verbose=FALSE)
+    
+  temp$var_s <- data.table(text=unlist(sapply(stemmed_corpus, `[`, "content")), 
+        stringsAsFactors=F)
+  temp <- temp[,.SD[1],by="var"]
+  setnames(temp,c("var","var_s"),c(var_ch, paste0(deparse(substitute(var)),"_",s)  ))
+  return(temp)
+}
+
+```
+
+# 3.2.2. Reordering and stemming the title variables for 1920 and 1930
+```{r}
+#1920
+title_edits.1920 <- merge(title_edits.1920,f_reorder_stem(title_edits.1920[,c("title_1920_round8")],title_1920_round8),by="title_1920_round8",all.x=TRUE,all.y=FALSE)
+
+
+# 1930
+title_edits.1930 <- merge(title_edits.1930,f_reorder_stem(title_edits.1930[,c("title_1930_round8")],title_1930_round8),by="title_1930_round8",all.x=TRUE,all.y=FALSE)
+
+```
+
+
+
+
+### 4. Finding occupations that are the same 1920-1930
+
+In this section I perform different operations to find out occupations that are the same in both years. I begin by looking at exact matches (after having eliminated punctuation signs and other uninformative words), then I look at fuzzy matches, then at matches of title and industry, then only industry and finally at matches within occupational categories that we know are the same in both years
+
+## 4.1. Finding matches using some simple operations
+
+```{r}
+# 1. Eliminate points and homogenize some words and symbols
+# 1920
+title_merge_1920 <- index_1920[,c("id_1920","occ1920","original_1920")]
+title_merge_1920[,original:=original_1920][,dup:=0+duplicated(title_merge_1920, incomparables=FALSE, fromLast=FALSE, by=c("original"))][,dup:=max(dup),keyby=.(original)]
+table(title_merge_1920$dup)
+# 12 observations have the exact same original_1920
+title_merge_1920_repeated <- title_merge_1920[dup>=1][,dup:=NULL]
+title_merge_1920_repeated[!duplicated(title_merge_1920_repeated,by=c("id_1920")),]
+title_merge_1920[,dup:= NULL][,original:=str_squish(original)]
+
+# 1930
+title_merge_1930 <- index_1930[,c("id_1930","occ1930","ind1930","original_1930")]
+title_merge_1930[,original:=original_1930][,dup:=0+duplicated(title_merge_1930, incomparables=FALSE, fromLast=FALSE, by=c("original"))][,dup:=max(dup),keyby=.(original)]
+table(title_merge_1930$dup)
+# 12 observations have the exact same original_1930
+title_merge_1930_repeated <- title_merge_1930[dup>=1][,dup:=NULL]
+title_merge_1930_repeated[!duplicated(title_merge_1930_repeated,by=c("id_1930")),]
+title_merge_1930[,dup:= NULL][,original:=str_squish(original)]
+
+# Merge using basic original
+merged_1920_1930 <- merge(title_merge_1920,title_merge_1930,by.x="original",by.y="original",all=TRUE)
+merged_1920_1930[,notm_1920:=0+is.na(original_1930)][,notm_1930:=0+is.na(original_1920)][,round:=1]
+
+# table with matched occupations id
+matched_1920_1930 <- merged_1920_1930[notm_1920==0 & notm_1930==0,c("id_1920","occ1920","id_1930","ind1930","occ1930","original","original_1920","original_1930","round")]
+
+## 2. Find matches eliminating punctuation signs (functions used: f_clean_punct, f_clean_conj)
+# Find the titles that couldn't be matched and change the variable used to matched (eliminate punctuation signs, some words...)
+# Merge eliminating punctuation signs
+title_merge_1930 <- merged_1920_1930[notm_1930==1 & notm_1920==0,c("id_1930","original","occ1930","ind1930","original_1930")]
+title_merge_1930[,original:=f_clean_conj( f_clean_punct(original) )][,dup:=0+duplicated(title_merge_1930, incomparables=FALSE, fromLast=FALSE, by=c("original"))][,dup:=max(dup),keyby=.(original)]
+table(title_merge_1930$dup)
+# No observations have the exact same original
+title_merge_1930_repeated <- rbind(title_merge_1930_repeated,title_merge_1930[dup>=1][,dup:=NULL])
+title_merge_1930_repeated[!duplicated(title_merge_1930_repeated,by=c("id_1930")),]
+title_merge_1930[,dup:= NULL][,original:=str_squish(original)]
+
+
+title_merge_1920 <- merged_1920_1930[notm_1930==0 & notm_1920==1,c("id_1920","original","occ1920","original_1920")]
+title_merge_1920[,original:=f_clean_conj( f_clean_punct(original) )][,dup:=0+duplicated(title_merge_1920, incomparables=FALSE, fromLast=FALSE, by=c("original"))][,dup:=max(dup),keyby=.(original)]
+table(title_merge_1920$dup)
+#  observations have the exact same original
+title_merge_1920_repeated <- rbind(title_merge_1920_repeated,title_merge_1920[dup>=1][,dup:=NULL])
+title_merge_1920_repeated[!duplicated(title_merge_1920_repeated,by=c("id_1920")),]
+title_merge_1920[,dup:= NULL][,original:=str_squish(original)]
+
+
+# Merging
+merged_1920_1930 <- merge(title_merge_1920,title_merge_1930,by.x="original",by.y="original",all=TRUE)
+merged_1920_1930[,notm_1920:=0+is.na(original_1930)][,notm_1930:=0+is.na(original_1920)][,round:=2]
+
+# Adding to the matched dt
+matched_1920_1930 <- rbind(matched_1920_1930,merged_1920_1930[notm_1920==0 & notm_1930==0,c("id_1920","occ1920","id_1930","ind1930","occ1930","original","original_1920","original_1930","round")])
+
+#View(merged_1920_1930[notm_1920!=0 | notm_1930!=0])
+#write.xlsx(merged_1920_1930[notm_1920!=0 | notm_1930!=0],"/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/temp/not_merged_1920_1930.xlsx",row.names = TRUE)
+
+```
+
+
+Next step is to use some manual changes (e.g. common occupations that are spelled wrong)
+
+```{r}
+
+# 1. Merge after introducing the substitution that are in words_subs
+
+# Subset the unmatched titles
+title_merge_1920 <- merged_1920_1930[notm_1920==1 & notm_1930==0,c("id_1920","original","occ1920","original_1920")]
+title_merge_1930 <- merged_1920_1930[notm_1920==0 & notm_1930==1,c("id_1930","original","occ1930","ind1930","original_1930")]
+
+# Substitute the words
+title_merge_1920$original <- mgsub(words_subs4$term,words_subs4$change,title_merge_1920$original,fixed=FALSE)
+title_merge_1920$original <- mgsub(words_subs2$term,"",title_merge_1920$original,fixed=FALSE)
+title_merge_1920$original <- mgsub(words_subs3$term,"",title_merge_1920$original,fixed=FALSE)
+title_merge_1920[,original:=str_squish(original)]
+#Duplicates: Here we don't look for duplicates
+title_merge_1930$original <- mgsub(words_subs4$term,words_subs4$change,title_merge_1930$original,fixed=FALSE)
+title_merge_1930$original <- mgsub(words_subs2$term,"",title_merge_1930$original,fixed=FALSE)
+title_merge_1930$original <- mgsub(words_subs3$term,"",title_merge_1930$original,fixed=FALSE)
+title_merge_1930[,original:=str_squish(original)]
+#Duplicates: Here we don't look for duplicates
+
+# Merging again
+merged_1920_1930 <- merge(title_merge_1920,title_merge_1930,by.x="original",by.y="original",all=TRUE)
+merged_1920_1930[,notm_1920:=0+is.na(original_1930)][,notm_1930:=0+is.na(original_1920)][,round:=4]
+matched_1920_1930 <- rbind(matched_1920_1930,merged_1920_1930[notm_1920==0 & notm_1930==0,c("id_1920","occ1920","id_1930","ind1930","occ1930","original","original_1920","original_1930","round")])
+
+
+# 2. Merge eliminating all parentheses
+# Subset the unmatched titles
+title_merge_1920 <- merged_1920_1930[notm_1920==1 & notm_1930==0,c("id_1920","original","occ1920","original_1920")]
+title_merge_1930 <- merged_1920_1930[notm_1920==0 & notm_1930==1,c("id_1930","original","occ1930","ind1930","original_1930")]
+
+# Eliminate parentheses
+title_merge_1920[,original:=gsub("\\(|\\)","",original)][,dup:=0 + duplicated(title_merge_1920, incomparables=FALSE, fromLast=FALSE, by=c("original"))][,dup:=max(dup),keyby=.(original)]
+table(title_merge_1920$dup)
+# No observations have the exact same original_1920
+title_merge_1920_repeated <- rbind(title_merge_1920_repeated,title_merge_1920[dup>=1][,dup:=NULL])
+title_merge_1920_repeated <- title_merge_1920_repeated[!duplicated(title_merge_1920_repeated,by=c("id_1920")),]
+title_merge_1920[,dup:= NULL][,original:=str_squish(original)]
+
+title_merge_1930[,original:=gsub("\\(|\\)","",original)][,dup:=0 + duplicated(title_merge_1930, incomparables=FALSE, fromLast=FALSE, by=c("original"))][,dup:=max(dup),keyby=.(original)]
+table(title_merge_1930$dup)
+# 8 observations have the exact same original
+title_merge_1930_repeated <- rbind(title_merge_1930_repeated,title_merge_1930[dup>=1][,dup:=NULL])
+title_merge_1930_repeated <- title_merge_1930_repeated[!duplicated(title_merge_1930_repeated,by=c("id_1930")),]
+title_merge_1930[,dup:= NULL][,original:=str_squish(original)]
+
+# Merge
+merged_1920_1930 <- merge(title_merge_1920,title_merge_1930,by.x="original",by.y="original",all=TRUE)
+merged_1920_1930[,notm_1920:=0+is.na(original_1930)][,notm_1930:=0+is.na(original_1920)][,round:=5]
+matched_1920_1930 <- rbind(matched_1920_1930,merged_1920_1930[notm_1920==0 & notm_1930==0,c("id_1920","occ1920","id_1930","ind1930","occ1930","original","original_1920","original_1930","round")])
+
+
+# 3. Merge eliminating "all parentheses"or"
+# Note: I didn't include "or" in the f_conj because we will use it later to create different titles (e.g. driller or setter ---> a. driller, b. setter)
+# Subset the unmatched titles
+title_merge_1920 <- merged_1920_1930[notm_1920==1 & notm_1930==0,c("id_1920","original","occ1920","original_1920")]
+title_merge_1930 <- merged_1920_1930[notm_1920==0 & notm_1930==1,c("id_1930","original","occ1930","ind1930","original_1930")]
+
+# Eliminate parentheses
+title_merge_1920[,original:=str_squish(gsub(" or "," ",original))][,dup:=0 + duplicated(title_merge_1920, incomparables=FALSE, fromLast=FALSE, by=c("original"))][,dup:=max(dup),keyby=.(original)]
+table(title_merge_1920$dup)
+# No observations have the exact same original_1920
+title_merge_1920_repeated <- rbind(title_merge_1920_repeated,title_merge_1920[dup>=1][,dup:=NULL])
+title_merge_1920_repeated <- title_merge_1920_repeated[!duplicated(title_merge_1920_repeated,by=c("id_1920")),]
+title_merge_1920[,dup:= NULL][,original:=str_squish(original)]
+
+title_merge_1930[,original:=str_squish(gsub(" or "," ",original))][,dup:=0 + duplicated(title_merge_1930, incomparables=FALSE, fromLast=FALSE, by=c("original"))][,dup:=max(dup),keyby=.(original)]
+table(title_merge_1930$dup)
+# 8 observations have the exact same original
+title_merge_1930_repeated <- rbind(title_merge_1930_repeated,title_merge_1930[dup>=1][,dup:=NULL])
+title_merge_1930_repeated <- title_merge_1930_repeated[!duplicated(title_merge_1930_repeated,by=c("id_1930")),]
+title_merge_1930[,dup:= NULL][,original:=str_squish(original)]
+
+# Merge
+merged_1920_1930 <- merge(title_merge_1920,title_merge_1930,by.x="original",by.y="original",all=TRUE)
+merged_1920_1930[,notm_1920:=0+is.na(original_1930)][,notm_1930:=0+is.na(original_1920)][,round:=6]
+matched_1920_1930 <- rbind(matched_1920_1930,merged_1920_1930[notm_1920==0 & notm_1930==0,c("id_1920","occ1920","id_1930","ind1930","occ1930","original","original_1920","original_1930","round")])
+
+
+
+# Subset the unmatched titles
+title_merge_1920 <- merged_1920_1930[notm_1920==1 & notm_1930==0,c("id_1920","original","occ1920","original_1920")]
+title_merge_1930 <- merged_1920_1930[notm_1920==0 & notm_1930==1,c("id_1930","original","occ1930","ind1930","original_1930")]
+# Attach industry names
+title_merge_1920 <- merge(title_merge_1920,index_1920[,c("id_1920","indname_1920")],by="id_1920",all.x=TRUE,all.y=FALSE)
+title_merge_1930 <- merge(title_merge_1930,index_1930[,c("id_1930","indname_1930","occind1930")],by="id_1930",all.x=TRUE,all.y=FALSE)
+
+
+## Final file of matched titles
+# Find duplicates in the matched set
+matched_1920_1930[,dup:=0+duplicated(matched_1920_1930, incomparables=FALSE, fromLast=FALSE, by=c("id_1920","id_1930"))]
+#table(matched_1910_1920$dup)
+#head(matched_1910_1920[dup!=0],100)
+matched_1920_1930 <- matched_1920_1930[dup==0][,dup:=NULL]
+
+# Attach industry names
+matched_1920_1930 <- merge(matched_1920_1930,index_1920[,c("id_1920","indname_1920")],by="id_1920",all.x=TRUE,all.y=FALSE)
+matched_1920_1930 <- merge(matched_1920_1930,index_1930[,c("id_1930","indname_1930","occind1930")],by="id_1930",all.x=TRUE,all.y=FALSE)
+
+#View(unique(matched_1920_1930,by="indname_1930"))
+
+```
+
+
+
+## Try to match unmatched observation using the title but keeping only those matches that are unique
+
+```{r}
+# Mix title
+title_merge_1920 <- merge(title_merge_1920,title_edits.1920[,c("id_1920","title_1920_round8")],by="id_1920",all.x=TRUE,all.y=FALSE)
+title_merge_1930 <- merge(title_merge_1930,title_edits.1930[,c("id_1930","title_1930_round8")],by="id_1930",all.x=TRUE,all.y=FALSE)
+
+# Keep only those titles that are unique
+title_merge_1920.unique <- title_merge_1920[,dup:=0+duplicated(title_merge_1920, by=c("title_1920_round8"))][,title:=title_1920_round8][,dup:=max(dup),by="title_1920_round8"][dup==0][,dup:=NULL]
+title_merge_1930.unique <- title_merge_1930[,dup:=0+duplicated(title_merge_1930, by=c("title_1930_round8"))][,title:=title_1930_round8][,dup:=max(dup),by="title_1930_round8"][dup==0][,dup:=NULL]
+
+# Merge
+merged_1920_1930 <- merge(title_merge_1920.unique,title_merge_1930.unique,by="title",all=FALSE)[,original:=original.y][,c("original.x","original.y","title"):=NULL][,round:=7]
+matched_1920_1930 <- rbind(matched_1920_1930,merged_1920_1930[,!c("title_1920_round8","title_1930_round8")])
+
+# Subset the unmatched titles
+title_merge_1920 <- merge(title_merge_1920,merged_1920_1930[,c("id_1920","round")],by="id_1920",all.x=TRUE,all.y=FALSE)[is.na(round)][,c("dup","round","title"):=NULL]
+title_merge_1930 <- merge(title_merge_1930,merged_1920_1930[,c("id_1930","round")],by="id_1930",all.x=TRUE,all.y=FALSE)[is.na(round)][,c("dup","round","title"):=NULL]
+
+# Merge the two unmerged title lists to manually look for matches
+
+unmatched_1920_1930.manual <- merge(title_merge_1920,title_merge_1930,by="original",all=TRUE)
+
+write.xlsx(unmatched_1920_1930.manual,"/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/temp/unmatched_1920_1930.manual.xlsx",row.names = TRUE)
+
+rm(title_merge_1920.unique,title_merge_1930.unique)
+```
+Note: I have to review the repeated occupations (over 100 in 1930). How are they being assigned?
+
+
+
+## 4.2. Finding matches using Manual changes
+Using the file "unmatched_1920_1930.manual" we manually linked some of the titles and created a new file that we import here. We use the original_[year] variable to link the titles
+```{r}
+# 1. Importing tables
+single <- as.data.table( read_excel("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/temp/unmatched_1920_1930.manual_edited.xlsx", sheet = "single") )
+R_matched <- as.data.table( read_excel("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/temp/unmatched_1920_1930.manual_edited.xlsx", sheet = "R_matched") )
+multiple_1920 <- as.data.table( read_excel("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/temp/unmatched_1920_1930.manual_edited.xlsx", sheet = "multiple_1920") )
+multiple_1930 <- as.data.table( read_excel("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/temp/unmatched_1920_1930.manual_edited.xlsx", sheet = "multiple_1930") )
+
+# 2. Changing original variables
+
+f <- function(X) {
+  # Note: The function changes by reference the data.table X
+  # TODO: Make it so that we can choose the columns (first one, then multiple) 
+  X[,original_1920:=tolower(original_1920)][,original_1920:=f_clean_conj(f_change_words(f_change_syms(f_clean_punct(original_1920,flag=0) )))][,original_1920:=str_squish(gsub(", or | or, |, or, | ,or, | or ,|, or ,"," or ",original_1920))]
+  X[,original_1930:=tolower(original_1930)][,original_1930:=f_clean_conj(f_change_words(f_change_syms(f_clean_punct(original_1930,flag=0) )))][,original_1930:=str_squish(gsub(", or | or, |, or, | ,or, | or ,|, or ,"," or ",original_1930))]
+  
+  #X$original <- mgsub(words_subs1$term,words_subs1$change,X$original,fixed=FALSE)
+  X$original_1920 <- mgsub(words_subs1$term,words_subs1$change,X$original_1920,fixed=FALSE)
+  X$original_1930 <- mgsub(words_subs1$term,words_subs1$change,X$original_1930,fixed=FALSE)
+  return(X)
+}
+
+single <- f(single)
+multiple_1920 <- f(multiple_1920)
+multiple_1930 <- f(multiple_1930)
+R_matched <- f(R_matched)
+
+# 3. Match using the single and multiple_x data matches
+# Mix title
+title_merge_1920 <- merge(title_merge_1920,single[,c("original_1920","occ1920","original_1930","occind1930")],by=c("original_1920","occ1920"),all.x=TRUE,all.y=FALSE)
+
+# Merge
+merged_1920_1930 <- merge(title_merge_1920,title_merge_1930,by=c("original_1930","occind1930"),all=FALSE)[,original:=original.y][,c("original.x","original.y"):=NULL][,round:=8]
+matched_1920_1930 <- rbind(matched_1920_1930,    merged_1920_1930[,!c("title_1920_round8","title_1930_round8")]  )
+
+# Subset the unmatched titles
+title_merge_1920 <- merge(title_merge_1920,merged_1920_1930[,c("id_1920","round")],by="id_1920",all.x=TRUE,all.y=FALSE)[is.na(round)][,c("id_1920","original_1920","occ1920","original","indname_1920","title_1920_round8")]
+title_merge_1930 <- merge(title_merge_1930,merged_1920_1930[,c("id_1930","round")],by="id_1930",all.x=TRUE,all.y=FALSE)[is.na(round)][,c("id_1930","original_1930","occ1930","ind1930","occind1930","original","indname_1930","title_1930_round8")]
+
+
+# 4. Match using the multiple files 1920
+title_merge_1920 <- merge(title_merge_1920,multiple_1920[,c("original_1920","occ1920","original_1930","occind1930")],by=c("original_1920","occ1920"),all.x=TRUE,all.y=FALSE)
+
+# Merge
+merged_1920_1930 <- merge(title_merge_1920,title_merge_1930,by=c("original_1930","occind1930"),all=FALSE)[,original:=original.y][,c("original.x","original.y"):=NULL][,round:=9]
+matched_1920_1930 <- rbind(matched_1920_1930,    merged_1920_1930[,!c("title_1920_round8","title_1930_round8")]  )
+
+# Subset the unmatched titles
+title_merge_1920 <- merge(title_merge_1920,merged_1920_1930[,c("id_1920","round")],by="id_1920",all.x=TRUE,all.y=FALSE)[is.na(round)][,c("id_1920","original_1920","occ1920","original","indname_1920","title_1920_round8")]
+title_merge_1930 <- merge(title_merge_1930,merged_1920_1930[,c("id_1930","round")],by="id_1930",all.x=TRUE,all.y=FALSE)[is.na(round)][,c("id_1930","original_1930","occ1930","ind1930","occind1930","original","indname_1930","title_1930_round8")]
+
+
+# 5. Match using the multiple files 1930
+title_merge_1930 <- merge(title_merge_1930,multiple_1930[,c("original_1930","occind1930","original_1920","occ1920")],by=c("original_1930","occind1930"),all.x=TRUE,all.y=FALSE)
+
+# Merge
+merged_1920_1930 <- merge(title_merge_1930,title_merge_1920,by=c("original_1920","occ1920"),all=FALSE)[,original:=original.y][,c("original.x","original.y"):=NULL][,round:=10]
+matched_1920_1930 <- rbind(matched_1920_1930,    merged_1920_1930[,!c("title_1920_round8","title_1930_round8")]  )
+
+# Subset the unmatched titles
+title_merge_1920 <- merge(title_merge_1920,merged_1920_1930[,c("id_1920","round")],by="id_1920",all.x=TRUE,all.y=FALSE)[is.na(round)][,c("id_1920","original_1920","occ1920","original","indname_1920","title_1920_round8")]
+title_merge_1930 <- merge(title_merge_1930,merged_1920_1930[,c("id_1930","round")],by="id_1930",all.x=TRUE,all.y=FALSE)[is.na(round)][,c("id_1930","original_1930","occ1930","ind1930","occind1930","original","indname_1930","title_1930_round8")]
+
+
+# 6. Match using the R_matched file
+title_merge_1920 <- merge(title_merge_1920,R_matched[,c("original_1920","occ1920","original_1930","occind1930")],by=c("original_1920","occ1920"),all.x=TRUE,all.y=FALSE)
+
+# Merge
+merged_1920_1930 <- merge(  title_merge_1920,matched_1920_1930[,!c("id_1920","original_1920","occ1920","indname_1920")],by=c("original_1930","occind1930"),all=FALSE)[,original:=original.y][,c("original.x","original.y"):=NULL][,round:=11]
+a <- names(matched_1920_1930)
+matched_1920_1930 <- rbind(matched_1920_1930,    merged_1920_1930[,..a]  )
+
+# Subset the unmatched titles
+title_merge_1920 <- merge(title_merge_1920,merged_1920_1930[,c("id_1920","round")],by="id_1920",all.x=TRUE,all.y=FALSE)[is.na(round)][,c("id_1920","original_1920","occ1920","original","indname_1920","title_1920_round8")]
+title_merge_1930 <- merge(title_merge_1930,merged_1920_1930[,c("id_1930","round")],by="id_1930",all.x=TRUE,all.y=FALSE)[is.na(round)][,c("id_1930","original_1930","occ1930","ind1930","occind1930","original","indname_1930","title_1930_round8")]
+
+# 7. Match using the single file but with matched titles
+title_merge_1920 <- merge(title_merge_1920,single[,c("original_1920","occ1920","original_1930","occind1930")],by=c("original_1920","occ1920"),all.x=TRUE,all.y=FALSE)
+
+# Merge
+merged_1920_1930 <- merge(  title_merge_1920,matched_1920_1930[,!c("id_1920","original_1920","occ1920","indname_1920")],by=c("original_1930","occind1930"),all=FALSE)[,original:=original.y][,c("original.x","original.y"):=NULL][,round:=11]
+a <- names(matched_1920_1930)
+matched_1920_1930 <- rbind(matched_1920_1930,    merged_1920_1930[,..a]  )
+
+# Subset the unmatched titles
+title_merge_1920 <- merge(title_merge_1920,merged_1920_1930[,c("id_1920","round")],by="id_1920",all.x=TRUE,all.y=FALSE)[is.na(round)][,c("id_1920","original_1920","occ1920","original","indname_1920","title_1920_round8")]
+title_merge_1930 <- merge(title_merge_1930,merged_1920_1930[,c("id_1930","round")],by="id_1930",all.x=TRUE,all.y=FALSE)[is.na(round)][,c("id_1930","original_1930","occ1930","ind1930","occind1930","original","indname_1930","title_1930_round8")]
+
+# 8. Here we will look at matches if we eliminate words and syms
+title_merge_1930[,original:=f_clean_words( f_clean_syms (original) )][,dup:=0+duplicated(title_merge_1930, incomparables=FALSE, fromLast=FALSE, by=c("original"))][,dup:=max(dup),keyby=.(original)]
+table(title_merge_1930$dup)
+# No observations have the exact same original
+cols <- names(title_merge_1930_repeated) 
+title_merge_1930_repeated <- rbind(title_merge_1930_repeated,title_merge_1930[dup>=1][,dup:=NULL][,..cols])
+title_merge_1930_repeated <- title_merge_1930_repeated[!duplicated(title_merge_1930_repeated,by=c("id_1930")),]
+title_merge_1930[,dup:= NULL][,original:=str_squish(original)]
+
+title_merge_1920[,original:=f_clean_words( f_clean_syms (original) )][,dup:=0+duplicated(title_merge_1920, incomparables=FALSE, fromLast=FALSE, by=c("original"))][,dup:=max(dup),keyby=.(original)]
+table(title_merge_1920$dup)
+#  observations have the exact same original
+cols <- names(title_merge_1920_repeated) 
+title_merge_1920_repeated <- rbind(title_merge_1920_repeated,title_merge_1920[dup>=1][,dup:=NULL][,..cols])
+title_merge_1920_repeated <- title_merge_1920_repeated[!duplicated(title_merge_1920_repeated,by=c("id_1920")),]
+title_merge_1920[,dup:= NULL][,original:=str_squish(original)]
+
+# Merging
+merged_1920_1930 <- merge(title_merge_1920,title_merge_1930,by.x="original",by.y="original",all=TRUE)
+merged_1920_1930[,notm_1920:=0+is.na(original_1930)][,notm_1930:=0+is.na(original_1920)][,round:=12]
+  
+# Adding to the matched dt
+cols <- names(matched_1920_1930)
+matched_1920_1930 <- rbind(matched_1920_1930,merged_1920_1930[notm_1920==0 & notm_1930==0,..cols])
+
+# Subset the unmatched titles
+title_merge_1920 <- merged_1920_1930[notm_1920==1 & notm_1930==0,c("id_1920","original","occ1920","original_1920","indname_1920")]
+title_merge_1930 <- merged_1920_1930[notm_1920==0 & notm_1930==1,c("id_1930","original","occ1930","ind1930","original_1930","indname_1930","occind1930")]
+ 
+
+# Merge the two unmerged title lists to manually look for matches
+
+unmatched_1920_1930.manual <- merge(title_merge_1920,title_merge_1930,by="original",all=TRUE)
+
+write.xlsx(unmatched_1920_1930.manual,"/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/temp/unmatched_1920_1930.manual.xlsx",row.names = TRUE)
+
+rm(single,multiple_1920,multiple_1930,R_matched)
+```
+After the different changes that the original variables have gone through (including the manual matches) we were able to match all but 50 titles in 1920. In a parallel way, we were not able to match 5884 titles in 1930. Some of these unmatched titles existed in 1920 but appeared (or were registered) in a new industry in 1930, others are just different versions of the same matched title (eg claim agent and agent claim), while other titles are completely new. In the next stages we try to deal with these issues
+
+# Match the different final sets with title edits, which contains title names after cleaning, reordered title names and stemmed ones
+```{r}
+matched_1920_1930 <- merge( 
+  merge(matched_1920_1930,title_edits.1930[,c("id_1930","title_1930_round8","title_1930_round8_reordered","title_1930_round8_reordered_stemmed")],by="id_1930"),
+  title_edits.1920[,c("id_1920","title_1920_round8","title_1920_round8_reordered","title_1920_round8_reordered_stemmed")],by="id_1920")
+title_merge_1930 <- merge(title_merge_1930,title_edits.1930[,c("id_1930","title_1930_round8","title_1930_round8_reordered","title_1930_round8_reordered_stemmed")],by="id_1930")
+
+
+```
+
+
+
+### 5. Crosswalk between occ1920 and occind1930
+Using the table of matched titles we construct a simple crosswalk between the two occupational classifications. Even though there were not major changes from one year to another in terms of the number of groups, the numbering system (??better word??) changed substantially from one year to another and many titles were moved to different groups. These crosswalk might allow us to construct an homogeneous classification that covers both year (keep in mind that IPUMS did something similar with his 1950 classification).
+
+```{r}
+# Constructing the crosswalk
+crosswalk.1920_1930.matched <- matched_1920_1930[,c("occ1920","occind1930")][,n:=1][,lapply(.SD,sum),by=c("occ1920","occind1930"),.SDcols=c("n")][,n.occind1930:=sum(n),by="occind1930"][,share.occind1930:=n/n.occind1930][,n.occ1920:=sum(n),by="occ1920"][,share.occ1920:=n/n.occ1920][,lapply(.SD,mean),by=c("occ1920","occind1930"),.SDcols=c("n","n.occ1920","n.occind1930","share.occ1920","share.occind1930")]
+
+# Matching occ names
+crosswalk.1920_1930.matched <- merge(  merge(crosswalk.1920_1930.matched,occ1930.names[,c("occind1930","occind1930_name")],by="occind1930",all.x=TRUE,all.y=FALSE),
+                                       occ1920.names[,c("occ1920","occ1920_name")],by="occ1920",all.x=TRUE,all.y=FALSE)
+setorderv(crosswalk.1920_1930.matched,c("share.occ1920","occind1930"),c(-1,1))
+
+
+```
+
+
+### 6. Construct a set of unique titles (looking at both the whole corpus of titles or within occind1930)
+
+# 6.1. Stemmed industry and parentheses term
+```{r}
+# Stem the industry and parentheses
+index_1930.indpar_edits <- merge(index_1930.indpar_edits,f_stem(index_1930.indpar_edits,indname_1930_plain,s=stem)[!is.na(indname_1930_plain) & !is.na(indname_1930_plain_stem) & indname_1930_plain_stem!= "" & indname_1930_plain_stem!= ""],by="indname_1930_plain",all=TRUE)
+index_1930.indpar_edits <- merge(index_1930.indpar_edits,f_stem(index_1930.indpar_edits,parentheses1_1930_plain,s=stem)[!is.na(parentheses1_1930_plain) & !is.na(parentheses1_1930_plain_stem) & parentheses1_1930_plain_stem!= "" & parentheses1_1930_plain_stem!= ""],by="parentheses1_1930_plain",all=TRUE)
+
+```
+
+# 6.2. Construct initial list of matched (i.e. not new titles)
+```{r}
+# NOTE: for now I'm not considering the variables w, np, e, o, any, except
+
+# Merge whole list with matched list
+# NOTE: the matched vector might have reapeated observations, since a title in 1930 might be linked to multiple 1920 titles
+setorderv(matched_1920_1930,c("id_1930","round"),c(1,1))
+clean_1930 <-  merge(index_1930[,c("id_1930","occind1930")],matched_1920_1930[,c("id_1930","round")][,.SD[1],by="id_1930"],by="id_1930",all.x=TRUE,all.y=FALSE)[,matched:=unlist(lapply(round,function(x) ifelse(is.na(x),0,1)))][,round:=NULL]
+
+
+
+# Stemmed edited title, separate parentheses
+temp <- f_title_edits(index_1930[,c("id_1930","title_1930")],title_1930,8,flag_par=1)[,c("id_1930","title_1930_round8")]
+temp <- temp[,title_1930_par:=str_squish(gsub("\\(|\\)","",f_par(title_1930_round8,1)))][,title_1930_round8:=str_squish(gsub("\\([^()]+\\)","",title_1930_round8))]
+temp <- merge(temp,f_stem(temp[,c("title_1930_round8")],title_1930_round8,s=stem),by="title_1930_round8",all=TRUE)
+temp <- merge(temp,f_stem(temp[,c("title_1930_par")],title_1930_par,s=stem),by="title_1930_par",all=TRUE)
+
+
+# Add stemmed title/parentheses
+clean_1930 <-  merge(clean_1930,temp,by="id_1930",all=TRUE)
+
+# Add stemmed industry/parentheses
+clean_1930 <- merge(clean_1930,index_1930.indpar_edits[,!c("army","no_army","any","except")],by="id_1930",all=TRUE)
+
+```
+
+## 6.3. Create variables to reduce observations and expand the set of matched observations
+Here we use the f_reduce_match function, which creates 6 binary vectors to be described below. We can use half of them later to reduce the set of observation, by dropping repeated observations. We use different criteria to select repeated observations. The other half is used to extend the vector of matched titles. In the most basic example, if two observations within occind have the same title, but one has been matched to an observation in the 1920 index and another not, then we will assume that the other title was also matched.
+
+# 6.3.1. Function to reduced the set of obs and to expand the matched observations
+```{r}
+# Function To reduce the set of observations
+
+f_reduce_match <- function(obs_f,tit_f,ind_f,tit_par_f,ind_par_f,match_f,flag_return=0,flag_extra=0){
+  # 0. Some flag variables
+  flag_tit_par <- flag_ind <- flag_ind_par <- 0
+  # 1. Changing the name of the variables for further calculations and creating parentheses variables if they don't exist
+  # The function has to have ind and tit
+  if (missing(obs_f)) { stop("You need to provide and obs_v variable")
+  } else if (missing(tit_f)) { stop("You need to provide a tit variable")
+  } else if (missing(ind_f)) { stop("You need to provide an ind variable, even if the industries are all empty")
+  }
+  
+  # Make sure obs variable is unique
+  
+  X_f <- data.table(obs=obs_f,tit=tit_f,ind=ind_f)
+  y_f <- X_f[,c("obs")][,initial_obs:=1:.N]
+  # Make sure obs variable is unique
+  if (  nrow(unique(y_f,by="obs")) != nrow(y_f)   ) {
+    stop("At least one number in the obs vector is repeated")
+  }
+  X_f <- X_f[,l:=0][ind=="",ind:=NA]
+   
+   # Title has to be different than NA for all observations  
+  if (nrow(X_f[is.na(tit) | tit==""]) > 0) {
+    warining("At least one observations has no title. Observation(s) will be eliminated")
+    X_f <- X_f[!(is.na(tit) | tit=="")]
+  }
+   
+  # Change flags if some of the variables are missing or are all NA or ""
+  if ( !missing(tit_par_f) ) {
+     X_f[,tit_par:=tit_par_f]
+     X_f <- X_f[tit_par=="",tit_par:=NA][,l:= l + unlist(lapply(tit, str_length))][!is.na(tit_par),l:= l + 2 + unlist(lapply(tit_par, str_length))]
+     if (nrow(X_f[!(is.na(tit_par) | tit_par=="")]) == 0) {flag_tit_par <-1}
+  } else {
+    X_f <- X_f[,l:= l + unlist(lapply(tit, str_length))]
+    if (nrow(X_f[grepl("\\([^()]+\\)",tit)])>0) {
+      X_f[grepl("\\([^()]+\\)",tit),tit_par:=gsub("\\(|\\)","",str_extract(tit,"\\([^()]+\\)"))][,tit := str_squish(  gsub("\\([^()]+\\)","",tit))]
+    } else { 
+      flag_tit_par <-1 
+      }
+  } 
+  
+  if (nrow(X_f[!(is.na(ind) | ind=="")]) == 0) { flag_ind <- 1}
+  
+  if (!missing(ind_par_f)) {
+    X_f[,ind_par:=ind_par_f]
+    X_f <- X_f[ind_par=="",ind_par:=NA][!is.na(ind),l:= l + unlist(lapply(ind, str_length))][!is.na(ind_par),l:= l + 2 + unlist(lapply(ind_par, str_length))]
+    if (nrow(X_f[!(is.na(ind_par) | ind_par=="")]) == 0) {flag_ind_par <- 1}
+  } else {
+    X_f <- X_f[!is.na(ind),l:= l + unlist(lapply(ind, str_length))]
+    if (nrow(X_f[grepl("\\([^()]+\\)",ind)])>0) {
+      X_f[grepl("\\([^()]+\\)",ind),ind_par:=gsub("\\(|\\)","",str_extract(ind,"\\([^()]+\\)"))][,ind := str_squish(  gsub("\\([^()]+\\)","",ind))]
+      X_f <- X_f[ind_par=="",ind_par:=NA][ind=="",ind:=NA]
+    } else { flag_ind_par <-1 }
+  }
+  
+  if (!missing(match_f)) {
+    X_f[,match:=match_f]
+  } else {
+    print("No match variable provided. A match vaariable with value of 0 is created")
+    X_f <- X_f[,match:=0]
+  }
+
+  # 2. Keeping only unique variables and
+  # 3. Expand observations (title and industry part, with/without parentheses)
+   
+  X_f <- X_f[,`:=`(  sort_tit=      sapply(lapply(strsplit(tit," "),sort),function(x) paste(x,collapse=' '))
+                   )]
+  # In the next block we consider all the different cases
+  if ( flag_ind ==1 & flag_ind_par==1 & flag_tit_par==1 ) {                     
+    #1.  ######### - tit - ##########
+    # Drop duplicated observations
+    X_f <- X_f[,match:=max(match),by=c("sort_tit")][,.SD[1],by=c("sort_tit"),.SDcols=c("obs","match","tit","l")][,c("sort_tit"):=NULL]
+    
+    ex_tit <- f_split_or(X_f[,c("obs","tit")],tit,obs)
+    ex_tit_f <- ex_tit[,final_t:=sapply(lapply(strsplit(tit_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_t")][,c("obs","final_t")]
+    
+  } else if (flag_ind ==1 & flag_ind_par==0 & flag_tit_par==0) {                
+    #2.  ######### - tit, tit_par, ind_par - ##########
+    X_f <- X_f[,`:=`(  sort_tit_par=  sapply(lapply(strsplit(tit_par," "),sort),function(x) paste(x,collapse=' ')),
+                   sort_ind_par=  sapply(lapply(strsplit(ind_par," "),sort),function(x) paste(x,collapse=' '))
+            )]
+    
+    X_f <- X_f[,match:=max(match),by=c("sort_tit","sort_tit_par","sort_ind_par")][,.SD[1],by=c("sort_tit","sort_tit_par","sort_ind_par"),.SDcols=c("obs","match","tit","tit_par","ind_par","l")][,c("sort_tit","sort_tit_par","sort_ind_par"):=NULL]
+    
+    # Expanding title
+    # Expand title
+    ex_tit <- f_split_or(X_f[,c("obs","tit")],tit,obs)
+    # Expand title par 
+    ex_tit_par <- f_split_or(X_f[,c("obs","tit_par")],tit_par,obs)
+
+    ex_tit_f <- rbind(ex_tit[,c("obs","tit_l")],merge(ex_tit[,c("obs","tit_l")],ex_tit_par[,c("obs","tit_par_l")],by="obs",all=TRUE,allow.cartesian=TRUE),fill=TRUE)
+    ex_tit_f <- ex_tit_f[!is.na(tit_par_l),final_t:=paste3(tit_l,tit_par_l)][is.na(tit_par_l),final_t:=tit_l][,final_t:=sapply(lapply(strsplit(final_t," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_t")][,c("obs","final_t")]
+    
+    # Expanding industry par
+    ex_ind_par <- f_split_or(X_f[,c("obs","ind_par")],ind_par,obs)
+    ex_ind_f <- ex_ind_par[,final_i:=sapply(lapply(strsplit(ind_par_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_i")][,c("obs","final_i")]
+    
+  } else if (flag_ind ==1 & flag_ind_par==1 & flag_tit_par==0) {                
+    #2.  ######### - tit, tit_par - ##########
+    X_f <- X_f[,`:=`(  sort_tit_par=  sapply(lapply(strsplit(tit_par," "),sort),function(x) paste(x,collapse=' '))
+            )]
+    
+    X_f <- X_f[,match:=max(match),by=c("sort_tit","sort_tit_par")][,.SD[1],by=c("sort_tit","sort_tit_par"),.SDcols=c("obs","match","tit","tit_par","l")][,c("sort_tit","sort_tit_par"):=NULL]
+    
+    # Expanding title
+    # Expand title
+    ex_tit <- f_split_or(X_f[,c("obs","tit")],tit,obs)
+    # Expand title par 
+    ex_tit_par <- f_split_or(X_f[,c("obs","tit_par")],tit_par,obs)
+
+    ex_tit_f <- rbind(ex_tit[,c("obs","tit_l")],merge(ex_tit[,c("obs","tit_l")],ex_tit_par[,c("obs","tit_par_l")],by="obs",all=TRUE,allow.cartesian=TRUE),fill=TRUE)
+    ex_tit_f <- ex_tit_f[!is.na(tit_par_l),final_t:=paste3(tit_l,tit_par_l)][is.na(tit_par_l),final_t:=tit_l][,final_t:=sapply(lapply(strsplit(final_t," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_t")][,c("obs","final_t")]
+    
+  } else if (flag_ind ==1 & flag_ind_par==0 & flag_tit_par==1) {                
+    #3.  ######### - tit, ind_par - ##########
+    X_f <- X_f[,`:=`(  sort_ind_par=  sapply(lapply(strsplit(ind_par," "),sort),function(x) paste(x,collapse=' '))
+            )]
+    X_f <- X_f[,match:=max(match),by=c("sort_tit","sort_ind_par")][,.SD[1],by=c("sort_tit","sort_ind_par"),.SDcols=c("obs","match","tit","ind_par","l")][,c("sort_tit","sort_ind_par"):=NULL]
+    
+    # Title
+    ex_tit <- f_split_or(X_f[,c("obs","tit")],tit,obs)
+    ex_tit_f <- ex_tit[,final_t:=sapply(lapply(strsplit(tit_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_t")][,c("obs","final_t")]
+    
+    # Industry
+    # Par
+    ex_ind_par <- f_split_or(X_f[,c("obs","ind_par")],ind_par,obs)
+    ex_ind_f <- ex_ind_par[,final_i:=sapply(lapply(strsplit(ind_par_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_i")][,c("obs","final_i")]
+    
+  } else if (flag_ind ==0 & flag_ind_par==1 & flag_tit_par==1) {                
+    #5.  ######### - tit, ind - ##########
+    X_f <- X_f[,`:=`(  sort_ind=  sapply(lapply(strsplit(ind," "),sort),function(x) paste(x,collapse=' '))
+            )]
+    
+    X_f <- X_f[,match:=max(match),by=c("sort_tit","sort_ind")][,.SD[1],by=c("sort_tit","sort_ind"),.SDcols=c("obs","match","tit","ind","l")][,c("sort_tit","sort_ind"):=NULL]
+    
+    # Title
+    ex_tit <- f_split_or(X_f[,c("obs","tit")],tit,obs)
+    ex_tit_f <- ex_tit[,final_t:=sapply(lapply(strsplit(tit_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_t")][,c("obs","final_t")]
+    
+    # Industry
+    ex_ind <- f_split_or(X_f[,c("obs","ind")],ind,obs)
+    ex_ind_f <- ex_ind[,final_i:=sapply(lapply(strsplit(ind_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_i")][,c("obs","final_i")]
+    
+  } else if (flag_ind ==0 & flag_ind_par==0 & flag_tit_par==1) {                
+    #6.  ######### - tit, ind, ind_par - ##########
+    X_f <- X_f[,`:=`(  sort_ind=  sapply(lapply(strsplit(ind," "),sort),function(x) paste(x,collapse=' ')),
+                   sort_ind_par=  sapply(lapply(strsplit(ind_par," "),sort),function(x) paste(x,collapse=' '))
+            )]
+    
+    X_f <- X_f[,match:=max(match),by=c("sort_tit","sort_ind","sort_ind_par")][,.SD[1],by=c("sort_tit","sort_ind","sort_ind_par"),.SDcols=c("obs","match","tit","ind","ind_par","l")][,c("sort_tit","sort_ind","sort_ind_par"):=NULL]
+    
+    # Title
+    ex_tit <- f_split_or(X_f[,c("obs","tit")],tit,obs)
+    ex_tit_f <- ex_tit[,final_t:=sapply(lapply(strsplit(tit_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_t")][,c("obs","final_t")]
+    
+    # Industry
+    ex_ind <- f_split_or(X_f[,c("obs","ind")],ind,obs)
+    #Expand title par 
+    ex_ind_par <- f_split_or(X_f[,c("obs","ind_par")],ind_par,obs)
+    
+    ex_ind_f <- rbind(ex_ind[,c("obs","ind_l")],merge(ex_ind[,c("obs","ind_l")],ex_ind_par[,c("obs","ind_par_l")],by="obs",all=TRUE,allow.cartesian=TRUE),fill=TRUE)
+    ex_ind_f <- ex_ind_f[!is.na(ind_par_l),final_i:=paste3(ind_l,ind_par_l)][is.na(ind_par_l),final_i:=ind_l][,final_i:=sapply(lapply(strsplit(final_i," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_i")][,c("obs","final_i")]
+  
+  } else if (flag_ind ==0 & flag_ind_par==1 & flag_tit_par==0) {                
+    #7.  ######### - tit, tit_par, ind - ##########
+    X_f <- X_f[,`:=`(  sort_tit_par=  sapply(lapply(strsplit(tit_par," "),sort),function(x) paste(x,collapse=' ')),
+                   sort_ind=  sapply(lapply(strsplit(ind," "),sort),function(x) paste(x,collapse=' '))
+            )]
+    
+    X_f <- X_f[,match:=max(match),by=c("sort_tit","sort_tit_par","sort_ind")][,.SD[1],by=c("sort_tit","sort_tit_par","sort_ind"),.SDcols=c("obs","match","tit","tit_par","ind","l")][,c("sort_tit","sort_tit_par","sort_ind"):=NULL]
+    
+    # Expanding title
+    # Expand title
+    ex_tit <- f_split_or(X_f[,c("obs","tit")],tit,obs)
+    # Expand title par 
+    ex_tit_par <- f_split_or(X_f[,c("obs","tit_par")],tit_par,obs)
+
+    ex_tit_f <- rbind(ex_tit[,c("obs","tit_l")],merge(ex_tit[,c("obs","tit_l")],ex_tit_par[,c("obs","tit_par_l")],by="obs",all=TRUE,allow.cartesian=TRUE),fill=TRUE)
+    ex_tit_f <- ex_tit_f[!is.na(tit_par_l),final_t:=paste3(tit_l,tit_par_l)][is.na(tit_par_l),final_t:=tit_l][,final_t:=sapply(lapply(strsplit(final_t," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_t")][,c("obs","final_t")]
+    
+    # Expanding industry par
+    ex_ind <- f_split_or(X_f[,c("obs","ind")],ind,obs)
+    ex_ind_f <- ex_ind[,final_i:=sapply(lapply(strsplit(ind_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_i")][,c("obs","final_i")]
+    
+  }  else if (flag_ind ==0 & flag_ind_par==0 & flag_tit_par==0) {
+    # Reorder title + par and ind + par
+    X_f <- X_f[,`:=`(  sort_tit_par=  sapply(lapply(strsplit(tit_par," "),sort),function(x) paste(x,collapse=' ')),
+                   sort_ind=      sapply(lapply(strsplit(ind," "),sort),function(x) paste(x,collapse=' ')),
+                   sort_ind_par=  sapply(lapply(strsplit(ind_par," "),sort),function(x) paste(x,collapse=' '))
+            )]
+    # Drop duplicated observations
+    X_f <- X_f[,match:=max(match),by=c("sort_tit","sort_tit_par","sort_ind","sort_ind_par")][,.SD[1],by=c("sort_tit","sort_tit_par","sort_ind","sort_ind_par"),.SDcols=c("obs","match","tit","tit_par","ind","ind_par","l")][,c("sort_tit","sort_tit_par","sort_ind","sort_ind_par"):=NULL]
+    
+    # Expanding title
+    # Expand title
+    ex_tit <- f_split_or(X_f[,c("obs","tit")],tit,obs)
+    # Expand title par 
+    ex_tit_par <- f_split_or(X_f[,c("obs","tit_par")],tit_par,obs)
+
+    ex_tit_f <- rbind(ex_tit[,c("obs","tit_l")],merge(ex_tit[,c("obs","tit_l")],ex_tit_par[,c("obs","tit_par_l")],by="obs",all=TRUE,allow.cartesian=TRUE),fill=TRUE)
+    ex_tit_f <- ex_tit_f[!is.na(tit_par_l),final_t:=paste3(tit_l,tit_par_l)][is.na(tit_par_l),final_t:=tit_l][,final_t:=sapply(lapply(strsplit(final_t," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_t")][,c("obs","final_t")]
+    
+    # Industry
+    ex_ind <- f_split_or(X_f[,c("obs","ind")],ind,obs)
+    #Expand title par 
+    ex_ind_par <- f_split_or(X_f[,c("obs","ind_par")],ind_par,obs)
+    #NOte: Make sure to consider the case where the tit_par vector is all NAs
+    ex_ind_f <- rbind(ex_ind[,c("obs","ind_l")],merge(ex_ind[,c("obs","ind_l")],ex_ind_par[,c("obs","ind_par_l")],by="obs",all=TRUE,allow.cartesian=TRUE),fill=TRUE)
+    ex_ind_f <- ex_ind_f[!is.na(ind_par_l),final_i:=paste3(ind_l,ind_par_l)][is.na(ind_par_l),final_i:=ind_l][,final_i:=sapply(lapply(strsplit(final_i," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_i")][,c("obs","final_i")]
+  
+  }
+  
+  # 4. Construct the match variable
+  
+  # A. Using both industry and title
+  if (flag_ind==1 & flag_ind_par==1) {
+    # Update
+    # Merging
+    ex <- merge(ex_tit_f,X_f[,c("obs","match","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)
+    # Assigning and updating match variable
+    ex <- ex[,match := max(match),by=c("final_t")]
+    ex_inv <- copy(ex)[,final:=final_t][,!c("final_t")]
+    ex_f <- ex[,.(match=max(match)),by=c("obs","l")]
+    
+  } else if (flag_ind==0) {
+    # Update
+    # Merging
+    ex <- merge(ex_tit_f,ex_ind_f,by="obs",all=TRUE,allow.cartesian=TRUE)
+    # Assigning and updating match variable
+    ex <- merge(ex,X_f[,c("obs","match","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian = TRUE)
+    ex <- ex[,match := max(match),by=c("final_t","final_i")]
+    ex_inv <- copy(ex)[!is.na(final_i),final:=paste3(final_t,final_i)][is.na(final_i),final:=final_t][,final:=sapply(lapply(strsplit(final," "),sort),function(x) paste(x,collapse=' '))][,match := max(match),by=c("final")][,c("obs","l","match","final")]
+    ex_f <- ex[,.(match=max(match)),by=c("obs","l")]
+    
+  } else if (flag_ind==1 & flag_ind_par==0) {
+    # Merging
+    ex <- rbind(ex_tit_f,
+                merge(ex_tit_f,ex_ind_f,by="obs",all=TRUE,allow.cartesian=TRUE), fill=TRUE
+                )
+
+    # Assigning and updating match variable
+    ex <- merge(ex,X_f[,c("obs","match","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian = TRUE)
+    ex <- ex[,match := max(match),by=c("final_t","final_i")]
+    ex_inv <- copy(ex)[!is.na(final_i),final:=paste3(final_t,final_i)][is.na(final_i),final:=final_t][,final:=sapply(lapply(strsplit(final," "),sort),function(x) paste(x,collapse=' '))][,match := max(match),by=c("final")][,c("obs","l","match","final")]
+    ex_f <- ex[,.(match=max(match)),by=c("obs","l")]
+  }
+  
+  # B. Using only title
+  ex_1 <- merge(ex_tit_f,X_f[,c("obs","match")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)
+  ex_1 <- ex_1[,match := max(match),by=c("final_t")][,.(match=max(match)),by=c("obs")]
+  
+  # C. Using title and industry but looking also at inverted possibilities
+  ex_2 <- ex_inv[,.(match=max(match)),by=c("obs")]
+
+  
+  # 5. Construct the reduced set of cases
+  # A. Convoluted way combining different cases
+ 
+  if ( flag_ind ==1 & flag_ind_par==1 & flag_tit_par==1 ) {
+    ex_tit <- ex_tit[,final_t:=sapply(lapply(strsplit(tit_l," "),sort),function(x) paste(x,collapse=' '))]
+    r <- merge(ex_tit,X_f[,c("obs","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)
+    setorderv(r,c("final_t","l"),c(1,-1) )
+    r <- r[,.SD[1],by=c("final_t"),.SDcols="obs"][,.SD[1],by=c("obs")][,c("obs")]
+    
+  } else if (flag_ind ==1 & flag_ind_par==0 & flag_tit_par==0) {
+    # Shrinking ex_* variables
+    ex_tit <- ex_tit[,final_t:=sapply(lapply(strsplit(tit_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_t"),.SDcols="tit_l"][,c("obs","final_t")]
+    ex_tit_par <- merge(ex_tit,ex_tit_par[,!c("tit_par")],by="obs",all=TRUE,allow.cartesian=TRUE)[!is.na(tit_par_l),final_t:=paste3(final_t,tit_par_l)][,final_t:=sapply(lapply(strsplit(final_t," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_t"),.SDcols="tit_par_l"][,c("obs","final_t")] 
+    
+    ex_ind_par <- ex_ind_par[,final_i:=sapply(lapply(strsplit(ind_par_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_i"),.SDcols="ind_par_l"][,c("obs","final_i")]
+    
+    r_1 <- merge( 
+              merge(ex_tit_par[,c("obs","final_t")],
+                    ex_ind_par[,c("obs","final_i")],
+                    by="obs",all=TRUE,allow.cartesian=TRUE),
+                  X_f[,c("obs","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)[,t:=1]
+    r_2 <- merge(ex_tit_par[,c("obs","final_t")],
+                 X_f[,c("obs","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)[,t:=2]
+    r_3 <- merge( merge(ex_tit[,c("obs","final_t")],
+                        ex_ind_par[,c("obs","final_i")],
+                        by="obs",all=TRUE,allow.cartesian=TRUE),
+                  X_f[,c("obs","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)[,t:=3]
+    r_4 <- merge(ex_tit[,c("obs","final_t")],
+                  X_f[,c("obs","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)[,t:=4]
+    
+    r <- rbind(r_1,r_2,r_3,r_4,fill=TRUE)
+    setorderv(r,c("t","final_t","final_i","l"),c(1,1,1,-1) )
+    # 1. Keep only one observation (longest one - reason for setorderv ..(-1)) for each c("t","final_t","final_i") combination
+    # 2. Keep only 1 observation per c("obs","t") (one observation might be associated with multiple "final_t","final_i")
+    # 3. Add up number of times an "obs" appear (using n). Max number of appearances is equal to max number of t
+    r <- r[,.SD[1],by=c("t","final_t","final_i"),.SDcols=c("obs")][,n:=1][,.SD[1],by=c("obs","t"),.SDcols="n"][,.(n=sum(n)),by="obs"]
+    rm(r_1,r_2,r_3,r_4)
+    r <- r[n==4][,c("obs")]
+    
+  } else if (flag_ind ==1 & flag_ind_par==1 & flag_tit_par==0) { 
+    # Shrinking ex_* variables
+    ex_tit <- ex_tit[,final_t:=sapply(lapply(strsplit(tit_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_t"),.SDcols="tit_l"][,c("obs","final_t")]
+    ex_tit_par <- merge(ex_tit,ex_tit_par[,!c("tit_par")],by="obs",all=TRUE,allow.cartesian=TRUE)[!is.na(tit_par_l),final_t:=paste3(final_t,tit_par_l)][,final_t:=sapply(lapply(strsplit(final_t," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_t"),.SDcols="tit_par_l"][,c("obs","final_t")] 
+    
+    r <- rbind(
+              merge(ex_tit,X_f[,c("obs","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)[,t:=1],
+              merge(ex_tit_par,X_f[,c("obs","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)[,t:=2], fill=TRUE)
+    setorderv(r,c("t","final_t","l"),c(1,1,-1) )
+    r <- r[,.SD[1],by=c("t","final_t"),.SDcols=c("obs")][,n:=1][,.SD[1],by=c("obs","t"),.SDcols="n"][,.(n=sum(n)),by="obs"]
+    r <- r[n==2][,c("obs")]
+  
+  } else if (flag_ind ==1 & flag_ind_par==0 & flag_tit_par==1) {
+    # Shrinking ex_* variables
+    ex_tit <- ex_tit[,final_t:=sapply(lapply(strsplit(tit_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_t"),.SDcols="tit_l"][,c("obs","final_t")]
+    
+    ex_ind_par <- ex_ind_par[,final_i:=sapply(lapply(strsplit(ind_par_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_i"),.SDcols="ind_par_l"][,c("obs","final_i")]
+    
+    
+    r_1 <- merge( 
+              merge(ex_tit[,c("obs","final_t")],
+                    ex_ind_par[,c("obs","final_i")],
+                    by="obs",all=TRUE,allow.cartesian=TRUE),
+                  X_f[,c("obs","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)[,t:=1]
+    r_2 <- merge(ex_tit[,c("obs","final_t")],
+                 X_f[,c("obs","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)[,t:=2]
+    
+    r <- rbind(r_1,r_2,fill=TRUE)
+    setorderv(r,c("t","final_t","final_i","l"),c(1,1,1,-1) )
+    r <- r[,.SD[1],by=c("t","final_t","final_i"),.SDcols=c("obs")][,n:=1][,.SD[1],by=c("obs","t"),.SDcols="n"][,.(n=sum(n)),by="obs"]
+    rm(r_1,r_2)
+    r <- r[n==2][,c("obs")]
+    
+  } else if (flag_ind ==0 & flag_ind_par==1 & flag_tit_par==1) {
+    # Shrinking ex_* variables
+    ex_tit <- ex_tit[,final_t:=sapply(lapply(strsplit(tit_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_t"),.SDcols="tit_l"][,c("obs","final_t")]
+    
+    ex_ind <- ex_ind[,final_i:=sapply(lapply(strsplit(ind_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_i"),.SDcols="ind_l"][,c("obs","final_i")]
+    
+    r <- merge(merge(ex_tit,ex_ind,by="obs",all=TRUE,allow.cartesian=TRUE),
+               X_f[,c("obs","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)
+    
+    setorderv(r, c("final_t","final_i","l") , c(1,1,-1) )
+    r <- r[,.SD[1],by=c("final_t","final_i"),.SDcols=c("obs")][,.SD[1],by=c("obs")][,c("obs")]
+    
+  } else if (flag_ind ==0 & flag_ind_par==0 & flag_tit_par==1) {
+    # Shrinking ex_* variables
+    ex_tit <- ex_tit[,final_t:=sapply(lapply(strsplit(tit_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_t"),.SDcols="tit_l"][,c("obs","final_t")]
+    
+    ex_ind <- ex_ind[,final_i:=sapply(lapply(strsplit(ind_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_i"),.SDcols="ind_l"][,c("obs","final_i")]
+    ex_ind_par <- merge(ex_ind,ex_ind_par[,!c("ind_par")],by="obs",all=TRUE,allow.cartesian=TRUE)[!is.na(ind_par_l),final_i:=paste3(final_i,ind_par_l)][,final_i:=sapply(lapply(strsplit(final_i," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_i"),.SDcols="ind_par_l"][,c("obs","final_i")] 
+    
+    r_1 <- merge( 
+              merge(ex_tit[,c("obs","final_t")],
+                    ex_ind_par[,c("obs","final_i")],
+                    by="obs",all=TRUE,allow.cartesian=TRUE),
+                  X_f[,c("obs","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)[,t:=1]
+    r_2 <- merge( 
+              merge(ex_tit[,c("obs","final_t")],
+                    ex_ind[,c("obs","final_i")],
+                    by="obs",all=TRUE,allow.cartesian=TRUE),
+                  X_f[,c("obs","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)[,t:=2]
+    
+    r <- rbind(r_1,r_2,fill=TRUE)
+    setorderv(r,c("t","final_t","final_i","l"),c(1,1,1,-1) )
+    r <- r[,.SD[1],by=c("t","final_t","final_i"),.SDcols=c("obs")][,n:=1][,.SD[1],by=c("obs","t"),.SDcols="n"][,.(n=sum(n)),by="obs"]
+    rm(r_1,r_2)
+    r <- r[n==2][,c("obs")]
+    
+  } else if (flag_ind ==0 & flag_ind_par==1 & flag_tit_par==0) {
+    # Shrinking ex_* variables
+    ex_tit <- ex_tit[,final_t:=sapply(lapply(strsplit(tit_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_t"),.SDcols="tit_l"][,c("obs","final_t")]
+    ex_tit_par <- merge(ex_tit,ex_tit_par[,!c("tit_par")],by="obs",all=TRUE,allow.cartesian=TRUE)[!is.na(tit_par_l),final_t:=paste3(final_t,tit_par_l)][,final_t:=sapply(lapply(strsplit(final_t," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_t"),.SDcols="tit_par_l"][,c("obs","final_t")] 
+    
+    ex_ind <- ex_ind[,final_i:=sapply(lapply(strsplit(ind_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_i"),.SDcols="ind_l"][,c("obs","final_i")]
+    
+    r_1 <- merge( 
+              merge(ex_tit_par[,c("obs","final_t")],
+                    ex_ind[,c("obs","final_i")],
+                    by="obs",all=TRUE,allow.cartesian=TRUE),
+                  X_f[,c("obs","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)[,t:=1]
+    r_2 <- merge( merge(ex_tit[,c("obs","final_t")],
+                        ex_ind[,c("obs","final_i")],
+                        by="obs",all=TRUE,allow.cartesian=TRUE),
+                  X_f[,c("obs","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)[,t:=2]
+    
+    r <- rbind(r_1,r_2,fill=TRUE)
+    setorderv(r,c("t","final_t","final_i","l"),c(1,1,1,-1) )
+    r <- r[,.SD[1],by=c("t","final_t","final_i"),.SDcols=c("obs")][,n:=1][,.SD[1],by=c("obs","t"),.SDcols="n"][,.(n=sum(n)),by="obs"]
+    rm(r_1,r_2)
+    r <- r[n==2][,c("obs")]
+    
+  } else if (flag_ind ==0 & flag_ind_par==0 & flag_tit_par==0) {
+    # Shrinking ex_* variables
+    ex_tit <- ex_tit[,final_t:=sapply(lapply(strsplit(tit_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_t"),.SDcols="tit_l"][,c("obs","final_t")]
+    ex_tit_par <- merge(ex_tit,ex_tit_par[,!c("tit_par")],by="obs",all=TRUE,allow.cartesian=TRUE)[!is.na(tit_par_l),final_t:=paste3(final_t,tit_par_l)][,final_t:=sapply(lapply(strsplit(final_t," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_t"),.SDcols="tit_par_l"][,c("obs","final_t")] 
+    
+    ex_ind <- ex_ind[,final_i:=sapply(lapply(strsplit(ind_l," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_i"),.SDcols="ind_l"][,c("obs","final_i")]
+    ex_ind_par <- merge(ex_ind,ex_ind_par[,!c("ind_par")],by="obs",all=TRUE,allow.cartesian=TRUE)[!is.na(ind_par_l),final_i:=paste3(final_i,ind_par_l)][,final_i:=sapply(lapply(strsplit(final_i," "),sort),function(x) paste(x,collapse=' '))][,.SD[1],by=c("obs","final_i"),.SDcols="ind_par_l"][,c("obs","final_i")] 
+    
+    # Constructing the different cases
+    # Construct 4 cases, reduce the list if tit_ind, tit_list is the same by keeping the longest string, and assign a number to each obs, based on how many time they appear
+    r_1 <- merge( 
+              merge(ex_tit_par[,c("obs","final_t")],
+                    ex_ind_par[,c("obs","final_i")],
+                    by="obs",all=TRUE,allow.cartesian=TRUE),
+                  X_f[,c("obs","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)[,t:=1]
+    r_2 <- merge( merge(ex_tit_par[,c("obs","final_t")],
+                        ex_ind[,c("obs","final_i")],
+                        by="obs",all=TRUE,allow.cartesian=TRUE),
+                  X_f[,c("obs","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)[,t:=2]
+    
+    r_3 <- merge( merge(ex_tit[,c("obs","final_t")],
+                        ex_ind_par[,c("obs","final_i")],
+                        by="obs",all=TRUE,allow.cartesian=TRUE),
+                  X_f[,c("obs","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)[,t:=3]
+    
+    r_4 <- merge( merge(ex_tit[,c("obs","final_t")],
+                        ex_ind[,c("obs","final_i")],
+                        by="obs",all=TRUE,allow.cartesian=TRUE),
+                  X_f[,c("obs","l")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)[,t:=4]
+    
+    r <- rbind(r_1,r_2,r_3,r_4)
+    setorderv(r,c("t","final_t","final_i","l"),c(1,1,1,-1) )
+    r <- r[,.SD[1],by=c("t","final_t","final_i"),.SDcols=c("obs")][,n:=1][,.SD[1],by=c("obs","t"),.SDcols="n"][,.(n=sum(n)),by="obs"]
+    rm(r_1,r_2,r_3,r_4)
+    r <- r[n==4][,c("obs")]
+  }
+  
+  # B. Simpler case
+  if (flag_ind==1 & flag_ind_par==1) {
+    # Compute the share of different combinations of an observation title-industry combination that
+    # cannot be eliminated after matching with other variables
+    r_all <- ex[,.SD[1],by=c("obs","final_t"),.SDcols="l"][,criteria:=.N,by="obs"]
+    setorderv(r_all,c("final_t","l"),c(1,-1))
+    r_all <- r_all[,.SD[1],by=c("final_t"),.SDcols=c("l","obs","criteria")]
+    r_all <- r_all[,{c=.N; list(criteria=c/criteria)},by="obs"]
+    
+  } else  {
+    # Compute the share of different combinations of an observation title-industry combination that
+    # cannot be eliminated after matching with other variables
+    r_all <- ex[,.SD[1],by=c("obs","final_t","final_i"),.SDcols="l"][,criteria:=.N,by="obs"]
+    setorderv(r_all,c("final_t","final_i","l"),c(1,1,-1))
+    r_all <- r_all[,.SD[1],by=c("final_t","final_i"),.SDcols=c("l","obs","criteria")]
+    r_all <- r_all[,{c=.N; list(criteria=c/criteria)},by="obs"]
+    
+  } 
+  # Only keep those observations that keep at least 3/4 of their expanded title-industry combination
+  r_all <- r_all[criteria>0.75][,.SD[1],by="obs",.SDcols="criteria"][,c("obs")]  # 0.75 is an ARBITRARY VALUE!!
+  
+  # C. Simpler case considering inverted industry and title
+  r_all_inv <- ex_inv[,.SD[1],by=c("obs","final"),.SDcols="l"][,criteria:=.N,by="obs"]
+  setorderv(r_all_inv,c("final","l"),c(1,-1))
+  r_all_inv <- r_all_inv[,.SD[1],by=c("final"),.SDcols=c("l","obs","criteria")]
+  r_all_inv <- r_all_inv[,{c=.N; list(criteria=c/criteria)},by="obs"]
+  r_all_inv <- r_all_inv[criteria>0.75][,.SD[1],by="obs",.SDcols="criteria"][,c("obs")]  # 0.75 is an ARBITRARY VALUE!!
+    
+  
+  # 7. Check that all observations can be generated with the reduced set
+  # Combine with vector with all possible combinations
+  # A. Convoluted case
+  if (flag_ind==1 & flag_ind_par==1) {
+    # 1. No industry info ---> no variable final_i
+    # Obtain all possible combinations of observations in the r vector
+    # Note: replace r_exp with r in final code
+    r_exp <- merge(r,ex[,c("obs","final_t")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)
+      
+    # Merge this expanded r vector with all possible combinations of all observations
+    # NOTE: change r_t for r in final code
+    # 1. Merge r_exp with all possible combinations of observations using final_t
+    # 2. Find out obs that couldn't be linked with the observations in vector r
+    # 3. Keep only observations that couldn't be linked (those for which max(n)=0)
+    r_exp <- merge(r_exp,ex[,c("obs","final_t")],by=c("final_t"),all=TRUE,allow.cartesian=TRUE)[,n:=1][is.na("obs.x"),n:=0][,n:=max(n),by=c("obs.y")][n==0][,obs:=obs.y]  
+      
+    # Create final vector of unique titles my addin r to the previous vector
+    if (nrow(r_exp)!=0) { unique <- rbind(  r, r_exp[,c("obs")],fill=TRUE)
+    } else            { unique <- copy(r)
+    }
+  } else {
+    # Obtain all possible combinations of observations in the r vector
+    # Note: replace r_exp with r in final code
+    r_exp <- merge(r,ex[,c("obs","final_t","final_i")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)
+      
+    r_exp <- merge(r_exp,ex[,c("obs","final_t","final_i")],by=c("final_t","final_i"),all=TRUE,allow.cartesian=TRUE)[,n:=1][is.na("obs.x"),n:=0][,n:=max(n),by="obs.y"][n==0][,obs:=obs.y]  
+      
+    # Create final vector of unique titles my addin r to the previous vector
+    if (nrow(r_exp)!=0) { unique <- rbind(r,r_exp[,c("obs")],fill=TRUE)
+    } else            { unique <- copy(r)  
+    }
+  }
+  
+  # B. Simpler case
+  rm(r_exp)
+  if (flag_ind==1 & flag_ind_par==1) {
+    
+    r_exp <- merge(r_all,ex[,c("obs","final_t")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)
+
+    r_exp <- merge(r_exp,ex[,c("obs","final_t")],by=c("final_t"),all=TRUE,allow.cartesian=TRUE)[,n:=1][is.na("obs.x"),n:=0][,n:=max(n),by=c("obs.y")][n==0][,obs:=obs.y]  
+      
+    # Create final vector of unique titles my adding r_all to the previous vector
+    if (nrow(r_exp)!=0) { unique_all <- rbind(  r_all, r_exp[,c("obs")],fill=TRUE)
+    } else            { unique_all <- copy(r_all)
+    }
+  } else {
+    # Obtain all possible combinations of observations in the r vector
+    r_exp <- merge(r_all,ex[,c("obs","final_t","final_i")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)
+      
+    r_exp <- merge(r_exp,ex[,c("obs","final_t","final_i")],by=c("final_t","final_i"),all=TRUE,allow.cartesian=TRUE)[,n:=1][is.na("obs.x"),n:=0][,n:=max(n),by="obs.y"][n==0][,obs:=obs.y]  
+      
+    # Create final vector of unique titles my addin r to the previous vector
+    if (nrow(r_exp)!=0) { unique_all <- rbind(r_all,r_exp[,c("obs")],fill=TRUE)
+    } else            { unique_all <- copy(r_all)  
+    }
+  }
+  
+  # C. Simpler case + title, industry
+  rm(r_exp)
+  if (flag_ind==1 & flag_ind_par==1) {
+    unique_all_inv <- copy(unique_all)
+    
+  } else {
+    r_exp <- merge(r_all_inv,ex_inv[,c("obs","final")],by="obs",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)
+    r_exp <- merge(r_exp,ex_inv[,c("obs","final")],by=c("final"),all=TRUE,allow.cartesian=TRUE)[,n:=1][is.na("obs.x"),n:=0][,n:=max(n),by="obs.y"][n==0][,obs:=obs.y]  
+      
+    # Create final vector of unique titles my addin r to the previous vector
+    if (nrow(r_exp)!=0) { unique_all_inv <- rbind(r_all_inv,r_exp[,c("obs")],fill=TRUE)
+    } else            { unique_all_inv <- copy(r_all_inv)  
+    }
+  }
+  
+  
+  # Constructing the final set of variables
+  f_initial_obs <-function(x,flag_match) {
+    #Note: y_f was created before in the code for this function
+    if (flag_match=="red") {
+      x <- merge(x[,reduced:=1],y_f[,c("obs","initial_obs")],by="obs",all=TRUE,allow.cartesian=TRUE)[is.na(reduced),reduced:=0][,c("initial_obs","reduced")]
+      setorderv(x,c("initial_obs"),c(1))
+    } else {
+      x <- merge(x,y_f[,c("obs","initial_obs")],by="obs",all=TRUE,allow.cartesian=TRUE)[is.na(match),match:=1][,c("initial_obs","match")]
+    setorderv(x,c("initial_obs"),c(1))
+    }
+    return(x)
+  }
+  
+  # NOTE: we could probably use a list and lapply/sapply
+  unique <- f_initial_obs(unique,"red")
+  unique_all <- f_initial_obs(unique_all,"red")
+  unique_all_inv <- f_initial_obs(unique_all_inv,"red")
+  
+  matched <- f_initial_obs(ex_1,"match")
+  matched_all <- f_initial_obs(ex_f,"match")
+  matched_all_inv <- f_initial_obs(ex_2,"match")
+  
+  # ex contains the list of observations with the updated match variable. It should be the same size as the y variable after dropping out duplicated observations
+  # Note: If the variable was not created withing the function, R will look in the workspace
+  if (flag_return==0) {
+    return( list( unique[[2]],unique_all[[2]],unique_all_inv[[2]],matched[[2]],matched_all[[2]],matched_all_inv[[2]] ) )
+  } else if (flag_return==1){
+    return( list( unique[[2]],matched[[2]] ) )
+  } else if (flag_return==2){
+    return( list( unique_all[[2]],matched_all[[2]] ) )
+  } else if (flag_return==3){
+    return( list( unique_all_inv[[2]],matched_all_inv[[2]] ) )
+  } else if (flag_return==4) {
+    if (flag_ind==1 & flag_ind_par==1){ 
+      return(list(matched,matched_all,matched_all_inv,unique,unique_all,unique_all_inv,X_f,r,r_all,r_all_inv,ex,ex_inv,ex_1,ex_2,ex_tit_f,flag=c(flag_tit_par,flag_ind,flag_ind_par)))
+    } else {return(list(matched,matched_all,matched_all_inv,unique,unique_all,unique_all_inv,X_f,r,r_all,r_all_inv,ex,ex_inv,ex_1,ex_2,ex_tit_f,ex_ind_f,flag=c(flag_tit_par,flag_ind,flag_ind_par)))}
+  }
+}
+
+```
+Description of the different variables created:
+- unique (METHOD 1):             To define the set of repeated observation we construct different sets by combining the different possible cases that arise when a title or an industry comes with a parentheses term. For each set we keep only unique title-industry combination. We combine all the sets (a max of 4) and keep only those observations that appear in all the sets.          
+- unique_all (METHOD 2):         We extend the set of observations (e.g. separating "or" cases, including and excluding parentheses) and compute the share of cases per observation that could not be dropped when looking at all the other observations in the occind group. We only keep those observations that keep 3/4 of their cases
+- unique_all_inv:               Same as unique_all, but considering title and industry together (contains the unique_all_inv cases)
+
+- matched:            Using only title
+- matched_all:        Using industry and title (separately) and dropped duplicated observations
+- matched_all_inv:    Using industry and title jointly and dropping duplicated observations (contains the matched_all cases)
+
+
+
+# 6.3.2. Create variables to reduce observations and expand the set of matched observations
+Here we use the f_reduce_match function, which creates 6 binary vectors to be described below. 
+
+```{r}
+# Add the binary vectors to reduce observations and extend the matching vector
+# We don't look within occind
+clean_1930.all <- copy(clean_1930)[,c("red","red1","red1_inv","match_tit","match_titind","match_titind_inv"):=mapply(FUN=f_reduce_match,obs_f=list(id_1930),tit_f=list(title_1930_round8_stem),tit_par_f=list(title_1930_par_stem),ind_f=list(indname_1930_plain_stem),ind_par_f=list(parentheses1_1930_plain_stem),match_f=list(matched))][,`:=`(match_tit_inv=pmax(match_tit,match_titind_inv))][,`:=`(red_inv=pmin(red,red1_inv))][,c("id_1930","occind1930","red","red_inv","red1","red1_inv","matched","match_tit","match_tit_inv","match_titind","match_titind_inv")][!( red==0 & red_inv==0 & red1==0 & red1_inv==0 )]
+
+# We look within occind 
+clean_1930 <- clean_1930[,c("red","red1","red1_inv","match_tit","match_titind","match_titind_inv"):=mapply(FUN=f_reduce_match,obs_f=list(id_1930),tit_f=list(title_1930_round8_stem),tit_par_f=list(title_1930_par_stem),ind_f=list(indname_1930_plain_stem),ind_par_f=list(parentheses1_1930_plain_stem),match_f=list(matched)),by="occind1930"][,`:=`(match_tit_inv=pmax(match_tit,match_titind_inv))][,`:=`(red_inv=pmin(red,red1_inv))][,c("id_1930","occind1930","red","red_inv","red1","red1_inv","matched","match_tit","match_tit_inv","match_titind","match_titind_inv")][!( red==0 & red_inv==0 & red1==0 & red1_inv==0 )]
+
+
+# Count number of matched cases without dropping any observations
+count.clean_1930 <- rbind(clean_1930[,n:=1][,lapply(.SD,sum),.SDcols=c("n","red","red_inv","red1","red1_inv","matched","match_tit","match_tit_inv","match_titind","match_titind_inv")][,set:="within"],clean_1930.all[,n:=1][,lapply(.SD,sum),.SDcols=c("n","red","red_inv","red1","red1_inv","matched","match_tit","match_tit_inv","match_titind","match_titind_inv")][,set:="all"])
+
+
+
+
+```
+
+Both clean_1930 and clean_1930.all assigns to each observation in the 1930 Index a set of variables that defines if it could be matched with a title in 1930 and if it should be included in a list of non - repeated titles (e.g engineer flight, airplane is considered to be the same as flight engineer, airplane, if both are in the same occ). We use different methods to compute if a title is unique or repeated, as well as if it could be matched with a 1920 title
+Differences between the two tables:
+clean_1930:     This data set is constructed only comparing titles within an occ group
+clean_1930.all: This data set is constructed only comparing titles in all the dataset, without distinguishing by occ
+
+Description of the variables created:
+- Match vectors: binary vector where 1 indicates that the title appeared in 1920 and 0 that it didn't
+matched:        Original binary vector, before looking for repeated title
+match_tit:      Extend matched by looking at repeated titles
+match_tit_inv:  Extend match_tit by looking repeated title-industry combinations (considering reordering the combination)
+match_titind:   Extend matched by looking at repeated title-industry combination
+match_titind_inv:   Extend match_titind by looking at repeated title-industry combination REORDERED
+
+- Red vectors: binary vector where 0 indicates that the title is repeated and 1 that it is not. Depending on the vector chosen we will only keep the titles that have a value of 1.
+red:            Reduce titles using method 1
+red_inv:        Extend red by considering title and industry together (reordered)
+red1:           Reduce titles using method 2
+red1_inv:       Extend red1 by considering title and industry together (reordered)
+
+
+
+# 6.4. Tables containing the titles names, industries, and their match status
+This table will allow us to manually look at the set of new titles
+```{r}
+a <-    merge(
+          merge(
+            merge(clean_1930[red_inv==1,c("id_1930","occind1930","matched","match_tit_inv","red_inv")][,red_inv:=NULL],title_edits.1930[,c("id_1930","title_1930","title_1930_round8")],by="id_1930",all.x=TRUE,all.y=FALSE),
+            index_1930.indpar_edits[,c("id_1930","indname_1930_plain","parentheses1_1930_plain","any","except","army","no_army")],by="id_1930",all.x=TRUE,all.y=FALSE),
+          index_1930[,c("id_1930","occind1930_name","w","np","e","o")],by="id_1930",all.x=TRUE,all.y=FALSE
+        )
+a <- merge(a,new_titles_1930_by_occind[,c("occind1930","sh_red_tit")],by="occind1930",all.x=TRUE,all.y=FALSE)
+setorderv(a,c("sh_red_tit","occind1930","match_tit_inv","matched","title_1930_round8","indname_1930_plain"),c(-1,1,1,1,1,1))
+
+write.xlsx(a,"/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/temp/new_titles_1930_red_tit.xlsx",row.names = TRUE)
+
+
+```
+
+
+
+### 7. Construct a variable with the share of new titles by occ
+
+## 7.1. Function to construct shares of non-matched titles by occind
+```{r}
+f_group <- function(X,group,r,m,name="") {
+  # Rename Variables and drop reduced observations
+  y <- copy(X)
+  if (missing(r)) {
+    setnames(y, c(deparse(substitute(group)),deparse(substitute(m)) ),c("group_v","m_v")) 
+    y <- y[,c("group_v","m_v")]
+  } else {
+    setnames(y, c(deparse(substitute(group)),deparse(substitute(r)),deparse(substitute(m)) ),c("group_v","r_v","m_v")) 
+    y <- y[r_v==1][,c("group_v","m_v")]
+  }
+  
+  # Count total obs per group and reduce at group level
+  y <- y[,n:=1][,lapply(.SD,sum),by="group_v",.SDcols=c("n","m_v")]
+  # Calculate share of matched obs per group
+  y <- y[,sh_v:=1-m_v/n][,c("group_v","n","sh_v")]
+
+  setnames(y,c("group_v","n","sh_v"),c(deparse(substitute(group)), paste0("n",substitute(name)), paste0("sh",substitute(name)) )  )
+  return(y)
+}
+
+```
+
+
+## 7.2. Construction of vectors that specify the share of new titles by occind
+```{r}
+
+new_titles_1930_by_occind.all <- merge(
+                                  merge(
+                                    merge(
+                                      merge(
+                                        merge(f_group(clean_1930.all,occind1930,m=matched,name="_base"),
+                                        f_group(clean_1930.all,occind1930,m=match_tit_inv,name="_base_tit"),by="occind1930",all=TRUE),
+                                        f_group(clean_1930.all,occind1930,m=match_titind_inv,name="_base_titind"),by="occind1930",all=TRUE),
+                                      f_group(clean_1930.all,occind1930,r=red_inv,m=matched,name="_red"),by="occind1930",all=TRUE),
+                                    f_group(clean_1930.all,occind1930,r=red_inv,m=match_tit_inv,name="_red_tit"),by="occind1930",all=TRUE),
+                                  f_group(clean_1930.all,occind1930,r=red_inv,m=match_titind_inv,name="_red_titind"),by="occind1930",all=TRUE )
+col=colnames(new_titles_1930_by_occind.all)
+new_titles_1930_by_occind.all <- new_titles_1930_by_occind.all[,lapply(.SD,function(x) ifelse(is.na(x),0,x)),.SDcols=col]
+
+
+new_titles_1930_by_occind <- merge(
+                                  merge(
+                                    merge(
+                                      merge(
+                                        merge(f_group(clean_1930,occind1930,m=matched,name="_base"),
+                                              f_group(clean_1930,occind1930,m=match_tit_inv,name="_base_tit"),by="occind1930",all=TRUE),
+                                        f_group(clean_1930,occind1930,m=match_titind_inv,name="_base_titind"),by="occind1930",all=TRUE),
+                                      f_group(clean_1930,occind1930,r=red_inv,m=matched,name="_red"),by="occind1930",all=TRUE),
+                                    f_group(clean_1930,occind1930,r=red_inv,m=match_tit_inv,name="_red_tit"),by="occind1930",all=TRUE),
+                                  f_group(clean_1930,occind1930,r=red_inv,m=match_titind_inv,name="_red_titind"),by="occind1930",all=TRUE )
+col=colnames(new_titles_1930_by_occind)
+new_titles_1930_by_occind <- new_titles_1930_by_occind[,lapply(.SD,function(x) ifelse(is.na(x),0,x)),.SDcols=col]
+                      
+
+count_new_titles <- rbind(
+           new_titles_1930_by_occind[,`:=`(new=n_base*sh_base,n=n_base)][,lapply(.SD,sum),.SDcols=c("n","new")][,set1:="within"][,set2:="base"],
+           new_titles_1930_by_occind[,`:=`(new=n_base_tit*sh_base_tit,n=n_base_tit)][,lapply(.SD,sum),.SDcols=c("n","new")][,set1:="within"][,set2:="base_tit"],
+           new_titles_1930_by_occind[,`:=`(new=n_base_titind*sh_base_titind,n=n_base_titind)][,lapply(.SD,sum),.SDcols=c("n","new")][,set1:="within"][,set2:="base_titind"],
+           new_titles_1930_by_occind[,`:=`(new=n_red*sh_red,n=n_red)][,lapply(.SD,sum),.SDcols=c("n","new")][,set1:="within"][,set2:="red"],
+           new_titles_1930_by_occind[,`:=`(new=n_red_tit*sh_red_tit,n=n_red_tit)][,lapply(.SD,sum),.SDcols=c("n","new")][,set1:="within"][,set2:="red_tit"],
+           new_titles_1930_by_occind[,`:=`(new=n_red_titind*sh_red_titind,n=n_red_titind)][,lapply(.SD,sum),.SDcols=c("n","new")][,set1:="within"][,set2:="red_titind"],
+           new_titles_1930_by_occind.all[,`:=`(new=n_base*sh_base,n=n_base)][,lapply(.SD,sum),.SDcols=c("n","new")][,set1:="all"][,set2:="base"],
+           new_titles_1930_by_occind.all[,`:=`(new=n_base_tit*sh_base_tit,n=n_base_tit)][,lapply(.SD,sum),.SDcols=c("n","new")][,set1:="all"][,set2:="base_tit"],
+           new_titles_1930_by_occind.all[,`:=`(new=n_base_titind*sh_base_titind,n=n_base_titind)][,lapply(.SD,sum),.SDcols=c("n","new")][,set1:="all"][,set2:="base_titind"],
+           new_titles_1930_by_occind.all[,`:=`(new=n_red*sh_red,n=n_red)][,lapply(.SD,sum),.SDcols=c("n","new")][,set1:="all"][,set2:="red"],
+           new_titles_1930_by_occind.all[,`:=`(new=n_red_tit*sh_red_tit,n=n_red_tit)][,lapply(.SD,sum),.SDcols=c("n","new")][,set1:="all"][,set2:="red_tit"],
+           new_titles_1930_by_occind.all[,`:=`(new=n_red_titind*sh_red_titind,n=n_red_titind)][,lapply(.SD,sum),.SDcols=c("n","new")][,set1:="all"][,set2:="red_titind"]   
+           )[,sh_new:=new/n]
+
+```
+- Titles used
+_base: Don't drop repeated titles
+_red: Drop repeated titles (consider also inverted cases)
+
+Match variable used
+"": if nothing is specified after _base/_red, we used the basic matched vector, without extending it
+_tit: extend match cases using only the title  (consider also inverted cases)
+_titind: extend match cases using the title and the industry
+
+
+## 7.3. Assign an occind code to the data.tables with occind1930 info
+```{r}
+new_titles_1930_by_occind.all <- merge(new_titles_1930_by_occind.all,occ1930.codes[,c("occind1930","occind")],by="occind1930",all=TRUE)
+
+new_titles_1930_by_occind <- merge(new_titles_1930_by_occind,occ1930.codes[,c("occind1930","occind")],by="occind1930",all=TRUE)
+
+```
+
+## 7.4. Save the tables with the share of new titles for each occind1930, using different methods
+```{r}
+setorderv(new_titles_1930_by_occind,c("occind1930"))
+write_fst(new_titles_1930_by_occind,"/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/new_titles_1930_by_occind.fst")
+setorderv(new_titles_1930_by_occind.all,c("occind1930"))
+write_fst(new_titles_1930_by_occind.all,"/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/new_titles_1930_by_occind.all.fst")
+
+new_titles_1930_by_occind <- read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/new_titles_1930_by_occind.fst",as.data.table=TRUE)
+setorderv(new_titles_1930_by_occind.all,c("occind1930"))
+```
+
+
+
+
+## Analyze set of new titles
+
+# Combine the matched and unmatched titles and construc a table with the share of new titles in each occind1930 group
+
+
+
+After constructing the list of titles specifying which are potentially new we notice that there are multiple cases where a potential new title can be easily linked with a matched title (e.g. "constructor, elevators (o w)" with "constructor elevators, elevator works or company (assembler)"). The main characteristic of these cases is that if we consider part of the industry name as part of the title, then the potentially new title wouldn't be new. It is not very clear how to deal with these cases in an automatic way.
+
+
+
+
+
+```{r}
+knitr::knit_exit()
+```
+
+
+
+
+# APPENDIX: Not used in this file
+
+
+## Associate list of titles in 1920 with 1930 
+Why I'm not using this code line: I worked with the associations of the complete title (with industry and parentheses) and performed a manual association of unmatched titles. This way I was able to reduce to only 50 titles the list of unmatched titles. Thereafter I looked at the list of unmatched 1930 titles and selected those titles (excluding industry and parentheses) that couldn't be matched with the list of matched titles.
+
+# Matched titles
+We use the list of matched titles and the simplified title name to create a list of matched titles. Most of the titles share the same name in 1920 and 1930, but there are some that differ slightly. This is because of parentheses or the location of a comma.
+```{r}
+unique_titles.1920_1930 <- merge(matched_1920_1930,title_edits.1920[,c("id_1920","title_1920_round8")],by="id_1920")
+unique_titles.1920_1930 <- merge(unique_titles.1920_1930,title_edits.1930[,c("id_1930","title_1930_round8")],by="id_1930")
+
+# group the file by title_round8 of both years, keep track of number of occs and industry per observation
+#Note: we will group by the title of both names because even if matched they might not be the same
+
+unique_titles.1920_1930[,n:=1][,n_occ1920:=1 - duplicated(unique_titles.1920_1930, by=c("title_1920_round8","occ1920"))][,n_ind1920:=1 - duplicated(unique_titles.1920_1930,by=c("title_1920_round8","indname_1920"))][,n_occ_ind_1920:=1 - duplicated(unique_titles.1920_1930,by=c("title_1920_round8","occ1920","indname_1920"))]
+unique_titles.1920_1930[,n_occ1930:=1 - duplicated(unique_titles.1920_1930, by=c("title_1930_round8","occ1930"))][,n_ind1930:=1 - duplicated(unique_titles.1920_1930,by=c("title_1930_round8","indname_1930"))][,n_occind1930:=1 - duplicated(unique_titles.1920_1930, by=c("title_1930_round8","occind1930"))][,n_occ_ind_1930:=1 - duplicated(unique_titles.1920_1930,by=c("title_1930_round8","occind1930","indname_1930"))]
+
+#a <- unique_titles.1920_1930[,.SD[1],by=c("title_1920_round8","title_1930_round8"),.SDcols=c("occ1920","occind1930")]
+a <- unique_titles.1920_1930[,c("occ1920_list","occind1930_list"):= list(list(unique(occ1920)),list(unique(occind1930))),by=c("title_1920_round8","title_1930_round8")][,.SD[1],by=c("title_1920_round8","title_1930_round8"),.SDcols=c("occ1920_list","occind1930_list")]
+unique_titles.1920_1930 <- unique_titles.1920_1930[,lapply(.SD,sum),by=c("title_1920_round8","title_1930_round8"),.SDcols=c("n","n_occ1920","n_ind1920","n_occ_ind_1920","n_occ1930","n_ind1930","n_occind1930","n_occ_ind_1930")]
+unique_titles.1920_1930 <- merge(unique_titles.1920_1930,a,by=c("title_1920_round8","title_1930_round8"))
+unique_titles.1920_1930$set <- 1
+# set will take numbers 1: matched, 2:...
+# Note: there is an easier way of doing this. Apply two different functions to different columns
+rm(a)
+```
+
+# Look at unmatched titles
+Now we look at titles that couldn't be matched in an earlier stage. We first try to matched these titles with the list created in previous code chunk. Thereafter we try to match the unmatched titles.
+At the end of the code chunk we export the table of matched and unmatched titles. We will use this table to manually check for mistakes, duplications and similar things.
+```{r}
+## 1. Merge unmatched titles (after attaching title_round8) with the set of matched titles in unique_titles.1920_1930
+#1920
+a_1920 <- merge(title_merge_1920,title_edits.1920[,c("id_1920","title_1920_round8")],by="id_1920",all.x=TRUE,all.y=FALSE)
+a_1920[,n:=1][,n_occ1920:=1 - duplicated(a_1920, by=c("title_1920_round8","occ1920"))][,n_ind1920:=1 - duplicated(a_1920,by=c("title_1920_round8","indname_1920"))][,n_occ_ind_1920:=1 - duplicated(a_1920,by=c("title_1920_round8","occ1920","indname_1920"))]
+a_1920.name <-a_1920[,occ1920_list:= list(list(unique(occ1920))),by=c("title_1920_round8")][,.SD[1],by=c("title_1920_round8"),.SDcols=c("occ1920_list")]
+a_1920 <- a_1920[,lapply(.SD,sum),by=c("title_1920_round8"),.SDcols=c("n","n_occ1920","n_ind1920","n_occ_ind_1920")]
+a_1920 <- merge(a_1920,a_1920.name,by=c("title_1920_round8"))
+rm(a_1920.name)
+a_1920 <- merge(a_1920,unique( unique_titles.1920_1930[,c("title_1920_round8","title_1930_round8","occind1930_list")], by="title_1920_round8"),all.x=TRUE,all.y=FALSE)
+a_1920$set <- 2
+unique_titles.1920_1930 <- rbind(unique_titles.1920_1930,a_1920[!is.na(title_1930_round8)],fill=TRUE)
+#unique_titles.1920_1930[,c("n_occ1930","n_ind1930","n_occind1930","n_occ_ind_1930") := lapply(.SD, nafill, fill=0), .SDcols = c("n_occ1930","n_ind1930","n_occind1930","n_occ_ind_1930")]
+a_1920 <- a_1920[is.na(title_1930_round8)][,c("title_1930_round8","occind1930_list"):=NULL][,set:=3]
+
+# 1930
+a_1930 <- merge(title_merge_1930,title_edits.1930[,c("id_1930","title_1930_round8")],by="id_1930",all.x=TRUE,all.y=FALSE)
+a_1930[,n:=1][,n_occ1930:=1 - duplicated(a_1930, by=c("title_1930_round8","occ1930"))][,n_ind1930:=1 - duplicated(a_1930,by=c("title_1930_round8","indname_1930"))][,n_occind1930:=1 - duplicated(a_1930, by=c("title_1930_round8","occind1930"))][,n_occ_ind_1930:=1 - duplicated(a_1930,by=c("title_1930_round8","occind1930","indname_1930"))]
+a_1930.name <-a_1930[,occind1930_list:= list(list(unique(occind1930))),by=c("title_1930_round8")][,.SD[1],by=c("title_1930_round8"),.SDcols=c("occind1930_list")]
+a_1930 <- a_1930[,lapply(.SD,sum),by=c("title_1930_round8"),.SDcols=c("n","n_occ1930","n_ind1930","n_occind1930","n_occ_ind_1930")]
+a_1930 <- merge(a_1930,a_1930.name,by=c("title_1930_round8"))
+rm(a_1930.name)
+a_1930 <- merge(a_1930,unique( unique_titles.1920_1930[,c("title_1920_round8","title_1930_round8","occ1920_list")], by="title_1930_round8"),all.x=TRUE,all.y=FALSE)
+a_1930$set <- 2
+unique_titles.1920_1930 <- rbind(unique_titles.1920_1930,a_1930[!is.na(title_1920_round8)],fill=TRUE)
+#unique_titles.1920_1930[,c("n_occ1920","n_ind1920","n_occ_ind_1920") := lapply(.SD, nafill, fill=0), .SDcols = c("n_occ1920","n_ind1920","n_occ_ind_1920")]
+a_1930 <- a_1930[is.na(title_1920_round8)][,c("title_1920_round8","occ1920_list"):=NULL][,set:=3]
+
+## 2. Look at matches between the two unmatched a_1920 a_1930
+b <- merge(a_1920[,!c("n","set")][,title:=title_1920_round8],a_1930[,title:=title_1930_round8],by="title",all=TRUE)
+b[,title:=NULL]
+
+## Add the new matches to the unique_titles.1920_1930 data.table
+unique_titles.1920_1930 <- rbind(unique_titles.1920_1930,b[!is.na(title_1920_round8) & !is.na(title_1930_round8)],fill=TRUE)
+
+## Keep only titles that couldn't be matched
+a_1920 <- merge(a_1920,b[,c("title_1920_round8","title_1930_round8")],by="title_1920_round8",all.x=TRUE,all.y=FALSE)
+a_1920 <- a_1920[is.na(title_1930_round8)][,title_1930_round8:=NULL][,set:=4]
+a_1930 <- merge(a_1930,b[,c("title_1920_round8","title_1930_round8")],by="title_1930_round8",all.x=TRUE,all.y=FALSE)
+a_1930 <- a_1930[is.na(title_1920_round8)][,title_1920_round8:=NULL]
+
+temp <- a_1920[,.(occ1920_list=unlist(occ1920_list)),by = setdiff(names(a_1920),'occ1920_list')]
+temp <- temp[,occ1920:= list(list(unique(occ1920_list))),by=c("title_1920_round8")][,.SD[1],by=c("title_1920_round8"),.SDcols=c("occ1920")]
+setnames(temp, "occ1920", "occ1920_list")
+a_1920 <- a_1920[,lapply(.SD,sum),by=c("title_1920_round8"),.SDcols=c("n","n_occ1920","n_ind1920","n_occ_ind_1920")]
+a_1920 <- merge(a_1920,temp,by=c("title_1920_round8"),all=TRUE)
+temp <- a_1930[,.(occind1930_list=unlist(occind1930_list)),by = setdiff(names(a_1930),'occind1930_list')]
+temp <- temp[,occind1930:= list(list(unique(occind1930_list))),by=c("title_1930_round8")][,.SD[1],by=c("title_1930_round8"),.SDcols=c("occind1930")]
+setnames(temp, "occind1930", "occind1930_list")
+a_1930 <- a_1930[,lapply(.SD,sum),by=c("title_1930_round8"),.SDcols=c("n","n_occ1930","n_ind1930","n_occind1930","n_occ_ind_1930")]
+a_1930 <- merge(a_1930,temp,by=c("title_1930_round8"),all=TRUE)
+rm(temp)
+
+## 3. Create matrix with unmatched titles.
+# NOTE: We will use this matrix to manually look at the unmatched occupations
+# These options create NA as a string not as a missing value
+#option 1: b[occ1920_list=="NULL"]$occ1920_list <- NA
+#option 2: is.na(b$occ1920_list) <- b$occ1920_list == "NULL"
+b <- b[is.na(title_1920_round8) | is.na(title_1930_round8)][,set:=4]
+
+export <- rbind(unique_titles.1920_1930,b,fill=TRUE)
+rm(b)
+# PROBLEM: When I try to group, if there is already a list the program creates a list of lists.
+# SOLUTION IMPLEMENTED: unlist separately each list and then group again
+temp_1 <- export[,.(occ1920_list=unlist(occ1920_list)),by = setdiff(c("title_1920_round8","title_1930_round8","occ1920_list"),'occ1920_list')]
+temp_1 <- merge(temp_1,occ1920.names,by.x="occ1920_list",by.y="occ1920",all.x=TRUE,all.y=FALSE)
+# NOTE: I just keep track of the name of the first industry. We could create also a list of names, but it could be very long
+temp_1 <- temp_1[,occ1920:= list(list(unique(occ1920_list))),by=c("title_1920_round8","title_1930_round8")][,.SD[1],by=c("title_1920_round8","title_1930_round8"),.SDcols=c("occ1920","occ1920_name")]
+setnames(temp_1, "occ1920", "occ1920_list")
+temp_2 <- export[,.(occind1930_list=unlist(occind1930_list)),by = setdiff(c("title_1920_round8","title_1930_round8","occind1930_list"),'occind1930_list')]
+temp_2 <- merge(temp_2,occ1930.names[,c("occind1930","occind1930_name")],by.x="occind1930_list",by.y="occind1930",all.x=TRUE,all.y=FALSE)
+temp_2 <- temp_2[,occind1930:= list(list(unique(occind1930_list))),by=c("title_1920_round8","title_1930_round8")][,.SD[1],by=c("title_1920_round8","title_1930_round8"),.SDcols=c("occind1930","occind1930_name")]
+setnames(temp_2, "occind1930", "occind1930_list")
+temp <- merge(temp_1,temp_2,by=c("title_1920_round8","title_1930_round8"),all=TRUE)
+rm(temp_1,temp_2)
+
+# Group export to obtain total number of titles combined with different variables
+cols=c("n","n_occ1920","n_ind1920","n_occ_ind_1920","n_occ1930","n_ind1930","n_occind1930","n_occ_ind_1930")
+export[,(cols) := lapply(.SD, nafill, fill=0), .SDcols =cols]
+export <- export[,lapply(.SD,sum),by=c("title_1920_round8","title_1930_round8"),.SDcols=cols]
+export <- merge(export,temp,by=c("title_1920_round8","title_1930_round8"),all=TRUE)
+export[,title:=title_1920_round8][is.na(title_1920_round8),title:=title_1930_round8]
+export[,check:=(!is.na(title_1920_round8) & !is.na(title_1930_round8))]
+setcolorder(export, c("title", "title_1920_round8", "title_1930_round8","check","occ1920_name","occind1930_name","occ1920_list","occind1930_list"))
+setorderv(export,c("title","title_1920_round8","title_1930_round8"))
+
+# Export occupations that couldn't be matched to excel
+write.xlsx(export,"/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/temp/unique_titles_1920_1930_round8.xlsx",row.names = TRUE)
+rm(temp, export)
+```
+
+## Combine the unmatched titles with the changes introduced manually (unique_titles_1920_1930_round8_edited.xlsx)
+
+Here we combine the unmatched titles with a table that introduces changes to the title. Thereafter we try to match...
+
+```{r}
+# The file unique_titles_1920_1930_round8_edited.xlsx contains manual changes to titles
+changes <- as.data.table( read_excel("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/temp/unique_titles_1920_1930_round8_edited.xlsx", sheet = "Sheet 3 - final") )
+
+a_1920 <- merge(a_1920,changes[!is.na(title_1920_round8) & is.na(title_1930_round8),c("title_1920_round8","cat","info","change")],by="title_1920_round8",all.x=TRUE,all.y=FALSE)
+a_1920[!is.na(change),title_1920_round8_original:=title_1920_round8][,title_1920_round8:=ifelse(!is.na(change),change,title_1920_round8)][,change:=NULL][,title:=title_1920_round8]
+a_1930 <- merge(a_1930,changes[!is.na(title_1930_round8) & is.na(title_1920_round8),c("title_1930_round8","cat","info","change")],by="title_1930_round8",all.x=TRUE,all.y=FALSE)
+a_1930[!is.na(change),title_1930_round8_original:=title_1930_round8][,title_1930_round8:=ifelse(!is.na(change),change,title_1930_round8)][,change:=NULL][,title:=title_1930_round8]
+# NOTE: I keep the original title (before merging it to changes) so that we can keep track of those title that were changed
+
+#Introduce changes in unique.titles
+unique_titles.1920_1930 <- merge(unique_titles.1920_1930,changes[!is.na(title_1930_round8) & !is.na(title_1920_round8) & !is.na(change),c("title_1920_round8","cat","info","change")],by="title_1920_round8",all.x=TRUE,all.y=FALSE)
+unique_titles.1920_1930[,title_1920_round8_original:=ifelse(!is.na(change),title_1920_round8,NA)][,title_1920_round8:=ifelse(!is.na(change),change,title_1920_round8)][,c("change","cat","info"):=NULL]
+unique_titles.1920_1930 <- merge(unique_titles.1920_1930,changes[!is.na(title_1930_round8) & !is.na(title_1920_round8) & !is.na(change),c("title_1930_round8","cat","info","change")],by="title_1930_round8",all.x=TRUE,all.y=FALSE)
+unique_titles.1920_1930[,title_1930_round8_original:=ifelse(!is.na(change),title_1930_round8,NA)][,title_1930_round8:=ifelse(!is.na(change),change,title_1930_round8)][,c("change","cat","info"):=NULL]
+
+
+# 1. Look at common occupations between a_1920 and a_1930 after the changes
+b <- merge(a_1920,a_1930,by="title",all=TRUE)
+b[,n:=ifelse(!is.na(n.x),n.x,n.y)][,cat:=ifelse(!is.na(cat.x),cat.x,cat.y)][,info:=ifelse(!is.na(info.x),info.x,info.y)][,c("n.x","n.y","cat.x","cat.y","info.x","info.y"):=NULL][,set:=4]
+# Add new matched titles to unique_titles_1920_1930
+unique_titles.1920_1930 <- rbind(unique_titles.1920_1930,b[!is.na(title_1920_round8) & !is.na(title_1930_round8),!c("title")],fill=TRUE)
+# NOTE: Some titles might seem to be repeated. This is because we changed the name of two or more different titles to a common name. We keep all of the initial titles by keeping track of the original name
+
+# Keep unmatched titles
+cols <- names(a_1920)
+a_1920 <- b[!is.na(title_1920_round8) & is.na(title_1930_round8),..cols]
+# NOTE: ".." tells R to consider the vector cols as names. This doesn't work (no idea) when we do ..names(a_1920) or similar combinations
+cols <- names(a_1930)
+a_1930 <- b[is.na(title_1920_round8) & !is.na(title_1930_round8),..cols]
+rm(b)
+
+# 2. Match unmatched titles with list in unique_titles
+# match with own year titles
+a_1920 <- merge(a_1920,unique(unique_titles.1920_1930[,c("title_1920_round8","title_1930_round8")], by="title_1920_round8"),by="title_1920_round8",all.x=TRUE,all.y=FALSE)
+a_1930 <- merge(a_1930,unique(unique_titles.1920_1930[,c("title_1920_round8","title_1930_round8")], by="title_1930_round8"),by="title_1930_round8",all.x=TRUE,all.y=FALSE)
+
+unique_titles.1920_1930 <-rbind( rbind(unique_titles.1920_1930,a_1920[!is.na(title_1930_round8),!c("title")][,set:=5],fill=TRUE),
+                                 a_1930[!is.na(title_1920_round8),!c("title")][,set:=5],fill=TRUE)
+
+# Unmatched titles
+a_1920 <- a_1920[is.na(title_1930_round8),!c("title","title_1930_round8")]
+a_1930 <- a_1930[is.na(title_1920_round8),!c("title","title_1920_round8")]
+
+# match with others year title
+a_1920 <- merge(a_1920,unique(unique_titles.1920_1930[,c("title_1930_round8")], by="title_1930_round8")[,title:=title_1930_round8],by.x="title_1920_round8",by.y="title",all.x=TRUE,all.y=FALSE)
+a_1930 <- merge(a_1930,unique(unique_titles.1920_1930[,c("title_1920_round8")], by="title_1920_round8")[,title:=title_1920_round8],by.x="title_1930_round8",by.y="title",all.x=TRUE,all.y=FALSE)
+
+unique_titles.1920_1930 <-rbind( rbind(unique_titles.1920_1930,a_1920[!is.na(title_1930_round8)][,set:=6],fill=TRUE),
+                                 a_1930[!is.na(title_1920_round8)][,set:=6],fill=TRUE)
+
+# Titles that couldn't be matched
+a_1920 <- a_1920[is.na(title_1930_round8)][,title_1930_round8:=NULL]
+a_1930 <- a_1930[is.na(title_1920_round8)][,title_1920_round8:=NULL]
+
+ 
+```
+
+
+## Organize the data of unique_titles and unmatched titles
+```{r}
+## 1. Creating a set of collapsed unique_titles.1920_1930
+# Create a collapsed version of the unique_titles data
+temp1 <- unique_titles.1920_1930[,.(occ1920_list=unlist(occ1920_list)),by = setdiff(c("title_1920_round8","title_1930_round8","title_1920_round8_original","title_1930_round8_original","occ1920_list"),'occ1920_list')]
+temp1 <- temp1[,occ1920:= list(list(unique(occ1920_list))),by=c("title_1920_round8","title_1930_round8","title_1920_round8_original","title_1930_round8_original")][,.SD[1],by=c("title_1920_round8","title_1930_round8","title_1920_round8_original","title_1930_round8_original"),.SDcols=c("occ1920")]
+setnames(temp1, "occ1920", "occ1920_list")
+temp2 <- unique_titles.1920_1930[,.(occind1930_list=unlist(occind1930_list)),by = setdiff(c("title_1920_round8","title_1930_round8","title_1920_round8_original","title_1930_round8_original","occind1930_list"),'occind1930_list')]
+temp2 <- temp2[,occind1930:= list(list(unique(occind1930_list))),by=c("title_1920_round8","title_1930_round8","title_1920_round8_original","title_1930_round8_original")][,.SD[1],by=c("title_1920_round8","title_1930_round8","title_1920_round8_original","title_1930_round8_original"),.SDcols=c("occind1930")]
+setnames(temp2, "occind1930", "occind1930_list")
+
+temp <- merge(temp1,temp2,by=c("title_1920_round8","title_1930_round8","title_1920_round8_original","title_1930_round8_original"),all=TRUE)
+rm(temp1,temp2)
+
+cols=c("n","n_occ1920","n_ind1920","n_occ_ind_1920","n_occ1930","n_ind1930","n_occind1930","n_occ_ind_1930")
+unique_titles.1920_1930[,(cols) := lapply(.SD, nafill, fill=0), .SDcols =cols]
+unique_titles.1920_1930.collapsed <- unique_titles.1920_1930[,lapply(.SD,sum),by=c("title_1920_round8","title_1930_round8","title_1920_round8_original","title_1930_round8_original"),.SDcols=cols]
+unique_titles.1920_1930.collapsed <- merge(unique_titles.1920_1930.collapsed,temp,by=c("title_1920_round8","title_1930_round8","title_1920_round8_original","title_1930_round8_original"),all=TRUE)
+setcolorder(unique_titles.1920_1930.collapsed, c("title_1920_round8", "title_1930_round8","occ1920_list","occind1930_list"))
+rm(temp)
+
+
+## 2. Non_matched titles
+non_matched_1920_1930.1920 <- a_1920
+setorderv(non_matched_1920_1930.1920,c("cat","title_1920_round8"))
+non_matched_1920_1930.1930 <- a_1930
+setorderv(non_matched_1920_1930.1930,c("cat","title_1930_round8"))
+rm(a_1920,a_1930)
+                                 
+```
+
+
+## Construction of a set of unique titles
+# Unique titles (reordered and stemmed) using the set of matched titles in 1930
+```{r}
+# Not controlling for occind1930
+unique_titles.1930.matched <- copy(matched_1920_1930)
+
+# group the file by title_round8, keep track of number of occs and industry per observation
+unique_titles.1930.matched[,n:=1][,n_occ1930:=1 - duplicated(unique_titles.1930.matched, by=c("title_1930_round8","occ1930"))][,n_indname_1930:=1 - duplicated(unique_titles.1930.matched,by=c("title_1930_round8","indname_1930"))][,n_ind1930:=1 - duplicated(unique_titles.1930.matched,by=c("title_1930_round8","ind1930"))][,n_occind1930:=1 - duplicated(unique_titles.1930.matched, by=c("title_1930_round8","occind1930"))][,n_occ_ind_1930:=1 - duplicated(unique_titles.1930.matched,by=c("title_1930_round8","occind1930","indname_1930"))]
+
+unique_titles.1930.matched <- unique_titles.1930.matched[,lapply(.SD,sum),by=c("title_1930_round8","title_1930_round8_reordered","title_1930_round8_reordered_stemmed"),.SDcols=c("n","n_occ1930","n_ind1930","n_indname_1930","n_occind1930","n_occ_ind_1930")]
+
+#Count number of observations in the different sets
+unique_titles.1930.matched[,n_title:=1][,n_reordered:=1 - duplicated(unique_titles.1930.matched,by=c("title_1930_round8_reordered"))][,n_stemmed:=1 - duplicated(unique_titles.1930.matched,by=c("title_1930_round8_reordered_stemmed"))]
+count_unique_titles <- cbind(set=c("unique_titles.1930.matched","unique_titles.1930.matched"),cat=c(0,1),title=as.data.table( table(unique_titles.1930.matched$n_title))[,2],reordered=as.data.table(table(unique_titles.1930.matched$n_reordered))[,2],stemmed=as.data.table(table(unique_titles.1930.matched$n_stemmed))[,2])
+
+
+# Controlling for occind1930
+unique_titles.1930.matched_byoccind <- copy(matched_1920_1930)
+
+# group the file by title_round8, keep track of number of occs and industry per observation
+unique_titles.1930.matched_byoccind[,n:=1][,n_indname_1930:=1 - duplicated(unique_titles.1930.matched_byoccind,by=c("title_1930_round8","indname_1930"))]
+
+unique_titles.1930.matched_byoccind <- unique_titles.1930.matched_byoccind[,lapply(.SD,sum),by=c("occind1930","title_1930_round8","title_1930_round8_reordered","title_1930_round8_reordered_stemmed"),.SDcols=c("n","n_indname_1930")]
+
+#Count number of observations in the different sets
+unique_titles.1930.matched_byoccind[,n_title:=1][,n_reordered:=1 - duplicated(unique_titles.1930.matched_byoccind,by=c("title_1930_round8_reordered","occind1930"))][,n_stemmed:=1 - duplicated(unique_titles.1930.matched_byoccind,by=c("title_1930_round8_reordered_stemmed","occind1930"))]
+
+count_unique_titles <- rbind(count_unique_titles,cbind(set=c("unique_titles.1930.matched_byoccind","unique_titles.1930.matched_byoccind"),cat=c(0,1),title=as.data.table( table(unique_titles.1930.matched_byoccind$n_title))[,2],reordered=as.data.table(table(unique_titles.1930.matched_byoccind$n_reordered))[,2],stemmed=as.data.table(table(unique_titles.1930.matched_byoccind$n_stemmed))[,2]) )
+
+
+```
+
+Looking at the set of (aprox 8000) we see many titles that most likely refer to the same occupation (eg advertisement writer, writer advertisements) and also titles with more than one word that share at least one word with other titles (eg silver beater, silver miner, silver plater). In the case of the first group we should further reduce the set of unique titles so that we eliminate what are definitely just repeated titles. There are different ways of doing this, the more cumbersome and precise being manually looking at the titles and finding repeated titles. A less time consuming one is to look at similarities between titles (eg looking at titles that have the same number of words but in different order). The second group of titles should be treated more carefully, as they don't represent a unique occupations that are somehow related.
+
+
+# Unique titles (reordered and stemmed) using the set of unmatched titles
+```{r}
+unique_titles.1930.unmatched <- copy(title_merge_1930)
+
+# group the file by title_round8, keep track of number of occs and industry per observation
+unique_titles.1930.unmatched[,n:=1][,n_occ1930:=1 - duplicated(unique_titles.1930.unmatched, by=c("title_1930_round8","occ1930"))][,n_indname_1930:=1 - duplicated(unique_titles.1930.unmatched,by=c("title_1930_round8","indname_1930"))][,n_ind1930:=1 - duplicated(unique_titles.1930.unmatched,by=c("title_1930_round8","ind1930"))][,n_occind1930:=1 - duplicated(unique_titles.1930.unmatched, by=c("title_1930_round8","occind1930"))][,n_occ_ind_1930:=1 - duplicated(unique_titles.1930.unmatched,by=c("title_1930_round8","occind1930","indname_1930"))]
+
+# Count
+unique_titles.1930.unmatched <- unique_titles.1930.unmatched[,lapply(.SD,sum),by=c("title_1930_round8","title_1930_round8_reordered","title_1930_round8_reordered_stemmed"),.SDcols=c("n","n_occ1930","n_ind1930","n_indname_1930","n_occind1930","n_occ_ind_1930")]
+#Count number of observations in the different sets
+unique_titles.1930.unmatched[,n_title:=1][,n_reordered:=1 - duplicated(unique_titles.1930.unmatched,by=c("title_1930_round8_reordered"))][,n_stemmed:=1 - duplicated(unique_titles.1930.unmatched,by=c("title_1930_round8_reordered"))]
+count_unique_titles <- rbind(count_unique_titles,cbind(set=c("unique_titles.1930.unmatched","unique_titles.1930.unmatched"),cat=c(0,1),title=as.data.table( table(unique_titles.1930.unmatched$n_title))[,2],reordered=as.data.table(table(unique_titles.1930.unmatched$n_reordered))[,2],stemmed=as.data.table(table(unique_titles.1930.unmatched$n_stemmed))[,2]) )
+
+
+## Controlling for occind1930
+unique_titles.1930.unmatched_byoccind <- copy(title_merge_1930)
+
+# group the file by title_round8, keep track of number of occs and industry per observation
+unique_titles.1930.unmatched_byoccind[,n:=1][,n_indname_1930:=1 - duplicated(unique_titles.1930.unmatched_byoccind,by=c("title_1930_round8","indname_1930"))]
+
+unique_titles.1930.unmatched_byoccind <- unique_titles.1930.unmatched_byoccind[,lapply(.SD,sum),by=c("title_1930_round8","occind1930","title_1930_round8_reordered","title_1930_round8_reordered_stemmed"),.SDcols=c("n","n_indname_1930")]
+
+#Count number of observations in the different sets
+unique_titles.1930.unmatched_byoccind[,n_title:=1][,n_reordered:=1 - duplicated(unique_titles.1930.unmatched_byoccind,by=c("title_1930_round8_reordered","occind1930"))][,n_stemmed:=1 - duplicated(unique_titles.1930.unmatched_byoccind,by=c("title_1930_round8_reordered_stemmed","occind1930"))]
+count_unique_titles <- rbind(count_unique_titles,cbind(set=c("unique_titles.1930.unmatched_byoccind","unique_titles.1930.unmatched_byoccind"),cat=c(0,1),title=as.data.table( table(unique_titles.1930.unmatched_byoccind$n_title))[,2],reordered=as.data.table(table(unique_titles.1930.unmatched_byoccind$n_reordered))[,2],stemmed=as.data.table(table(unique_titles.1930.unmatched_byoccind$n_stemmed))[,2]) )
+
+```
+
+## Reduce set of unmatched titles by looking only at the title
+## Use title_[year]_round8 (using also the reordered and stemmed version) to reduce the set of unmatched title
+```{r}
+# Find matches between the set of unmatched and matched "unique" titles
+unique_titles.1930.unmatched <- merge(unique_titles.1930.unmatched,unique_titles.1930.matched[,match_title_round8:=1][,c("match_title_round8","title_1930_round8")],by="title_1930_round8",all.x=TRUE,all.y=FALSE)[is.na(match_title_round8),match_title_round8:=0]
+
+unique_titles.1930.unmatched <- merge(unique_titles.1930.unmatched,unique(unique_titles.1930.matched[,c("title_1930_round8_reordered")],by="title_1930_round8_reordered")[,match_title_round8_reordered:=1],by="title_1930_round8_reordered",all.x=TRUE,all.y=FALSE)[is.na(match_title_round8_reordered),match_title_round8_reordered:=0]
+
+unique_titles.1930.unmatched <- merge(unique_titles.1930.unmatched,unique(unique_titles.1930.matched[,c("title_1930_round8_reordered_stemmed")],by="title_1930_round8_reordered_stemmed")[,match_title_round8_reordered_stemmed:=1],by="title_1930_round8_reordered_stemmed",all.x=TRUE,all.y=FALSE)[is.na(match_title_round8_reordered_stemmed),match_title_round8_reordered_stemmed:=0]
+# NOTE: variable match_title_round8[_..] takes the value of 1 if the observation could be matched using only title_1930_round8[_..]
+
+#Count
+count_unique_titles <- merge(count_unique_titles, cbind(set=c("unique_titles.1930.unmatched","unique_titles.1930.unmatched"),cat=c(0,1),matched_title=as.data.table( table(unique_titles.1930.unmatched$match_title_round8))[,2],matched_reoredered=as.data.table(table(unique_titles.1930.unmatched$match_title_round8_reordered))[,2],matched_stemmed=as.data.table(table(unique_titles.1930.unmatched$match_title_round8_reordered_stemmed))[,2])  , by=c("set","cat"),all=TRUE)
+
+
+# Use unique_titles.1930 unmatched to create match_title_round8 for title_merge_1930 (containing unmatched titles)
+title_merge_1930.unmatched <- merge(title_merge_1930,
+  unique_titles.1930.unmatched[,c("title_1930_round8","match_title_round8","match_title_round8_reordered","match_title_round8_reordered_stemmed")],by="title_1930_round8",all.x=TRUE,all.y=FALSE)
+#Count
+count_unique_titles <- rbind(count_unique_titles, cbind(set=c("title_merge_1930.unmatched","title_merge_1930.unmatched"),cat=c(0,1),matched_title=as.data.table( table(title_merge_1930.unmatched$match_title_round8))[,2],matched_reoredered=as.data.table(table(title_merge_1930.unmatched$match_title_round8_reordered))[,2],matched_stemmed=as.data.table(table(title_merge_1930.unmatched$match_title_round8_reordered_stemmed))[,2]), fill=TRUE)
+
+```
+
+## Use title_[year]_round8 (using also the reordered and stemmed version), performing the match by occind1930
+```{r}
+# Find matches between the set of unmatched and matched "unique" titles
+unique_titles.1930.unmatched_byoccind <- merge(unique_titles.1930.unmatched_byoccind,unique_titles.1930.matched_byoccind[,match_title_round8:=1][,c("match_title_round8","title_1930_round8","occind1930")],by=c("title_1930_round8","occind1930"),all.x=TRUE,all.y=FALSE)[is.na(match_title_round8),match_title_round8:=0]
+
+unique_titles.1930.unmatched_byoccind <- merge(unique_titles.1930.unmatched_byoccind,unique(unique_titles.1930.matched_byoccind[,c("title_1930_round8_reordered","occind1930")],by=c("title_1930_round8_reordered","occind1930"))[,match_title_round8_reordered:=1],by=c("title_1930_round8_reordered","occind1930"),all.x=TRUE,all.y=FALSE)[is.na(match_title_round8_reordered),match_title_round8_reordered:=0]
+
+unique_titles.1930.unmatched_byoccind <- merge(unique_titles.1930.unmatched_byoccind,unique(unique_titles.1930.matched_byoccind[,c("title_1930_round8_reordered_stemmed","occind1930")],by=c("title_1930_round8_reordered_stemmed","occind1930"))[,match_title_round8_reordered_stemmed:=1],by=c("title_1930_round8_reordered_stemmed","occind1930"),all.x=TRUE,all.y=FALSE)[is.na(match_title_round8_reordered_stemmed),match_title_round8_reordered_stemmed:=0]
+# NOTE: variable match_title_round8[_..] takes the value of 1 if the observation could be matched using only title_1930_round8[_..]
+
+
+#Count 
+# Prob: cumbersome way
+cols = colnames(count_unique_titles)[grepl( "matched" , names(count_unique_titles) )]
+count_unique_titles <- rbind(count_unique_titles[set!="unique_titles.1930.unmatched_byoccind"] ,merge(count_unique_titles[set=="unique_titles.1930.unmatched_byoccind",!..cols], cbind(set=c("unique_titles.1930.unmatched_byoccind","unique_titles.1930.unmatched_byoccind"),cat=c(0,1),matched_title=as.data.table( table(unique_titles.1930.unmatched_byoccind$match_title_round8))[,2],matched_reoredered=as.data.table(table(unique_titles.1930.unmatched_byoccind$match_title_round8_reordered))[,2],matched_stemmed=as.data.table(table(unique_titles.1930.unmatched_byoccind$match_title_round8_reordered_stemmed))[,2])  , by=c("set","cat"),all=TRUE),fill=TRUE)
+
+
+# Use unique_titles.1930 unmatched to create match_title_round8 for title_merge_1930 (containing unmatched titles)
+title_merge_1930.unmatched_byoccind <- merge(title_merge_1930,  unique_titles.1930.unmatched_byoccind[,c("title_1930_round8","occind1930","match_title_round8","match_title_round8_reordered","match_title_round8_reordered_stemmed")],by=c("title_1930_round8","occind1930"),all.x=TRUE,all.y=FALSE)
+#Count
+count_unique_titles <- rbind(count_unique_titles, cbind(set=c("title_merge_1930.unmatched_byoccind","title_merge_1930.unmatched_byoccind"),cat=c(0,1),matched_title=as.data.table( table(title_merge_1930.unmatched_byoccind$match_title_round8))[,2],matched_reoredered=as.data.table(table(title_merge_1930.unmatched_byoccind$match_title_round8_reordered))[,2],matched_stemmed=as.data.table(table(title_merge_1930.unmatched_byoccind$match_title_round8_reordered_stemmed))[,2]), fill=TRUE)
+
+
+```
+
+
+
+
+
+```{r}
+# Functions to view a selected set of variables (looking for something similar to browse)
+# Vieh
+# head
+
+# Select part of a data table
+# 
+
+head(index_1910[occ1910==278],55)
+head(index_1910[(indname_clean_1910 %like% "cardboard" | indname_clean_1910 %like% "envelope" | indname_clean_1910 %like% "tag" ) & title_1910_edited %like% "laborer" ],55)
+grepl('trunk',indname_clean_1910) & grepl('galvanizer',title_1910_edited)
+
+head(index_1910[occ1910==341 | occ1910==341,c("occ1910","title_1910_edited","indname_clean_1910","original_1910")],55)
+
+head(index_1910[ grepl('billiard|pool',indname_clean_1910),c("occ1910","title_1910_edited","indname_clean_1910","original_1910")],400)
+
+head(index_1920[occ1920==566,c("occ1920","title_1920_edited","indname_clean_1920","original_1920")],400)
+
+head(index_1910[occ1910==321,c("occ1910","title_1910_edited","indname_clean_1910","original_1910")],400)
+#head(index_1910[occ1910==341,c("occ1910","title_1910_edited","indname_clean_1910","original_1910")],400)
+#head(index_1910[occ1910==342,c("occ1910","title_1910_edited","indname_clean_1910","original_1910")],400)
+
+
+head(index_1920[occ1920==866,c("occ1920","title_1920_edited","indname_1920","original_1920")],400)
+head(index_1920[ grepl('[Ss]tudio',original_1920),c("occ1920","title_1920","indname_1920","original_1920")],400)
+head(index_1920[ grepl('repair',indname_1920) & grepl('auto',indname_1920)  ,c("occ1920","title_1920","original_1920","indname_1920")],900)
+head(index_1920[ grepl('radio',indname_1920)  ,c("occ1920","title_1920","original_1920","indname_1920")],900)
+
+head(index_1930[ grepl('[lL]oader',original_1930),c("occind1930","title_1930","indname_1930","original_1930")],400)
+head(index_1930[ grepl('[Gg]arage',indname_1930),c("occind1930","title_1930","indname_1930","original_1930")],400)
+
+
+```
+
+
+
+
+
+
+
+
+
+
