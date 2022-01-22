@@ -331,137 +331,6 @@ This function works with methods lm and lm_robust
 TO-DO:
 - For lm_robust need to specify the possibility of not using clusters
 NOTE: This first function doesn't include the method felm. I use the second function, but keep this in case the second function doesn't work.
-```{r}
-if (FALSE) {
-f_regressions <- function(arg_formula,arg_data,arg_weights,method,arg_clusters,to_iter = 1000, by_iter = 10) {
-  # Arguments:
-  #           - arg_formula: list with the set of regressions formulas
-  #           - arg_data: dataset with the variables in arg_formula
-  #           - arg_weights: variable contianing the weights used in the regression
-  #           - method: either "lm" or "lm_robust"
-  #           - arg_clusters: Variable used to cluster standard errors
-  #           - iter_vec: vector containing the numbers of the iteration that you want to be displayed
-  
-  # Note1: There is a conflict if arg_formula is not a list. E.g. if you create a list (LS) but in arg_formula you introduce LS[[i]], the function will try to subset it and that will give an error. If that is the case introduce it as a list, e.g. list(LS[[i]])
-  
-  # Note2: Instead of copying arg_data I decided to change the names back to their original names at the end of the function.
-  iter_vec <- seq(from =0, to = to_iter, by = by_iter)
-  i <- 1
-  i0 <- 0 # Initialize i0 
-  ## IF argument ARG_WEIGHTS is specified
-  if (!missing(arg_weights)) {
-    setnames(arg_data,c(deparse(substitute(arg_weights))),c("arg_w"))
-    if (i %in% iter_vec) {
-      tic(paste0("Iteration ",i," to ",min(i+by_iter-1,length(arg_formula))))
-      i0 <- i + by_iter -1
-    }
-    if (method=="lm") {
-      A <- summary(lm(arg_formula[[1]],data=arg_data,weights=arg_w,model=FALSE))
-      other <- data.table(rn=c("nobs","adj.r2","fstat_value","fstat_numdf","fstat_dendf"),variable=rep("zother",5),model_1=c(c(length(A$residuals),format(round(A$adj.r.squared,4),nsmall=2)),unname(A$fstatistic)))
-    } else if (method=="lm_robust") {
-      setnames(arg_data,c(deparse(substitute(arg_clusters))),c("arg_cl"))
-      A <- summary(lm_robust(arg_formula[[1]],weights=arg_w,clusters=arg_cl,se_type='stata',data=arg_data))
-      other <- data.table(rn=c("nobs","adj.r2","fstat_value","fstat_numdf","fstat_dendf"),variable=rep("zother",5),model_1=c(c(A$nobs,format(round(A$adj.r.squared,4),nsmall=2)),unname(A$fstatistic)))
-    }
-    coef <- f_reg_results( data.table(A$coefficients[,1:4],keep.rownames=TRUE), arg_round=4 )
-    coef <- melt(coef,id.vars = c("rn"), measure.vars = c("coef","std","t_value","p_value","coef_star","std_par"),value.name=c(paste0("model_",1)))
-    coef <- rbind(coef,other)
-    if (i == i0) toc()
-    rm(A,other)
-    
-    if (length(arg_formula)>1) {
-      for (i in 2:length(arg_formula)) {
-        if (i %in% iter_vec) {
-          tic(paste0("Iteration ",i," to ",min(i+by_iter-1,length(arg_formula))))
-          i0 <- i+by_iter -1
-        }
-        if (method=="lm") {
-          A <- summary(lm(arg_formula[[i]],data=arg_data,weights=arg_w,model=FALSE))
-          other <- data.table(rn=c("nobs","adj.r2","fstat_value","fstat_numdf","fstat_dendf"),variable=rep("zother",5),model_1=c(c(length(A$residuals),format(round(A$adj.r.squared,4),nsmall=2)),unname(A$fstatistic)))
-          setnames(other,c(3),c(paste0("model_",i)))
-        } else if (method=="lm_robust") {
-          A <- summary(lm_robust(arg_formula[[i]],weights=arg_w,clusters=arg_cl,se_type='stata',data=arg_data))
-          other <- data.table(rn=c("nobs","adj.r2","fstat_value","fstat_numdf","fstat_dendf"),variable=rep("zother",5),model_1=c(c(A$nobs,format(round(A$adj.r.squared,4),nsmall=2)),unname(A$fstatistic)))
-          setnames(other,c(3),c(paste0("model_",i)))
-        }
-        
-        t <- f_reg_results( data.table(A$coefficients[,1:4],keep.rownames=TRUE), arg_round=4)
-        t <- melt(t,id.vars = c("rn"), measure.vars = c("coef","std","t_value","p_value","coef_star","std_par"),value.name=c(paste0("model_",i)))
-        t <- rbind(t,other)
-        coef <- merge(coef,t,by=c("rn","variable"),all=TRUE)
-        rm(A,other,t)
-        if (i0==i) toc()
-      }
-    
-    }
-    
-    
-  ## NOOO argument ARG_WEIGHTS 
-  } else {
-    if (i %in% iter_vec) {
-      tic(paste0("Iteration ",i," to ",min(i+by_iter-1,length(arg_formula))))
-      i0 <- i + by_iter -1
-    }
-    if (method=="lm") {
-      A <- summary(lm(arg_formula[[1]],data=arg_data,model=FALSE))
-      other <- data.table(rn=c("nobs","adj.r2","fstat_value","fstat_numdf","fstat_dendf"),variable=rep("zother",5),model_1=c(c(length(A$residuals),format(round(A$adj.r.squared,4),nsmall=2)),unname(A$fstatistic)))
-    } else if (method=="lm_robust") {
-      setnames(arg_data,c(deparse(substitute(arg_clusters))),c("arg_cl"))
-      A <- summary(lm_robust(arg_formula[[1]],clusters=arg_cl,se_type='stata',data=arg_data))
-      other <- data.table(rn=c("nobs","adj.r2","fstat_value","fstat_numdf","fstat_dendf"),variable=rep("zother",5),model_1=c(c(A$nobs,format(round(A$adj.r.squared,4),nsmall=2)),unname(A$fstatistic)))
-    }
-    coef <- f_reg_results( data.table(A$coefficients[,1:4],keep.rownames=TRUE), arg_round=4 )
-    coef <- melt(coef,id.vars = c("rn"), measure.vars = c("coef","std","t_value","p_value","coef_star","std_par"),value.name=c(paste0("model_",1)))
-    coef <- rbind(coef,other)
-    if (i == i0) toc()
-    rm(A,other)
-    
-    if (length(arg_formula)>1) {
-      for (i in 2:length(arg_formula)) {
-        if (i %in% iter_vec) {
-          tic(paste0("Iteration ",i," to ",min(i+by_iter-1,length(arg_formula))))
-          i0 <- i + by_iter -1
-        }
-        if (method=="lm") {
-          A <- summary(lm(arg_formula[[i]],data=arg_data,model=FALSE))
-          other <- data.table(rn=c("nobs","adj.r2","fstat_value","fstat_numdf","fstat_dendf"),variable=rep("zother",5),model_1=c(c(length(A$residuals),format(round(A$adj.r.squared,4),nsmall=2)),unname(A$fstatistic)))
-          setnames(other,c(3),c(paste0("model_",i)))
-        } else if (method=="lm_robust") {
-          A <- summary(lm_robust(arg_formula[[i]],clusters=arg_cl,se_type='stata',data=arg_data))
-          other <- data.table(rn=c("nobs","adj.r2","fstat_value","fstat_numdf","fstat_dendf"),variable=rep("zother",5),model_1=c(c(A$nobs,format(round(A$adj.r.squared,4),nsmall=2)),unname(A$fstatistic)))
-          setnames(other,c(3),c(paste0("model_",i)))
-        }
-        
-        t <- f_reg_results( data.table(A$coefficients[,1:4],keep.rownames=TRUE), arg_round=4)
-        t <- melt(t,id.vars = c("rn"), measure.vars = c("coef","std","t_value","p_value","coef_star","std_par"),value.name=c(paste0("model_",i)))
-        t <- rbind(t,other)
-        coef <- merge(coef,t,by=c("rn","variable"),all=TRUE)
-        rm(A,other,t)
-        if (i == i0) toc()
-      }
-    
-    }
-    
-    
-  }
-  
-  coef <- as.data.table(coef)
-  coef[,order:=ifelse(variable=="zother",1,0)]
-  setorder(coef,order,rn)
-  coef[,order:=NULL]
-  
-  if (!missing(arg_weights)) { setnames(arg_data, c("arg_w"), c(deparse(substitute(arg_weights))) )   }
-  
-  if (method=="lm_robust") {
-    setnames(arg_data,c("arg_cl"),c(deparse(substitute(arg_clusters))))
-  }
-  if (i==length(arg_formula)) toc()
-  return(coef)
-}
-
-}
-```
-
 
 ```{r}
 f_regressions <- function(arg_formula,arg_data,arg_weights,method,arg_clusters,arg_fe,to_iter = 1000, by_iter = 10) {
@@ -6208,6 +6077,9 @@ Plan:
 # Industry names
 ind1950.codes <- as.data.table(read_excel(here(paste0("input/1930 - Cleaned.xlsx")), sheet = "ind1950",guess_max=10000) )
 
+# Occupation names
+occ1930.codes <- as.data.table( read_excel(here(paste0("input/1930 - Cleaned.xlsx")), sheet = "1930 main groups",guess_max=10000) )[,c("occind","occind1930","occind1930_name")]
+
 # Import main databases ----
 census_sample_1930_main <- 
   read_fst(here(paste0("output/Rdata/census_sample_1930_individual_data_x_countynhg_1910.fst")),as.data.table=TRUE)[occ1950_main!=979 & ind1950_main!=0][,c("countynhg_1910","perwt_ID","perwt_1930","sh_red_tit","occind","statefip","urban","male","lit","race","wwages","mig_us","mig_ab","age_main","ind1950","ind1950_main")][!is.na(lit)][order(countynhg_1910,occind)]
@@ -6242,7 +6114,8 @@ cat(gsub(pattern = "\n", replacement = "  \n",
            "The mean of the New work variable was: ",
            format(round(mean(census_sample_1930_industry_study$sh_red_tit),4),nsmall=2),
            "\nand the standard deviation: ",
-           format(round(sd(census_sample_1930_industry_study$sh_red_tit),4),nsmall=2)
+           format(round(sd(census_sample_1930_industry_study$sh_red_tit),4),nsmall=2),
+           "\n\n"
          )
 ))
 
@@ -6263,8 +6136,8 @@ ggplot(census_sample_1930_industry_study[n_new_work<=300000], aes(x=n_new_work))
         theme_tufte() + theme(legend.position = "none")
 
 ## Table
-kable(census_sample_1930_industry_study[order(-sh_red_tit,-perwt),c("ind1950_name","sh_red_tit","perwt","n_new_work")][1:15])
-kable(census_sample_1930_industry_study[order(-sh_red_tit,-perwt),c("ind1950_name","sh_red_tit","perwt","n_new_work")][16:30])
+knitr::kable(census_sample_1930_industry_study[order(-sh_red_tit,-perwt),c("ind1950_name","sh_red_tit","perwt","n_new_work")][1:15])
+knitr::kable(census_sample_1930_industry_study[order(-sh_red_tit,-perwt),c("ind1950_name","sh_red_tit","perwt","n_new_work")][16:30])
 
 # ind1950_main ----
 census_sample_1930_industry_study_all <- 
@@ -6283,29 +6156,39 @@ census_sample_1930_industry_study_no_new_sec <-
 ## Mean and Standard Deviation
 cat(gsub(pattern = "\n", replacement = "  \n", 
          x = paste0(
-           "Grouping by ind1950_main\n\n",
-           "The mean of the New work variable was: ",
-           format(round(mean(census_sample_1930_industry_study$sh_red_tit),4),nsmall=2),
+           "Grouping by ind1950_main\n",
+           "The mean of the New work variable (including all workers) was: ",
+           format(round(mean(census_sample_1930_industry_study_all$sh_red_tit),4),nsmall=2),
            "\nand the standard deviation: ",
-           format(round(sd(census_sample_1930_industry_study$sh_red_tit),4),nsmall=2)
+           format(round(sd(census_sample_1930_industry_study_all$sh_red_tit),4),nsmall=2),
+           "\n\n"
+         )
+))
+cat(gsub(pattern = "\n", replacement = "  \n", 
+         x = paste0(
+           "Grouping by ind1950_main\n\n",
+           "The mean of the New work variable (excluding new sectors workers) was: ",
+           format(round(mean(census_sample_1930_industry_study_no_new_sec$sh_red_tit),4),nsmall=2),
+           "\nand the standard deviation: ",
+           format(round(sd(census_sample_1930_industry_study_no_new_sec$sh_red_tit),4),nsmall=2)
          )
 ))
 
 ## Some graphs
-ggplot(census_sample_1930_industry_study, aes(x=sh_red_tit)) +
-        geom_histogram(color="black",fill="white") +
-        labs(title="",x="Share of New Work", y = "Number of industries")  + 
-        theme_tufte() + theme(legend.position = "none")
-
-ggplot(census_sample_1930_industry_study, aes(x=sh_red_tit)) +
-        geom_histogram(color="black",fill="white") +
-        labs(title="",x="Share of New Work", y = "Number of industries")  + 
-        theme_tufte() + theme(legend.position = "none")
+# ggplot(census_sample_1930_industry_study, aes(x=sh_red_tit)) +
+#         geom_histogram(color="black",fill="white") +
+#         labs(title="",x="Share of New Work", y = "Number of industries")  + 
+#         theme_tufte() + theme(legend.position = "none")
+# 
+# ggplot(census_sample_1930_industry_study, aes(x=sh_red_tit)) +
+#         geom_histogram(color="black",fill="white") +
+#         labs(title="",x="Share of New Work", y = "Number of industries")  + 
+#         theme_tufte() + theme(legend.position = "none")
 
 
 ## Table
-kable(census_sample_1930_industry_study_all[order(-sh_red_tit,-perwt),c("ind1950_main_name","sh_red_tit","perwt","n_new_work")])
-kable(census_sample_1930_industry_study_no_new_sec[order(-sh_red_tit,-perwt),c("ind1950_main_name","sh_red_tit","perwt","n_new_work")])
+knitr::kable(census_sample_1930_industry_study_all[order(-sh_red_tit,-perwt),c("ind1950_main_name","sh_red_tit","perwt","n_new_work")],caption="All workers")
+knitr::kable(census_sample_1930_industry_study_no_new_sec[order(-sh_red_tit,-perwt),c("ind1950_main_name","sh_red_tit","perwt","n_new_work")],caption="Excluding New sectors")
 
 ```
 
@@ -6357,8 +6240,8 @@ for (method in c(1)) {
             theme_tufte() + theme(legend.position = "none"))
     
     ## Table
-    print(kable(census_sample_1940_industry_study[order(-new_work,-perwt),c("ind1950_name","new_work","perwt","n_new_work")][1:15]))
-    print(kable(census_sample_1940_industry_study[order(-new_work,-perwt),c("ind1950_name","new_work","perwt","n_new_work")][16:30]))
+    print(knitr::kable(census_sample_1940_industry_study[order(-new_work,-perwt),c("ind1950_name","new_work","perwt","n_new_work")][1:15]))
+    print(knitr::kable(census_sample_1940_industry_study[order(-new_work,-perwt),c("ind1950_name","new_work","perwt","n_new_work")][16:30]))
 
     # ind1950_main ----
     census_sample_1940_industry_study_all <- 
@@ -6409,8 +6292,8 @@ for (method in c(1)) {
     
     
     ## Table
-    print(kable(census_sample_1940_industry_study_all[order(-new_work,-perwt),c("ind1950_main_name","new_work","perwt","n_new_work")],caption=paste0("All Workers - Method ",method,", Dataset ",dt)))
-    print(kable(census_sample_1940_industry_study_no_new_sec[order(-new_work,-perwt),c("ind1950_main_name","new_work","perwt","n_new_work")],caption=paste0("No New Sectors - Method ",method,", Dataset ",dt)))
+    print(knitr::kable(census_sample_1940_industry_study_all[order(-new_work,-perwt),c("ind1950_main_name","new_work","perwt","n_new_work")],caption=paste0("All Workers - Method ",method,", Dataset ",dt)))
+    print(knitr::kable(census_sample_1940_industry_study_no_new_sec[order(-new_work,-perwt),c("ind1950_main_name","new_work","perwt","n_new_work")],caption=paste0("No New Sectors - Method ",method,", Dataset ",dt)))
     
     setnames(census_sample_1940_industry_study,c("new_work"),c(paste0("sh_new_method",method,"_dataset",dt)))
     
@@ -6421,8 +6304,70 @@ for (method in c(1)) {
 
 ```
 
+We observe that the mean and variability are much larger in 1930 than in 1940. 
+```{r echo=FALSE, results = 'asis'}
+knitr::kable(
+  data.table(Year_Dataset=c("1930","1940 Method1 Dt 2","1940 Method1 Dt3"),mean=c(0.2077,0.0734,0.0648),Std_Deviation=c(0.1008,0.0194,0.028))
+  )
+```
+When we look at the main sectors for 1940 we also observe an important variability within the different new work variables. For the Dataset 2 the share of new work goes from 0.059 to 0.114, while for the dataset 3 it goes from 0.055 to 0.07. The reason for this is related with the different ways both datasets were constructed. This low variability is a reason for the low explanatory power of the industry fixed effects in the first stage regressions. The explanation for the low variability in itself is not clear yet.
+
+## 1.2 Share of new work by occupation
+### 1.2.1 1930
+```{r 1930}
+census_sample_1930_occ_study <- 
+  merge(
+    census_sample_1930_main[,occind_subind:=format(round(sh_red_tit,4),nsmall=2)][,.(perwt=sum(perwt),sh_red_tit=weighted.mean(sh_red_tit,w=perwt)),by=c("occind","occind_subind")][,n_new_work:=perwt*sh_red_tit],
+    occ1930.codes[,c("occind","occind1930_name")],
+    by="occind",all.x=TRUE,all.y=FALSE
+    
+  )
+
+## Mean and Standard Deviation
+cat(gsub(pattern = "\n", replacement = "  \n", 
+         x = paste0(
+           "Grouping by occind\n\n",
+           "There are a total of ",length(census_sample_1930_occ_study$occind)," different occupations\n",
+           "The mean of the New work variable was: ",
+           format(round(mean(census_sample_1930_occ_study$sh_red_tit),4),nsmall=2),
+           "\nand the standard deviation: ",
+           format(round(sd(census_sample_1930_occ_study$sh_red_tit),4),nsmall=2),
+           "\n\n"
+         )
+))
+
+## Some graphs
+ggplot(census_sample_1930_occ_study, aes(x=sh_red_tit)) +
+        geom_histogram(color="black",bins=40,fill="white") +
+        labs(title="Occupation Histogram for the Share of New Work",x="Share of New Work", y = "Number of Occupations")  + 
+        theme_tufte() + theme(legend.position = "none")
+
+ggplot(census_sample_1930_occ_study, aes(x=n_new_work)) +
+        geom_histogram(color="black",bins=40,fill="white") +
+        labs(title="",x="Occupation Histogram for the Number of New Workers", y = "Number of Occupations")  + 
+        theme_tufte() + theme(legend.position = "none")
+
+ggplot(census_sample_1930_occ_study[n_new_work<=300000], aes(x=n_new_work)) +
+        geom_histogram(color="black",bins=40,fill="white") +
+        labs(title="",x="Occupation Histogram for the Share of New Work (Occupations with less than 300.000 workers)", y = "Number of Occupations")  + 
+        theme_tufte() + theme(legend.position = "none")
+
+## Table
+knitr::kable(census_sample_1930_occ_study[order(-sh_red_tit,-perwt),c("occind1930_name","occind","sh_red_tit","perwt","n_new_work")][1:15])
+knitr::kable(census_sample_1930_occ_study[order(-sh_red_tit,-perwt),c("occind1930_name","occind","sh_red_tit","perwt","n_new_work")][16:30])
+
+```
+# TO-DO:  - Compute the mean and sd excluding workers in new sectors
+
+One of the things that we observe is many more individual sectors with a very high share of new work. Is this due to the problems cleaning the data?
+
+```{r 1940}
+
+```
 
 
+
+## 1.3 Share of new work by different variables
 
 
 
