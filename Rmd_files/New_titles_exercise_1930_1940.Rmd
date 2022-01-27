@@ -27,6 +27,8 @@ f_load_pk <- function() {
 }
 ```
 
+
+
 ## Using function
 ```{r}
 rm(list=setdiff(ls(all.names = TRUE), "f_load_pk"))
@@ -46,144 +48,144 @@ main_directory <- "/Volumes/GoogleDrive/My Drive/New York 2015-2020/NYU/Year 4/D
 f_graph_regional <- function(X,year,geof,New_work) {
   for (i in New_work) {
     if (typeof(geof)!="character") stop("The argument geof has to be given as a character, i.e. in quotation")
-      # Histogram
-      ggplot(X, aes(x=!!sym(i))) +
-        geom_histogram(color="black",bins=25,fill="white") +
-        labs(title="",x="Share of New Work", y = "Count")  + 
-        theme_tufte() + theme(legend.position = "none")
+    # Histogram
+    ggplot(X, aes(x=!!sym(i))) +
+      geom_histogram(color="black",bins=25,fill="white") +
+      labs(title="",x="Share of New Work", y = "Count")  + 
+      theme_tufte() + theme(legend.position = "none")
+    
+    ggsave(here(paste0("output/Graphs/",geof,"/",year,"/histogram_",i,".jpeg")),plot=last_plot())
+    
+    # Some Scatterplots
+    # Population
+    ggplot(X, aes(y=!!sym(i), x=log(perwt))) + geom_point(size=0.1) + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and population",x="Population (log)", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
+    
+    ggsave(here(paste0("output/Graphs/",geof,"/",year,"/corr_pop_x_",i,".jpeg")),plot=last_plot())
+    
+    # Gender
+    ggplot(X, aes(y=!!sym(i), x=sh_male)) + geom_point(size=0.1) + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and male population",x="Share of Males", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
+    
+    ggsave(here(paste0("output/Graphs/",geof,"/",year,"/corr_sh_male_x_",i,".jpeg")),plot=last_plot())
+    
+    # Black population
+    ggplot(X, aes(y=!!sym(i), x=sh_race_2)) + geom_point(size=0.1) + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and black population",x="Share of Black population", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
+    
+    ggsave(here(paste0("output/Graphs/",geof,"/",year,"/corr_sh_race_2_x_",i,".jpeg")),plot=last_plot())
+    
+    # Literate
+    if (length(X$lit)>0) {
+      ggplot(X, aes(y=!!sym(i), x=sh_lit)) + geom_point(size=0.1) + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of literate population",x="Share of literate population", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
       
-      ggsave(here(paste0("output/Graphs/",geof,"/",year,"/histogram_",i,".jpeg")),plot=last_plot())
+      ggsave(here(paste0("output/Graphs/",geof,"/",year,"/corr_sh_lit_x_",i,".jpeg")),plot=last_plot())
+    }
       
-      # Some Scatterplots
-      # Population
-      ggplot(X, aes(y=!!sym(i), x=log(perwt))) + geom_point(size=0.1) + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and population",x="Population (log)", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
-      
-      ggsave(here(paste0("output/Graphs/",geof,"/",year,"/corr_pop_x_",i,".jpeg")),plot=last_plot())
-      
-      # Gender
-      ggplot(X, aes(y=!!sym(i), x=sh_male)) + geom_point(size=0.1) + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and male population",x="Share of Males", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
-      
-      ggsave(here(paste0("output/Graphs/",geof,"/",year,"/corr_sh_male_x_",i,".jpeg")),plot=last_plot())
-      
-      # Black population
-      ggplot(X, aes(y=!!sym(i), x=sh_race_2)) + geom_point(size=0.1) + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and black population",x="Share of Black population", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
-      
-      ggsave(here(paste0("output/Graphs/",geof,"/",year,"/corr_sh_race_2_x_",i,".jpeg")),plot=last_plot())
-      
-      # Literate
-      if (length(X$lit)>0) {
-        ggplot(X, aes(y=!!sym(i), x=sh_lit)) + geom_point(size=0.1) + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of literate population",x="Share of literate population", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
-        
-        ggsave(here(paste0("output/Graphs/",geof,"/",year,"/corr_sh_lit_x_",i,".jpeg")),plot=last_plot())
-      }
-      
-      # Labor force
-      ggplot(X, aes(y=!!sym(i), x=sh_labforce_emp)) + geom_point(size=0.1) + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of labor force",x="Share of labor force", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
-      
-      ggsave(here(paste0("output/Graphs/",geof,"/",year,"/corr_sh_labforce_emp_x_",i,".jpeg")),plot=last_plot())
-      
-      # Working for wages
-      ggplot(X, aes(y=!!sym(i), x=sh_wrkwage)) + geom_point(size=0.1) + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of population working for wages",x="Share of population working for wages", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
-      
-      ggsave(here(paste0("output/Graphs/",geof,"/",year,"/corr_sh_wrkwage_x_",i,".jpeg")),plot=last_plot())
-      
-      # Urban
-      ggplot(X, aes(y=!!sym(i), x=sh_urban)) + geom_point(size=0.1) + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of urban population",x="Share of urban population", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
-      
-      ggsave(here(paste0("output/Graphs/",geof,"/",year,"/corr_sh_urban_x_",i,".jpeg")),plot=last_plot())
-      
-      # Farm
-      ggplot(X, aes(y=!!sym(i), x=sh_farm)) + geom_point(size=0.1) + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of farm population",x="Share of farm population", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
-      
-      ggsave(here(paste0("output/Graphs/",geof,"/",year,"/corr_sh_farm_x_",i,".jpeg")),plot=last_plot())
-      
-      # Migration within the US
-      ggplot(X, aes(y=!!sym(i), x=sh_mig_us)) + geom_point(size=0.1) + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of internal migrants",x="Share of internal migrants", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
-      
-      ggsave(here(paste0("output/Graphs/",geof,"/",year,"/corr_sh_mig_us_x_",i,".jpeg")),plot=last_plot())
-      
-      # Migration within the US at the state level - 5 years ago
-      if (length(X$sh_mig5_state_1)>0) {
-        ggplot(X, aes(y=!!sym(i), x=1-sh_mig5_state_1)) + geom_point(size=0.1) + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of internal migrants",x="Share of internal migrants", y = "Share of New Work", caption="Internal migrants: people who lived in a different state 5 years ago") + theme_tufte() + theme(axis.line=element_line(color="black"))
+    # Labor force
+    ggplot(X, aes(y=!!sym(i), x=sh_labforce_emp)) + geom_point(size=0.1) + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of labor force",x="Share of labor force", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
+    
+    ggsave(here(paste0("output/Graphs/",geof,"/",year,"/corr_sh_labforce_emp_x_",i,".jpeg")),plot=last_plot())
+    
+    # Working for wages
+    ggplot(X, aes(y=!!sym(i), x=sh_wrkwage)) + geom_point(size=0.1) + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of population working for wages",x="Share of population working for wages", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
+    
+    ggsave(here(paste0("output/Graphs/",geof,"/",year,"/corr_sh_wrkwage_x_",i,".jpeg")),plot=last_plot())
+    
+    # Urban
+    ggplot(X, aes(y=!!sym(i), x=sh_urban)) + geom_point(size=0.1) + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of urban population",x="Share of urban population", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
+    
+    ggsave(here(paste0("output/Graphs/",geof,"/",year,"/corr_sh_urban_x_",i,".jpeg")),plot=last_plot())
+    
+    # Farm
+    ggplot(X, aes(y=!!sym(i), x=sh_farm)) + geom_point(size=0.1) + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of farm population",x="Share of farm population", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
+    
+    ggsave(here(paste0("output/Graphs/",geof,"/",year,"/corr_sh_farm_x_",i,".jpeg")),plot=last_plot())
+    
+    # Migration within the US
+    ggplot(X, aes(y=!!sym(i), x=sh_mig_us)) + geom_point(size=0.1) + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of internal migrants",x="Share of internal migrants", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
+    
+    ggsave(here(paste0("output/Graphs/",geof,"/",year,"/corr_sh_mig_us_x_",i,".jpeg")),plot=last_plot())
+    
+    # Migration within the US at the state level - 5 years ago
+    if (length(X$sh_mig5_state_1)>0) {
+      ggplot(X, aes(y=!!sym(i), x=1-sh_mig5_state_1)) + geom_point(size=0.1) + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of internal migrants",x="Share of internal migrants", y = "Share of New Work", caption="Internal migrants: people who lived in a different state 5 years ago") + theme_tufte() + theme(axis.line=element_line(color="black"))
       
       ggsave(here(paste0("output/Graphs/",geof,"/",year,"/corr_sh_mig_state_x_",i,".jpeg")),plot=last_plot())
-      }
-      
-      # Migration within the US at the county level - 5 years ago
-      if (length(X$sh_mig5_county_1)>0) {
-        ggplot(X, aes(y=!!sym(i), x=1-sh_mig5_county_1)) + geom_point(size=0.1) + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of internal migrants",x="Share of internal migrants", y = "Share of New Work", caption="Internal migrants: people who lived in a different county 5 years ago") + theme_tufte() + theme(axis.line=element_line(color="black"))
+    }
+    
+    # Migration within the US at the county level - 5 years ago
+    if (length(X$sh_mig5_county_1)>0) {
+      ggplot(X, aes(y=!!sym(i), x=1-sh_mig5_county_1)) + geom_point(size=0.1) + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of internal migrants",x="Share of internal migrants", y = "Share of New Work", caption="Internal migrants: people who lived in a different county 5 years ago") + theme_tufte() + theme(axis.line=element_line(color="black"))
       
       ggsave(here(paste0("output/Graphs/",geof,"/",year,"/corr_sh_mig_county_x_",i,".jpeg")),plot=last_plot())
-      }
-      
-      # Foreign migrants
-      ggplot(X, aes(y=!!sym(i), x=sh_mig_ab)) + geom_point(size=0.1) + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of foreign migrants",x="Share of foreign migrants", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
-      
-      ggsave(here(paste0("output/Graphs/",geof,"/",year,"/corr_sh_mig_ab_x_",i,".jpeg")),plot=last_plot())
-      
-      # Education
-      if (length(X$sh_educ_main_1)>0) {
-        x <- c("sh_educ_main_1","sh_educ_main_2","sh_educ_main_3")
-        p <- vector(mode = "list", length = length(x))
-        for (j in 1:length(x)) {
-          p[[j]] <- ggplot(X, aes_string(y=i, x= x[j])) + geom_point(size=0.1) + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="",x="Share of workers", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"), legend.position = "top")
-        }
-        ggarrange(p[[1]],p[[2]],p[[3]],labels=c("HS Dropout","HS - College Dropout","College"),ncol=2,nrow=2)
-        ggsave(here(paste0("output/Graphs/",geof,"/",year,"/corr_sh_educ_main_x_",i,"_1.jpeg")),plot=last_plot())
-      }
-      
-      # Wage variables
-      ## Yearly wage
-      if (length(X$av_incwage)>0) {
-        ggplot(X, aes(y=!!sym(i), x=av_incwage)) + geom_point(size=0.1) + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and average yearly wages",x="average yearly wages", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
-      
-      ggsave(here(paste0("output/Graphs/",geof,"/",year,"/corr_av_yearwage_",i,".jpeg")),plot=last_plot())
-      }
-      
-      ## Weekly wage
-      if (length(X$av_wkwage)>0) {
-        ggplot(X, aes(y=!!sym(i), x=av_wkwage)) + geom_point(size=0.1) + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and average weekly wages",x="average weekly wages", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
-      
-      ggsave(here(paste0("output/Graphs/",geof,"/",year,"/corr_av_wkwage_",i,".jpeg")),plot=last_plot())
-      }
-      
-      ## Hourly wage
-      if (length(X$av_hrwage)>0) {
-        ggplot(X, aes(y=!!sym(i), x=av_hrwage)) + geom_point(size=0.1) + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and average hourly wages",x="average hourly wages", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
-      
-      ggsave(here(paste0("output/Graphs/",geof,"/",year,"/corr_av_hrwage_",i,".jpeg")),plot=last_plot())
-      }
-      
-      # Industry
-      x <- c("sh_ind1950_main_1","sh_ind1950_main_2","sh_ind1950_main_3","sh_ind1950_main_4","sh_ind1950_main_5","sh_ind1950_main_6","sh_ind1950_main_7")
-      p <- vector(mode = "list", length = length(x))
-      for (j in 1:7) {
-        p[[j]] <- ggplot(X, aes_string(y=i, x= x[j])) + geom_point(size=0.1) + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="",x="Share of workers", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"), legend.position = "top")
-      }
-      ggarrange(p[[1]],p[[2]],p[[3]],p[[4]],labels=c("Agriculture","Mining-Construction","Manufacturing","Tr-Comm-Util"),
-                ncol=2,nrow=2)
-      ggsave(here(paste0("output/Graphs/",geof,"/",year,"/corr_sh_ind1950_main_x_",i,"_1.jpeg")),plot=last_plot())
-      ggarrange(p[[5]],p[[6]],p[[7]],labels=c("Trade","Services","Public Admin."),
-                ncol=2,nrow=2)
-      ggsave(here(paste0("output/Graphs/",geof,"/",year,"/corr_sh_ind1950_main_x_",i,"_2.jpeg")),plot=last_plot())
-      
-      
-      # Occupation
-      x <- c("sh_occ1950_main_0","sh_occ1950_main_100","sh_occ1950_main_200","sh_occ1950_main_300","sh_occ1950_main_400","sh_occ1950_main_500","sh_occ1950_main_600","sh_occ1950_main_700","sh_occ1950_main_730","sh_occ1950_main_800","sh_occ1950_main_900")
+    }
+    
+    # Foreign migrants
+    ggplot(X, aes(y=!!sym(i), x=sh_mig_ab)) + geom_point(size=0.1) + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of foreign migrants",x="Share of foreign migrants", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
+    
+    ggsave(here(paste0("output/Graphs/",geof,"/",year,"/corr_sh_mig_ab_x_",i,".jpeg")),plot=last_plot())
+    
+    # Education
+    if (length(X$sh_educ_main_1)>0) {
+      x <- c("sh_educ_main_1","sh_educ_main_2","sh_educ_main_3")
       p <- vector(mode = "list", length = length(x))
       for (j in 1:length(x)) {
-        p[[j]] <- ggplot(X, aes_string(y=i, x= x[j])) +
-                  geom_point(size=0.1) + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) +
-                  labs(title="",x="Share of workers", y = "Share of New Work") + theme(axis.line=element_line(color="black"), legend.position = "top") + theme_tufte() 
+        p[[j]] <- ggplot(X, aes_string(y=i, x= x[j])) + geom_point(size=0.1) + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="",x="Share of workers", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"), legend.position = "top")
       }
-      ggarrange(p[[1]],p[[2]],p[[3]],p[[4]],labels=c("Professional, Technical","Farmers","Managers, Officials and Proprietors","Clerical and Kindred"),font.label = list(size = 10),
-                ncol = 2, nrow =2)
-      ggsave(here(paste0("output/Graphs/",geof,"/",year,"/corr_sh_occ1950_main_x_",i,"_1.jpeg")),plot=last_plot())
-      ggarrange(p[[5]],p[[6]],p[[7]],p[[8]],labels=c("Sales workers","Craftsmen","Operatives","Service Workers (private household)"),font.label = list(size = 10), ncol = 2, nrow =2)
-      ggsave(here(paste0("output/Graphs/",geof,"/",year,"/corr_sh_occ1950_main_x_",i,"_2.jpeg")),plot=last_plot())
-      ggarrange(p[[9]],p[[10]],p[[11]],labels=c("Service Workers (not household)","Farm laborers","Laborers"),font.label = list(size = 10),
-                ncol = 2, nrow =2)
-      ggsave(here(paste0("output/Graphs/",geof,"/",year,"/corr_sh_occ1950_main_x_",i,"_3.jpeg")),plot=last_plot())
+      ggarrange(p[[1]],p[[2]],p[[3]],labels=c("HS Dropout","HS - College Dropout","College"),ncol=2,nrow=2)
+      ggsave(here(paste0("output/Graphs/",geof,"/",year,"/corr_sh_educ_main_x_",i,"_1.jpeg")),plot=last_plot())
+    }
+    
+    # Wage variables
+    ## Yearly wage
+    if (length(X$av_incwage)>0) {
+      ggplot(X, aes(y=!!sym(i), x=av_incwage)) + geom_point(size=0.1) + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and average yearly wages",x="average yearly wages", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
+      
+      ggsave(here(paste0("output/Graphs/",geof,"/",year,"/corr_av_yearwage_",i,".jpeg")),plot=last_plot())
+    }
+    
+    ## Weekly wage
+    if (length(X$av_wkwage)>0) {
+      ggplot(X, aes(y=!!sym(i), x=av_wkwage)) + geom_point(size=0.1) + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and average weekly wages",x="average weekly wages", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
+      
+      ggsave(here(paste0("output/Graphs/",geof,"/",year,"/corr_av_wkwage_",i,".jpeg")),plot=last_plot())
+    }
+    
+    ## Hourly wage
+    if (length(X$av_hrwage)>0) {
+      ggplot(X, aes(y=!!sym(i), x=av_hrwage)) + geom_point(size=0.1) + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and average hourly wages",x="average hourly wages", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
+      
+      ggsave(here(paste0("output/Graphs/",geof,"/",year,"/corr_av_hrwage_",i,".jpeg")),plot=last_plot())
+    }
+    
+    # Industry
+    x <- c("sh_ind1950_main_1","sh_ind1950_main_2","sh_ind1950_main_3","sh_ind1950_main_4","sh_ind1950_main_5","sh_ind1950_main_6","sh_ind1950_main_7")
+    p <- vector(mode = "list", length = length(x))
+    for (j in 1:7) {
+      p[[j]] <- ggplot(X, aes_string(y=i, x= x[j])) + geom_point(size=0.1) + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="",x="Share of workers", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"), legend.position = "top")
+    }
+    ggarrange(p[[1]],p[[2]],p[[3]],p[[4]],labels=c("Agriculture","Mining-Construction","Manufacturing","Tr-Comm-Util"),
+              ncol=2,nrow=2)
+    ggsave(here(paste0("output/Graphs/",geof,"/",year,"/corr_sh_ind1950_main_x_",i,"_1.jpeg")),plot=last_plot())
+    ggarrange(p[[5]],p[[6]],p[[7]],labels=c("Trade","Services","Public Admin."),
+              ncol=2,nrow=2)
+    ggsave(here(paste0("output/Graphs/",geof,"/",year,"/corr_sh_ind1950_main_x_",i,"_2.jpeg")),plot=last_plot())
+    
+    
+    # Occupation
+    x <- c("sh_occ1950_main_0","sh_occ1950_main_100","sh_occ1950_main_200","sh_occ1950_main_300","sh_occ1950_main_400","sh_occ1950_main_500","sh_occ1950_main_600","sh_occ1950_main_700","sh_occ1950_main_730","sh_occ1950_main_800","sh_occ1950_main_900")
+    p <- vector(mode = "list", length = length(x))
+    for (j in 1:length(x)) {
+      p[[j]] <- ggplot(X, aes_string(y=i, x= x[j])) +
+        geom_point(size=0.1) + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) +
+        labs(title="",x="Share of workers", y = "Share of New Work") + theme(axis.line=element_line(color="black"), legend.position = "top") + theme_tufte() 
+    }
+    ggarrange(p[[1]],p[[2]],p[[3]],p[[4]],labels=c("Professional, Technical","Farmers","Managers, Officials and Proprietors","Clerical and Kindred"),font.label = list(size = 10),
+              ncol = 2, nrow =2)
+    ggsave(here(paste0("output/Graphs/",geof,"/",year,"/corr_sh_occ1950_main_x_",i,"_1.jpeg")),plot=last_plot())
+    ggarrange(p[[5]],p[[6]],p[[7]],p[[8]],labels=c("Sales workers","Craftsmen","Operatives","Service Workers (private household)"),font.label = list(size = 10), ncol = 2, nrow =2)
+    ggsave(here(paste0("output/Graphs/",geof,"/",year,"/corr_sh_occ1950_main_x_",i,"_2.jpeg")),plot=last_plot())
+    ggarrange(p[[9]],p[[10]],p[[11]],labels=c("Service Workers (not household)","Farm laborers","Laborers"),font.label = list(size = 10),
+              ncol = 2, nrow =2)
+    ggsave(here(paste0("output/Graphs/",geof,"/",year,"/corr_sh_occ1950_main_x_",i,"_3.jpeg")),plot=last_plot())
       
   }
 }
@@ -614,6 +616,36 @@ f_occ1950 <- function(X,occ_v,flag=0) {
 }
 ```
 
+## Function to create Hirschman-Herfindahl index
+```{r}
+f_HHI <- function(X,geof,weight,arg_ind) {
+  X <- copy(X)
+  
+  # If no geof compute the HHI index for the whole dataset. 
+  if (missing(geof)) {
+    X[,g:=1]
+    setnames( X,c(deparse(substitute(weight)),deparse(substitute(arg_ind))),c("w","v"))
+  } else {
+    setnames( X,c(deparse(substitute(weight)),deparse(substitute(arg_ind)),deparse(substitute(geof))),c("w","v","g"))
+  }
+  # flag=1 drop observations with NA values
+  X <- X[!is.na(w) & w>0 & !is.na(g) & (!is.na(v))]
+  
+  X <- X[,lapply(.SD,sum,na.rm=TRUE),by=c("g","v"),.SDcols=c("w")][,N:=.N,by=c("g")]
+  X <- X[,si:=sum(w),by=c("g")][,si:=w/si][,si2:=si*si]
+  X <- X[,H:=sum(si2),by=c("g")][,H:=-(H-1/N)/(1-1/N)]   # Last formula scales the index between -1 and 0. Values closer to zero imply more variety
+  X <- X[,.SD[1],by=c("g"),.SDcols=c("H")]
+  if (!missing(geof)) { 
+    setnames(X,c("g"),c(deparse(substitute(geof))))
+  } else {
+    X[,g:=NULL]
+  }
+  return(X)
+}
+
+
+```
+
 # Part 1. Data Analysis at the geographic level
 Here we look at correlations between the share of new titles and different geographic level variables
 
@@ -946,6 +978,97 @@ for (i in c("sh_new_method1_dataset1","sh_new_method1_dataset2","sh_new_method1_
   rm(metarea,map.metarea)
 }
 ```
+
+
+##  3. Different information related with new sectors
+### Loading packages and erasing the workspace (make sure to have loaded f_load_pk)
+```{r}
+rm(list = setdiff(ls(),c(lsf.str(),"main_directory") ))
+f_load_pk()
+```
+### 3.1. Preparing the data
+
+- Keep a variable for population and another for workers?? ---> In the individual_data we don't have info about whole population!!!! Where to get it
+- What workers to keep? 
+  - Employed people: (empstat==1 or classwkr==1 | classwkr==2) Empstat is not available for 1920. In some cases people that say the are unemployed appear as working for wages or self-employed.
+  - Working age: age in (16,64)
+  - Valid industry and occupation (occ1950_main!=979 & ind1950_main!=0)
+```{r Data Preparation}
+# Importing data and Simplifying
+census_sample_1920_individual_data <- 
+  read_fst(here(paste0("output/Rdata/census_sample_1920_individual_data.fst")),as.data.table=TRUE,columns=c("countynhg_1910","statefip","perwt_ID","ind1950","ind1950_main","occ","occ1950","occ1950_main","classwkr","age"))[occ1950_main!=979 & ind1950_main!=0 & (classwkr==1 | classwkr==2) & (age>=16 & age <=64)][,.(perwt=sum(perwt_ID)),by=c("countynhg_1910","statefip","ind1950","ind1950_main","occ","occ1950","occ1950_main")]
+
+census_sample_1930_individual_data <- 
+  read_fst(here(paste0("output/Rdata/census_sample_1930_individual_data.fst")),as.data.table=TRUE,columns=c("countynhg_1910","statefip","perwt_ID","ind1950","ind1950_main","occind","occ1950","occ1950_main","sh_red_tit","empstat","classwkr","age"))[occ1950_main!=979 & ind1950_main!=0 & (empstat==1 |classwkr==1 | classwkr==2) & (age>=16 & age <=64)][,.(perwt=sum(perwt_ID)),by=c("countynhg_1910","statefip","ind1950","ind1950_main","occind","occ1950","occ1950_main","sh_red_tit")]
+
+census_sample_1940_individual_data <- read_fst(here(paste0("output/Rdata/census_sample_1940_individual_data.fst")),as.data.table=TRUE,columns=c("countynhg_1910","statefip","perwt_ID","ind1950","ind1950_main","occ1940","occ1950","occ1950_main","sh_new_method1_dataset1","sh_new_method1_dataset2","sh_new_method2_dataset3","empstat","classwkr","age"))[occ1950_main!=979 & ind1950_main!=0 & (empstat==1 | classwkr==1 | classwkr==2) & (age>=16 & age <=64)][,.(perwt=sum(perwt_ID)),by=c("countynhg_1910","statefip","ind1950","ind1950_main","occ1940","occ1950","occ1950_main","sh_new_method1_dataset1","sh_new_method1_dataset2","sh_new_method2_dataset3")]
+
+```
+
+### 3.2. Descriptive statistics
+- Dispersion measures: how disperse a new sector is across the Nation. We use the HHI index (***we slightly changed the function f_HHI***). This should be compared against other sectors??
+
+```{r}
+A <- copy(census_sample_1920_individual_data)
+
+# Some Variables
+temp <- A[,`:=`(
+                perwt_nat=sum(perwt),
+                N_countynhg_1910_nat=length(unique(A$countynhg_1910)),
+                N_statefip_nat=length(unique(A$statefip)),
+                N_occ_nat=length(unique(A$occ)),
+                N_occ1950_nat=length(unique(A$occ1950))
+               )
+          ][ind1950 %in% c(376,377,466,556,606,667,668,816,856)][,`:=`(
+                perwt=sum(perwt),
+                N_countynhg_1910=length(unique(countynhg_1910)),
+                N_statefip=length(unique(statefip)),
+                N_occ=length(unique(occ)),
+                N_occ1950=length(unique(occ1950))
+               ),by="ind1950"]
+temp <- temp[,.SD[1],by="ind1950",.SDcols=names(temp[,!c("ind1950","countynhg_1910","occ","occ1950","occ1950_main","ind1950_main","statefip")])]
+
+# HHI
+temp <- 
+  merge(
+    temp,
+    data.table(
+       ind1950=c(376,377,556,606,667,668,816),
+       HHI=unlist(lapply(list(A[ind1950==376],A[ind1950==377],A[ind1950==556],A[ind1950==606],A[ind1950==667],A[ind1950==668],A[ind1950==816]),f_HHI,weight=perwt,arg_ind=countynhg_1910))
+    ), by="ind1950"
+)
+    
+# Creating the share variables
+f_division <- function(Y,a,b,names) {
+  if (!(length(a)==length(b) & length(b)==length(names))) stop("Vectors a, b and names have to have the same length")
+  #Y <- copy(X)
+  for (i in 1:length(a)) {
+    setnames(Y,c(a[i],b[i]),c("var1","var2"))
+    #Y <- Y[,c:=var1/var2]
+    Y[,c:=var1/var2]
+    setnames(Y,c("c"),c(names[i]))
+    setnames(Y,c("var1","var2"),c(a[i],b[i]))
+  }
+  return(Y)
+}
+
+temp <- f_division(temp,c("perwt","N_countynhg_1910","N_statefip","N_occ","N_occ1950"),c(paste0(c("perwt","N_countynhg_1910","N_statefip","N_occ","N_occ1950"),"_nat")),c(paste0("sh_",c("perwt","N_countynhg_1910","N_statefip","N_occ","N_occ1950"))))
+
+# Distribution of share of employment of a sector
+## Creating distribution variables
+temp_dis <- A[,c("ind1950","perwt","countynhg_1910")][,perwt_cty:=sum(perwt),by="countynhg_1910"][ind1950 %in% c(376,377,466,556,606,667,668,816,856)][,.(perwt=sum(perwt),perwt_cty=mean(perwt_cty)),by=c("countynhg_1910","ind1950")][,sh_perwt:=perwt/perwt_cty]
+
+temp_dis <- as.data.table(lapply(list(temp_dis[ind1950==376],temp_dis[ind1950==377],temp_dis[ind1950==556],temp_dis[ind1950==606],temp_dis[ind1950==667],temp_dis[ind1950==668],temp_dis[ind1950==816]),function(x) quantile(x$sh_perwt)))[,percentile:=c("p0","p25","p50","p75","p100")]
+setnames(temp_dis,c(paste0("V",1:7)),c("376","377","556","606","667","668","816"))
+temp_dis <- as.data.table(dcast(melt(temp_dis, id.vars = "percentile"), variable ~ percentile))
+temp_dis <- temp_dis[,ind1950:=as.numeric(as.character(variable))][,!c("variable")]
+setcolorder(temp_dis,c("ind1950","p0","p25","p50","p75","p100"))
+
+## Merging
+temp <- merge(temp,temp_dis,by="ind1950")
+
+```
+
 
 
 # Part 3. Data Analysis using individual level observations
@@ -6045,6 +6168,7 @@ for (var_y in c(1930,1920,1910)) {
 ```{r}
 rm(list = setdiff(ls(),c(lsf.str(),"main_directory") ))
 f_load_pk()
+p_load(kableExtra)
 ```
 
 Problem: In the individual level regressions of share of new work, the main industry variables have a very high explanatory power in 1930, but not in 1940. In addition, we have that the regression model for 1930 explains between 10 and 16% (using the R2) of the variability of the independent variable, while for 1940 this value fluctuates between 2 and 4.5%. This is not necessarily a problem, but it is important to understand what is happening.
@@ -6079,6 +6203,7 @@ ind1950.codes <- as.data.table(read_excel(here(paste0("input/1930 - Cleaned.xlsx
 
 # Occupation names
 occ1930.codes <- as.data.table( read_excel(here(paste0("input/1930 - Cleaned.xlsx")), sheet = "1930 main groups",guess_max=10000) )[,c("occind","occind1930","occind1930_name")]
+occ1940.codes <- as.data.table( read_excel(here(paste0("input/1940 - Cleaned.xlsx")), sheet = "occ1940",guess_max=10000) )[,`:=`(occ1940_IPUMS=as.numeric(occ1940_IPUMS),occ1940=tolower(occ1940))][,c("occ1940","name_occ1940")][,.SD[1],by="occ1940"]
 
 # Import main databases ----
 census_sample_1930_main <- 
@@ -6089,7 +6214,7 @@ census_sample_1940_main <-
 
 # Simplify ----
 census_sample_1930_main <-
-  census_sample_1930_main[,.(perwt=sum(perwt_ID),sh_red_tit=mean(sh_red_tit)),by=c("occind","countynhg_1910","lit","statefip","urban","male","lit","race","wwages","mig_us","mig_ab","age_main","ind1950","ind1950_main")]
+  census_sample_1930_main[,.(perwt=sum(perwt_ID),sh_red_tit=mean(sh_red_tit)),by=c("occind","countynhg_1910","lit","statefip","urban","male","race","wwages","mig_us","mig_ab","age_main","ind1950","ind1950_main")]
 
 census_sample_1940_main <-
   census_sample_1940_main[,.(perwt=sum(perwt_ID),sh_new_method1_dataset1=weighted.mean(sh_new_method1_dataset1,w=perwt_ID),sh_new_method1_dataset2=weighted.mean(sh_new_method1_dataset2,w=perwt_ID),sh_new_method1_dataset3=weighted.mean(sh_new_method1_dataset3,w=perwt_ID),sh_new_method2_dataset1=weighted.mean(sh_new_method2_dataset1,w=perwt_ID),sh_new_method2_dataset2=weighted.mean(sh_new_method2_dataset2,w=perwt_ID),sh_new_method2_dataset3=weighted.mean(sh_new_method2_dataset3,w=perwt_ID)),by=c("occ1940","countynhg_1910","educ_main","statefip","urban","male","race","wwages","mig_us","mig_ab","age_main","ind1950","ind1950_main")]
@@ -6191,7 +6316,6 @@ knitr::kable(census_sample_1930_industry_study_all[order(-sh_red_tit,-perwt),c("
 knitr::kable(census_sample_1930_industry_study_no_new_sec[order(-sh_red_tit,-perwt),c("ind1950_main_name","sh_red_tit","perwt","n_new_work")],caption="Excluding New sectors")
 
 ```
-
 
 ### 1.1.1. 1940
 ```{r 1940}
@@ -6306,79 +6430,552 @@ for (method in c(1)) {
 
 We observe that the mean and variability are much larger in 1930 than in 1940. 
 ```{r echo=FALSE, results = 'asis'}
-knitr::kable(
-  data.table(Year_Dataset=c("1930","1940 Method1 Dt 2","1940 Method1 Dt3"),mean=c(0.2077,0.0734,0.0648),Std_Deviation=c(0.1008,0.0194,0.028))
-  )
+
+data.table(Year_Dataset=c("1930","1940 Method1 Dt 2","1940 Method1 Dt3"),mean=c(0.2077,0.0734,0.0648),Std_Deviation=c(0.1008,0.0194,0.028)) %>%
+  kbl(caption = "New Work in 1930 and 1940") %>%
+  kable_classic(full_width = F, html_font = "Cambria")
+
 ```
 When we look at the main sectors for 1940 we also observe an important variability within the different new work variables. For the Dataset 2 the share of new work goes from 0.059 to 0.114, while for the dataset 3 it goes from 0.055 to 0.07. The reason for this is related with the different ways both datasets were constructed. This low variability is a reason for the low explanatory power of the industry fixed effects in the first stage regressions. The explanation for the low variability in itself is not clear yet.
+
+*** TO-DO: *** Change section 1.1. using the table and graphs from section 1.3.
 
 ## 1.2 Share of new work by occupation
 ### 1.2.1 1930
 ```{r 1930}
-census_sample_1930_occ_study <- 
+census_sample_1930_occ_study_all <- 
   merge(
     census_sample_1930_main[,occind_subind:=format(round(sh_red_tit,4),nsmall=2)][,.(perwt=sum(perwt),sh_red_tit=weighted.mean(sh_red_tit,w=perwt)),by=c("occind","occind_subind")][,n_new_work:=perwt*sh_red_tit],
     occ1930.codes[,c("occind","occind1930_name")],
     by="occind",all.x=TRUE,all.y=FALSE
     
   )
+census_sample_1930_occ_study_no_new_sec <- 
+  merge(
+    census_sample_1930_main[!(ind1950 %in% c(376,377,466,556,606,667,668,816,856))][,occind_subind:=format(round(sh_red_tit,4),nsmall=2)][,.(perwt=sum(perwt),sh_red_tit=weighted.mean(sh_red_tit,w=perwt)),by=c("occind","occind_subind")][,n_new_work:=perwt*sh_red_tit],
+    occ1930.codes[,c("occind","occind1930_name")],
+    by="occind",all.x=TRUE,all.y=FALSE
+    
+  )
 
 ## Mean and Standard Deviation
-cat(gsub(pattern = "\n", replacement = "  \n", 
-         x = paste0(
-           "Grouping by occind\n\n",
-           "There are a total of ",length(census_sample_1930_occ_study$occind)," different occupations\n",
-           "The mean of the New work variable was: ",
-           format(round(mean(census_sample_1930_occ_study$sh_red_tit),4),nsmall=2),
-           "\nand the standard deviation: ",
-           format(round(sd(census_sample_1930_occ_study$sh_red_tit),4),nsmall=2),
-           "\n\n"
-         )
-))
+Tab_1930 <- data.table(
+  Variable=c("Number of People","Number of Occupations","Mean of New Work","St. Dev. New Work","Percentile 0","Percentile 25","Percentile 50","Percentile 75","Percentile 100"),
+  'All Workers'=c(
+                  nrow(census_sample_1930_main),
+                  length(unique(census_sample_1930_main$occind)),
+                  format(round(mean(census_sample_1930_main$sh_red_tit),4),nsmall=2),
+                  format(round(sd(census_sample_1930_main$sh_red_tit),4),nsmall=2),
+                  format(round(unname(quantile(census_sample_1930_main$sh_red_tit)),4),nsmall=2)
+  ),
+  'No New Sectors' = c(
+                  nrow(census_sample_1930_main[!(ind1950 %in% c(376,377,466,556,606,667,668,816,856))]),
+                  length(unique(census_sample_1930_main[!(ind1950 %in% c(376,377,466,556,606,667,668,816,856))]$occind)),
+                  format(round(mean(census_sample_1930_main[!(ind1950 %in% c(376,377,466,556,606,667,668,816,856))]$sh_red_tit),4),nsmall=2),
+                  format(round(sd(census_sample_1930_main[!(ind1950 %in% c(376,377,466,556,606,667,668,816,856))]$sh_red_tit),4),nsmall=2),
+                  format(round(unname(quantile(census_sample_1930_main[!(ind1950 %in% c(376,377,466,556,606,667,668,816,856))]$sh_red_tit)),4),nsmall=2)
+  ),
+  'All Workers - Gruped by occ'=c(
+                  NA,
+                  length(unique(census_sample_1930_occ_study_all$occind)),
+                  format(round(mean(census_sample_1930_occ_study_all$sh_red_tit),4),nsmall=2),
+                  format(round(sd(census_sample_1930_occ_study_all$sh_red_tit),4),nsmall=2),
+                  format(round(unname(quantile(census_sample_1930_occ_study_all$sh_red_tit)),4),nsmall=2)
+  ),
+  'No New Sectors - Grouped by occ' = c(
+                  NA,
+                  length(unique(census_sample_1930_occ_study_no_new_sec$occind)),
+                  format(round(mean(census_sample_1930_occ_study_no_new_sec$sh_red_tit),4),nsmall=2),
+                  format(round(sd(census_sample_1930_occ_study_no_new_sec$sh_red_tit),4),nsmall=2),
+                  format(round(unname(quantile(census_sample_1930_occ_study_no_new_sec$sh_red_tit)),4),nsmall=2)
+  )
+)
 
-## Some graphs
-ggplot(census_sample_1930_occ_study, aes(x=sh_red_tit)) +
-        geom_histogram(color="black",bins=40,fill="white") +
-        labs(title="Occupation Histogram for the Share of New Work",x="Share of New Work", y = "Number of Occupations")  + 
-        theme_tufte() + theme(legend.position = "none")
+# Note: If all occupations are in all sectors we won't see any difference in the variables
+Tab_1930 <- f_order_reg(Tab_1930,as.list(c("Number of People","Number of Occupations","Mean of New Work","St. Dev. New Work","Percentile 0","Percentile 25","Percentile 50","Percentile 75","Percentile 100")),Variable)
+Tab_1930 %>%
+  kbl(caption = "Different statistics related to New Work in 1930") %>%
+  kable_classic(full_width = F, html_font = "Cambria")
 
-ggplot(census_sample_1930_occ_study, aes(x=n_new_work)) +
-        geom_histogram(color="black",bins=40,fill="white") +
-        labs(title="",x="Occupation Histogram for the Number of New Workers", y = "Number of Occupations")  + 
-        theme_tufte() + theme(legend.position = "none")
 
-ggplot(census_sample_1930_occ_study[n_new_work<=300000], aes(x=n_new_work)) +
-        geom_histogram(color="black",bins=40,fill="white") +
-        labs(title="",x="Occupation Histogram for the Share of New Work (Occupations with less than 300.000 workers)", y = "Number of Occupations")  + 
-        theme_tufte() + theme(legend.position = "none")
+# Histogram for new work variable (occupations)
+## Common Axis
+x_min <- -0.05 +min(
+             min(census_sample_1930_occ_study_all$sh_red_tit),
+             min(census_sample_1930_occ_study_no_new_sec$sh_red_tit)
+           )
+x_max <- max(
+             max(census_sample_1930_occ_study_all$sh_red_tit),
+             max(census_sample_1930_occ_study_no_new_sec$sh_red_tit)
+           )
+## Graph
+ggarrange(
+  ggplot(census_sample_1930_occ_study_all, aes(x=sh_red_tit)) +
+        geom_histogram(color="black",bins=40,  aes(y = stat(width*density)),  fill="white") +
+        geom_vline(data=census_sample_1930_occ_study_all[,.(sh_red_tit=mean(sh_red_tit))],aes(xintercept=sh_red_tit),
+           linetype="dashed") + 
+        scale_y_continuous(labels = percent_format()) +
+        scale_x_continuous(limits=c(x_min, x_max)) +
+        labs(title="",x="", y = "Share of people")  + 
+        theme_tufte() + 
+        theme(legend.position = "none",axis.title.x=element_blank(),axis.text.x=element_blank())   ,     # Last two elements delete text and title
+  
+  ggplot(census_sample_1930_occ_study_no_new_sec, aes(x=sh_red_tit)) +
+        geom_histogram(color="black",bins=40,  aes(y = stat(width*density)),  fill="white") +
+        geom_vline(data=census_sample_1930_occ_study_no_new_sec[,.(sh_red_tit=mean(sh_red_tit))],aes(xintercept=sh_red_tit),
+           linetype="dashed") +
+        scale_y_continuous(labels = percent_format()) +
+        scale_x_continuous(limits=c(x_min, x_max)) +
+        labs(title="",x="Share of New Work", y = "Share of people")  + 
+        theme_tufte() + theme(legend.position = "none"),
+  ncol = 1, nrow = 2,
+  labels=c("All workers (occupations)","Excluding New Sectors (occupations)")
+    )
+
+
+# Histogram for new work variable (looking at people)
+## Common Axis ( We substract -0.05 because otherwise values around the min are not displayed)
+x_min <- -0.05 +min(
+             min(census_sample_1930_main$sh_red_tit),
+             min(census_sample_1930_main[!(ind1950 %in% c(376,377,466,556,606,667,668,816,856))]$sh_red_tit)
+           )
+x_max <- max(
+             max(census_sample_1930_main$sh_red_tit),
+             max(census_sample_1930_main[!(ind1950 %in% c(376,377,466,556,606,667,668,816,856))]$sh_red_tit)
+           )
+
+## Graph
+ggarrange(
+  ggplot(census_sample_1930_main, aes(x=sh_red_tit)) +
+        geom_histogram(color="black",bins=40,  aes(y = stat(width*density)),  fill="white") +
+        geom_vline(data=census_sample_1930_main[,.(sh_red_tit=mean(sh_red_tit))],aes(xintercept=sh_red_tit),
+           linetype="dashed") + 
+        scale_y_continuous(labels = percent_format()) +
+        scale_x_continuous(limits=c(x_min, x_max)) +
+        labs(title="",x="", y = "Share of people")  + 
+        theme_tufte() + 
+        theme(legend.position = "none",axis.title.x=element_blank(),
+        axis.text.x=element_blank())   ,     # Last two elements delete text and title
+  ggplot(census_sample_1930_main[!(ind1950 %in% c(376,377,466,556,606,667,668,816,856))], aes(x=sh_red_tit)) +
+        geom_histogram(color="black",bins=40,  aes(y = stat(width*density)),  fill="white") +
+        geom_vline(data=census_sample_1930_main[!(ind1950 %in% c(376,377,466,556,606,667,668,816,856))][,.(sh_red_tit=mean(sh_red_tit))],aes(xintercept=sh_red_tit),
+           linetype="dashed") +
+        scale_y_continuous(labels = percent_format()) +
+        scale_x_continuous(limits=c(x_min, x_max)) +
+        labs(title="",x="Share of New Work", y = "Share of people")  + 
+        theme_tufte() + theme(legend.position = "none"),
+  ncol = 1, nrow = 2,
+  labels=c("All workers (people)","Excluding New Sectors (people)"),
+  align = "v"
+    )
+
 
 ## Table
-knitr::kable(census_sample_1930_occ_study[order(-sh_red_tit,-perwt),c("occind1930_name","occind","sh_red_tit","perwt","n_new_work")][1:15])
-knitr::kable(census_sample_1930_occ_study[order(-sh_red_tit,-perwt),c("occind1930_name","occind","sh_red_tit","perwt","n_new_work")][16:30])
+census_sample_1930_occ_study_all[order(-sh_red_tit,-perwt),c("occind1930_name","occind","sh_red_tit","perwt","n_new_work")][1:15] %>%
+  kbl(caption = "Occupations and their associated New Work Share in 1930 (1 to 15)") %>%
+  kable_classic(full_width = F, html_font = "Cambria")
+
+census_sample_1930_occ_study_all[order(-sh_red_tit,-perwt),c("occind1930_name","occind","sh_red_tit","perwt","n_new_work")][16:30] %>%
+  kbl(caption = "Occupations and their associated New Work Share in 1930 (16 to 30)") %>%
+  kable_classic(full_width = F, html_font = "Cambria")
+
 
 ```
-# TO-DO:  - Compute the mean and sd excluding workers in new sectors
 
 One of the things that we observe is many more individual sectors with a very high share of new work. Is this due to the problems cleaning the data?
 
+### 1.2.1 1940
 ```{r 1940}
+Tab_1940 <- data.table(
+  Variable=c("Number of People","Number of Occupations","Mean of New Work","St. Dev. New Work","Percentile 0","Percentile 25","Percentile 50","Percentile 75","Percentile 100"))
+
+g_all_occ <- vector(mode = "list")
+g_all_people <- vector(mode = "list")
+g_no_new_sec_occ <- vector(mode = "list")
+g_no_new_sec_people <- vector(mode = "list")
+
+
+i <- 1
+for (method in c(1)) {
+  for (dt in c(2,3)) {
+    setnames(census_sample_1940_main,c(paste0("sh_new_method",method,"_dataset",dt)),c("new_work"))
+    
+    census_sample_1940_occ_study_all <- 
+    merge(
+      census_sample_1940_main[,c("perwt","occ1940","new_work")][,occ1940_subind:=as.character(format(round(new_work,4),nsmall=2))][,.(perwt=sum(perwt),new_work=weighted.mean(new_work,w=perwt)),by=c("occ1940","occ1940_subind")][,n_new_work:=perwt*new_work],
+      occ1940.codes[,c("occ1940","name_occ1940")],
+      by="occ1940",all.x=TRUE,all.y=FALSE
+    )
+    census_sample_1940_occ_study_no_new_sec <- 
+    merge(
+      census_sample_1940_main[!(ind1950 %in% c(376,377,466,556,606,667,668,816,856))][,c("perwt","occ1940","new_work")][,occ1940_subind:=as.character(format(round(new_work,4),nsmall=2))][,.(perwt=sum(perwt),new_work=weighted.mean(new_work,w=perwt)),by=c("occ1940","occ1940_subind")][,n_new_work:=perwt*new_work],
+      occ1940.codes[,c("occ1940","name_occ1940")],
+      by="occ1940",all.x=TRUE,all.y=FALSE
+    )
+    
+    # Adding to table
+    Tab_1940 <- merge(
+      Tab_1940,
+      data.table(
+        Variable=c("Number of People","Number of Occupations","Mean of New Work","St. Dev. New Work","Percentile 0","Percentile 25","Percentile 50","Percentile 75","Percentile 100"),
+        V1=c(
+          nrow(census_sample_1940_main),
+          length(unique(census_sample_1940_main$new_work)),
+          format(round(mean(census_sample_1940_main$new_work),4),nsmall=2),
+          format(round(sd(census_sample_1940_main$new_work),4),nsmall=2),
+          format(round(unname(quantile(census_sample_1940_main$new_work)),4),nsmall=2)
+        ),
+        V2 = c(
+          nrow(census_sample_1940_main[!(ind1950 %in% c(376,377,466,556,606,667,668,816,856))]),
+          length(unique(census_sample_1940_main[!(ind1950 %in% c(376,377,466,556,606,667,668,816,856))]$new_work)),
+          format(round(mean(census_sample_1940_main[!(ind1950 %in% c(376,377,466,556,606,667,668,816,856))]$new_work),4),nsmall=2),
+          format(round(sd(census_sample_1940_main[!(ind1950 %in% c(376,377,466,556,606,667,668,816,856))]$new_work),4),nsmall=2),
+          format(round(unname(quantile(census_sample_1940_main[!(ind1950 %in% c(376,377,466,556,606,667,668,816,856))]$new_work)),4),nsmall=2)
+        )
+      ),by="Variable"
+    )
+    setnames(Tab_1940,c("V1","V2"),c(paste0("All_method",method,"_dt",dt),paste0("No_new_sec_method",method,"_dt",dt)))
+    
+    # Graphs
+    ## Occupations
+    g_all_occ[[i]] <- 
+      ggplot(copy(census_sample_1940_occ_study_all[,c("new_work")]), aes(x=new_work)) +
+      geom_histogram(color="black",bins=40,  aes(y = stat(width*density)),  fill="white") +
+      geom_vline(data=census_sample_1940_occ_study_all[,.(new_work=mean(new_work))],aes(xintercept=new_work),
+                 linetype="dashed") + 
+      scale_y_continuous(labels = percent_format()) +
+      labs(title="",x="", y = "Share of occ1940")  + 
+      theme_tufte()
+    
+    g_no_new_sec_occ[[i]] <- 
+      ggplot(copy(census_sample_1940_occ_study_no_new_sec[,c("new_work")]), aes(x=new_work)) +
+      geom_histogram(color="black",bins=40,  aes(y = stat(width*density)),  fill="white") +
+      geom_vline(data=census_sample_1940_occ_study_no_new_sec[,.(new_work=mean(new_work))],aes(xintercept=new_work),
+                 linetype="dashed") + 
+      scale_y_continuous(labels = percent_format()) +
+      labs(title="",x="", y = "Share of occ1940")  + 
+      theme_tufte()
+    
+    ## People
+    g_all_people[[i]] <- 
+      ggplot(copy(census_sample_1940_main[,c("new_work")]), aes(x=new_work)) +
+      geom_histogram(color="black",bins=40,  aes(y = stat(width*density)),  fill="white") +
+      geom_vline(data=census_sample_1940_main[,.(new_work=mean(new_work))],aes(xintercept=new_work),
+                 linetype="dashed") + 
+      scale_y_continuous(labels = percent_format()) +
+      labs(title="",x="", y = "Share of people")  + 
+      theme_tufte()
+    
+    g_no_new_sec_people[[i]] <- 
+      ggplot(copy(census_sample_1940_main[!(ind1950 %in% c(376,377,466,556,606,667,668,816,856))][,c("new_work")]), aes(x=new_work)) +
+      geom_histogram(color="black",bins=40,  aes(y = stat(width*density)),  fill="white") +
+      geom_vline(data=census_sample_1940_main[!(ind1950 %in% c(376,377,466,556,606,667,668,816,856))][,.(new_work=mean(new_work))],aes(xintercept=new_work),
+                 linetype="dashed") + 
+      scale_y_continuous(labels = percent_format()) +
+      labs(title="",x="", y = "Share of people")  + 
+      theme_tufte()
+    
+    
+    setnames(census_sample_1940_main,c("new_work"),c(paste0("sh_new_method",method,"_dataset",dt)))
+    i <- i + 1
+  }
+}
+
+# Table ----
+Tab_1940 <- f_order_reg(Tab_1940,as.list(c("Number of People","Number of Occupations","Mean of New Work","St. Dev. New Work","Percentile 0","Percentile 25","Percentile 50","Percentile 75","Percentile 100")),Variable)
+Tab_1940 %>%
+  kbl(caption = "Different statistics related to New Work in 1940") %>%
+  kable_classic(full_width = F, html_font = "Cambria")
+
+# Histograms ----
+# Histogram for new work variable (looking at people)
+## All
+### Common Axis ( We substract -0.05 because otherwise values around the min are not displayed)
+x_min <- -0.05 +min(
+             min(g_all_people[[1]][[1]]$new_work),
+             min(g_all_people[[2]][[1]]$new_work)
+           )
+x_max <- max(
+             max(g_all_people[[1]][[1]]$new_work),
+             max(g_all_people[[2]][[1]]$new_work)
+           )
+
+### Graph
+ggarrange(
+  g_all_people[[1]] + 
+  scale_x_continuous(limits=c(x_min, x_max)) +
+  theme(legend.position = "none",axis.title.x=element_blank(),axis.text.x=element_blank()) ,     # Last two elements delete text and title
+  
+  g_all_people[[2]] + 
+  scale_x_continuous(limits=c(x_min, x_max)),
+  
+  ncol = 1, nrow = 2,
+  labels=c("All workers (people) - Method 1 Dt 2","All workers (people) - Method 1 Dt3"),
+  align = "v"
+    )
+
+## No New Sectors
+### Common Axis ( We substract -0.05 because otherwise values around the min are not displayed)
+x_min <- -0.05 +min(
+             min(g_no_new_sec_people[[1]][[1]]$new_work),
+             min(g_no_new_sec_people[[2]][[1]]$new_work)
+           )
+x_max <- max(
+             max(g_no_new_sec_people[[1]][[1]]$new_work),
+             max(g_no_new_sec_people[[2]][[1]]$new_work)
+           )
+
+### Graph
+ggarrange(
+  g_no_new_sec_people[[1]] + 
+  scale_x_continuous(limits=c(x_min, x_max)) +
+  theme(legend.position = "none",axis.title.x=element_blank(),axis.text.x=element_blank()) ,     # Last two elements delete text and title
+  
+  g_no_new_sec_people[[2]] + 
+  scale_x_continuous(limits=c(x_min, x_max)),
+  
+  ncol = 1, nrow = 2,
+  labels=c("No New Sectors (people) - Method 1 Dt 2","No New Sectors (people) - Method 1 Dt3"),
+  align = "v"
+    )
+
+# Histogram for new work variable (looking at occ)
+## All
+x_min <- -0.05 +min(
+             min(g_all_occ[[1]][[1]]$new_work),
+             min(g_all_occ[[2]][[1]]$new_work)
+           )
+x_max <- max(
+             max(g_all_occ[[1]][[1]]$new_work),
+             max(g_all_occ[[2]][[1]]$new_work)
+           )
+
+### Graph
+ggarrange(
+  g_all_occ[[1]] + 
+  scale_x_continuous(limits=c(x_min, x_max)) +
+  theme(legend.position = "none",axis.title.x=element_blank(),axis.text.x=element_blank()) ,     # Last two elements delete text and title
+  
+  g_all_occ[[2]] + 
+  scale_x_continuous(limits=c(x_min, x_max)),
+  
+  ncol = 1, nrow = 2,
+  labels=c("All workers (occupations) - Method 1 Dt 2","All workers (occupations) - Method 1 Dt3"),
+  align = "v"
+    )
+
+## No New Sectors
+### Common Axis ( We substract -0.05 because otherwise values around the min are not displayed)
+x_min <- -0.05 +min(
+             min(g_no_new_sec_occ[[1]][[1]]$new_work),
+             min(g_no_new_sec_occ[[2]][[1]]$new_work)
+           )
+x_max <- max(
+             max(g_no_new_sec_occ[[1]][[1]]$new_work),
+             max(g_no_new_sec_occ[[2]][[1]]$new_work)
+           )
+
+### Graph
+ggarrange(
+  g_no_new_sec_occ[[1]] + 
+  scale_x_continuous(limits=c(x_min, x_max)) +
+  theme(legend.position = "none",axis.title.x=element_blank(),axis.text.x=element_blank()) ,     # Last two elements delete text and title
+  
+  g_no_new_sec_occ[[2]] + 
+  scale_x_continuous(limits=c(x_min, x_max)),
+  
+  ncol = 1, nrow = 2,
+  labels=c("No New Sec workers (occupations) - Method 1 Dt 2","No New Sec (occupations) - Method 1 Dt3"),
+  align = "v"
+    )
+
+    
+```
+
+The two summary tables presented before show a stark difference between years 1930 and 1940. While the inter-quantile deviation for year 1930 is around 21%, it is only 9% in 1940. In a similar way as what we observed in the previous section, the variability of the New Work variable is higher (although only slightly) in Dataset 2 than Dataset 3. Also note that we have more than twice the number of occupations in Dataset 2 compared to Dataset 3. This is just because of the way we grouped occupations in both cases.
+
+
+## 1.3 Share of new work by different variables
+### 1.3.1. 1930
+```{r 1930}
+
+for (var in c("race","age_main","urban","mig_ab","lit","ind1950_main")) {
+  # Changing name, reducing sample, creating categories
+  setnames(census_sample_1930_main,c(var),c("var"))
+
+  A <- census_sample_1930_main[,c("perwt","sh_red_tit","var","occind")]
+  a <- sort(unique(census_sample_1930_main$var))
+  
+  Tab <-
+        data.table(
+          Variable=c("Number of People","Number of Occupations","Mean of New Work","St. Dev. New Work","Percentile 0","Percentile 25","Percentile 50","Percentile 75","Percentile 100"))
+  
+  for (i in a) {
+    Temp <- A[var==i]
+    Tab <- merge(
+        Tab,
+        data.table(
+          Variable=c("Number of People","Number of Occupations","Mean of New Work","St. Dev. New Work","Percentile 0","Percentile 25","Percentile 50","Percentile 75","Percentile 100"),
+          V1=c(
+            nrow(Temp),
+            length(unique(Temp$occind)),
+            format(round(mean(Temp$sh_red_tit),4),nsmall=2),
+            format(round(sd(Temp$sh_red_tit),4),nsmall=2),
+            format(round(unname(quantile(Temp$sh_red_tit)),4),nsmall=2)
+          )
+        )
+    )
+    setnames(Tab,c("V1"),c(paste0(var,"_",i)))
+    rm(Temp)
+  }
+  assign(
+    paste0("Table_",var,"_1930"),
+    f_order_reg(Tab,as.list(c("Number of People","Number of Occupations","Mean of New Work","St. Dev. New Work","Percentile 0","Percentile 25","Percentile 50","Percentile 75","Percentile 100")),Variable)
+  )
+  
+  setnames(census_sample_1930_main,c("var"),c(var))
+}
+
+
+```
+
+### 1.3.1. 1940
+```{r 1940}
+
+for (new_work in c("sh_new_method1_dataset2","sh_new_method1_dataset3")) {
+  setnames(census_sample_1940_main,c(new_work),c("new_work"))
+  
+   for (var in c("race","age_main","urban","mig_ab","educ_main","ind1950_main")) {
+    # Changing name, reducing sample, creating categories
+    setnames(census_sample_1940_main,c(var),c("var"))
+  
+    A <- census_sample_1940_main[,c("perwt","new_work","var")]
+    a <- sort(unique(census_sample_1940_main$var))
+    
+    Tab <-
+          data.table(
+            Variable=c("Number of People","Number of Occupations","Mean of New Work","St. Dev. New Work","Percentile 0","Percentile 25","Percentile 50","Percentile 75","Percentile 100"))
+    
+    for (i in a) {
+      Temp <- A[var==i]
+      Tab <- merge(
+          Tab,
+          data.table(
+            Variable=c("Number of People","Number of Occupations","Mean of New Work","St. Dev. New Work","Percentile 0","Percentile 25","Percentile 50","Percentile 75","Percentile 100"),
+            V1=c(
+              nrow(Temp),
+              length(unique(Temp$new_work)),
+              format(round(mean(Temp$new_work),4),nsmall=2),
+              format(round(sd(Temp$new_work),4),nsmall=2),
+              format(round(unname(quantile(Temp$new_work)),4),nsmall=2)
+            )
+          )
+      )
+      setnames(Tab,c("V1"),c(paste0(var,"_",i)))
+      rm(Temp)
+    }
+    assign(
+      paste0("Table_",var,"_",new_work,"_1940"),
+      f_order_reg(Tab,as.list(c("Number of People","Number of Occupations","Mean of New Work","St. Dev. New Work","Percentile 0","Percentile 25","Percentile 50","Percentile 75","Percentile 100")),Variable)
+    )
+    
+    setnames(census_sample_1940_main,c("var"),c(var))
+   }
+  setnames(census_sample_1940_main,c("new_work"),c(new_work))
+  rm(A)
+}
+
+```
+
+### 1.3.3. Printing all the tables
+```{r}
+for (dt in sort(ls(pattern = "^Table_"))) {
+  temp <- eval(as.name(dt))
+  print(temp %>%
+    kbl(caption = paste0("Different statistics related to New Work - ",dt)) %>%
+    kable_classic(full_width = F, html_font = "Cambria")  )
+}
+
 
 ```
 
 
+## 2. Analyzing results from first stage regressions
 
-## 1.3 Share of new work by different variables
+- Summary of main results (r2, fstat, industry variables and their significance)
+- Correlation of city fixed effects in different exercises
+- F-stat for city fixed effects.
+
+### 2.1. Loading main datasets
+```{r}
+# 1930
+FS_reg_1930_all <- read_fst(here(paste0("output/RData/First_Stage_Summary_Reg_1930_all.fst")),as.data.table = TRUE)
+FS_reg_1930_no_new_sec <- read_fst(here(paste0("output/RData/First_Stage_Summary_Reg_1930_no_new_sec.fst")),as.data.table = TRUE)
+
+# 1940
+FS_reg_1940_all <- readRDS(here(paste0("output/Rdata/First_Stage_Summary_Reg_1940_all.rds")))
+FS_reg_1940_no_new_sec <- readRDS(here(paste0("output/Rdata/First_Stage_Summary_Reg_1940_no_new_sec.rds")))
+```
 
 
+### 2.2. Tables
+```{r}
+# Table
+Temp <- FS_reg_1930_no_new_sec[,c("rn","variable","model_4","model_7")][rn %in% c("ind1950_main_2","ind1950_main_3","ind1950_main_4","ind1950_main_5","ind1950_main_6","ind1950_main_7","r2","F_fe","pF_fe")]
+setnames(Temp,c(3,4),c("1930","I1930"))
+Temp1 <- FS_reg_1940_no_new_sec$sh_new_method1_dataset2[,c("rn","variable","model_8","model_7")][rn %in% c("ind1950_main_2","ind1950_main_3","ind1950_main_4","ind1950_main_5","ind1950_main_6","ind1950_main_7","r2","F_fe","pF_fe")]
+setnames(Temp1,c(3,4),c("m1_dt2_1940","Im1_dt2_1940"))
+Temp2 <- FS_reg_1940_no_new_sec$sh_new_method1_dataset2[,c("rn","variable","model_8","model_7")][rn %in% c("ind1950_main_2","ind1950_main_3","ind1950_main_4","ind1950_main_5","ind1950_main_6","ind1950_main_7","r2","F_fe","pF_fe")]
+setnames(Temp2,c(3,4),c("m1_dt3_1940","Im1_dt3_1940"))
+
+Y <- Reduce(
+          function(x, y, ...) merge(x, y, by=c("rn","variable"), all = TRUE),
+          list(
+            Temp,
+            Temp1,
+            Temp2
+          )
+        )
+
+Y <- f_order_reg(Y[,!c("variable")],as.list(c("ind1950_main_2","ind1950_main_3","ind1950_main_4","ind1950_main_5","ind1950_main_6","ind1950_main_7","r2","F_fe","pF_fe")),order_var=rn)
+
+Y %>%
+  kbl(caption = "Comparing regressions (with and without industry fixed effects)") %>%
+  kable_classic(full_width = F, html_font = "Cambria")
+
+```
+
+### 2.3. Correlations between FEs
+-Correlate city fixed effects for models 4 and 7 (1930) and 8 and 7 (1940)
+
+```{r}
+# Keep only city fixed effects
+Graph_1930_no_new_sec <- FS_reg_1930_no_new_sec[,c("rn","model_4","model_7")][rn %in% grep("^[0-9]+",rn,value=TRUE)][,c("model_4","model_7"):=lapply(.SD,function(x) as.numeric(x)),.SDcols=c("model_4","model_7")]
+
+Graph_1940_method1_dataset2_no_new_sec <- FS_reg_1940_no_new_sec$sh_new_method1_dataset2[,c("rn","model_4","model_7")][rn %in% grep("^[0-9]+",rn,value=TRUE)][,c("model_4","model_7"):=lapply(.SD,function(x) as.numeric(x)),.SDcols=c("model_4","model_7")]
+
+Graph_1940_method1_dataset3_no_new_sec <- FS_reg_1940_no_new_sec$sh_new_method1_dataset3[,c("rn","model_4","model_7")][rn %in% grep("^[0-9]+",rn,value=TRUE)][,c("model_4","model_7"):=lapply(.SD,function(x) as.numeric(x)),.SDcols=c("model_4","model_7")]
 
 
+ggplot(Graph_1930_no_new_sec, aes(y=model_7, x=model_4)) + 
+  geom_point(size=0.1) + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + 
+  geom_abline(intercept = 0, slope = 1) +
+  labs(title="Correlation between County FE with and without industry FE - 1930",x="County FE without Industry FE", y = "County FE with Industry FE") + theme_tufte() 
 
+ggplot(Graph_1940_method1_dataset2_no_new_sec, aes(y=model_7, x=model_4)) + 
+  geom_point(size=0.1) + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + 
+  geom_abline(intercept = 0, slope = 1) +
+  labs(title="Correlation between County FE with and without industry FE - 1940 M1 Dt2",x="County FE without Industry FE", y = "County FE with Industry FE") + theme_tufte() 
 
+ggplot(Graph_1940_method1_dataset3_no_new_sec, aes(y=model_7, x=model_4)) + 
+  geom_point(size=0.1) + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + 
+  geom_abline(intercept = 0, slope = 1) +
+  labs(title="Correlation between County FE with and without industry FE - 1940 M1 Dt3",x="County FE without Industry FE", y = "County FE with Industry FE") + theme_tufte() 
 
+```
 
-
-
-
+As was to be expected, the correlation line for the county FE with and without industry FE lies below the 45 degree line for 1930 and around it for 1940. In the first case we observe that introducing industry FE reduces the value of most county FE, while in the second case not 
+much changes.
 
 
 

@@ -672,7 +672,14 @@ f_average <- function(X,geof,weight,var,flag=0) {
 ```{r}
 f_HHI <- function(X,geof,weight,arg_ind) {
   X <- copy(X)
-  setnames( X,c(deparse(substitute(weight)),deparse(substitute(arg_ind)),deparse(substitute(geof))),c("w","v","g"))
+  
+  # If no geof compute the HHI index for the whole dataset. 
+  if (missing(geof)) {
+    X[,g:=1]
+    setnames( X,c(deparse(substitute(weight)),deparse(substitute(arg_ind))),c("w","v"))
+  } else {
+    setnames( X,c(deparse(substitute(weight)),deparse(substitute(arg_ind)),deparse(substitute(geof))),c("w","v","g"))
+  }
   # flag=1 drop observations with NA values
   X <- X[!is.na(w) & w>0 & !is.na(g) & (!is.na(v) & v!=0 & v<950)]
   
@@ -680,7 +687,11 @@ f_HHI <- function(X,geof,weight,arg_ind) {
   X <- X[,si:=sum(w),by=c("g")][,si:=w/si][,si2:=si*si]
   X <- X[,H:=sum(si2),by=c("g")][,H:=-(H-1/N)/(1-1/N)]   # Last formula scales the index between -1 and 0. Values closer to zero imply more variety
   X <- X[,.SD[1],by=c("g"),.SDcols=c("H")]
-  setnames(X,c("g"),c(deparse(substitute(geof))))
+  if (!missing(geof)) { 
+    setnames(X,c("g"),c(deparse(substitute(geof))))
+  } else {
+    X[,g:=NULL]
+  }
   return(X)
 }
 
@@ -764,7 +775,7 @@ f_census_simplify <- function(X) {
   # Literacy, Age (age groups), industry (industry groups), marital status, race, urban,ownership,education,wage
   if (!is.null(X$lit))      X <- f_lit(X,lit)         else warning("No variable lit was provided")
   if (!is.null(X$age))      X <- f_age(X,age,flag=0)  else warning("No variable age was provided")
-  if (!is.null(X$occ1950))  X <- f_occ1950(X,occ1950,flag=1) else warning("No variable occ1950 was provided")
+  if (!is.null(X$occ1950))  X <- f_occ1950(X,occ1950,flag=0) else warning("No variable occ1950 was provided")
   if (!is.null(X$mars))     X <- f_mar(X,marst)              else warning("No variable marst was provided")
   if (!is.null(X$race))     X <- f_race(X,race)              else warning("No variable race was provided")
   if (!is.null(X$school))   X[,school:=ifelse(school==2,1,0)]    else warning("No variable school was provided")
@@ -1392,10 +1403,57 @@ rm(Initial)
 - Merge share of new work
 - Simplify some variables (uses different functions)
 
-## 5.1. 1930
+## 5.1. 1920
 NOTE: We don't do this for the 1920 database as we don't have information about new sectors and we won't use it later.
 
-### 5.1.1. Importing, selecting the appropriate data
+### 5.2.1. Importing, selecting the appropriate data
+```{r}
+census_sample_1920_individual_data <-read_fst(paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1920.fst"),as.data.table=TRUE,columns=c("ID","perwt_ID","sh_area","statefip","countynhg_1910","metarea_1940","urban","farm","ownershp","famsize","sex","lit","age","marst","race","bpl","mbpl","fbpl","labforce","classwkr","occ1950","ind1950","occ","occscore"))[!is.na(countynhg_1910)]
+
+# Keep only workers that are working (we use any of the three variables to determine if a worker is working)
+census_sample_1920_individual_data <- census_sample_1920_individual_data[labforce==2 | classwkr!=0]
+
+# Associate each ID with the location that has a highest sh_area
+setorderv(census_sample_1920_individual_data,c("ID","sh_area"),c(1,-1))
+census_sample_1920_individual_data <- census_sample_1920_individual_data[,.SD[1],by="ID",.SDcols=names(census_sample_1920_individual_data)[-which(names(census_sample_1920_individual_data)=="ID")]][,sh_area:=NULL]
+
+# Observations without occind
+print(paste0((sum(census_sample_1920_individual_data[is.na(occ)]$perwt)/sum(census_sample_1920_individual_data$perwt))*100,"% of the working population has not a valid occupation code and will be dropped"))
+census_sample_1920_individual_data <- census_sample_1920_individual_data[!is.na(occ)]
+
+```
+
+### 5.2.2. Simplify some variables
+```{r}
+census_sample_1920_individual_data <- f_bpl(census_sample_1920_individual_data,statefip,birth_v=bpl,flag=0,name=c("mig_us","mig_ab")) 
+census_sample_1920_individual_data <- f_bpl(census_sample_1920_individual_data,statefip,birth_v=mbpl,flag=0,name=c("m_mig_us","m_mig_ab"))
+census_sample_1920_individual_data <- f_bpl(census_sample_1920_individual_data,statefip,birth_v=fbpl,flag=0,name=c("f_mig_us","f_mig_ab")) 
+  
+census_sample_1920_individual_data <- f_lit(census_sample_1920_individual_data,lit)    
+census_sample_1920_individual_data <- f_age(census_sample_1920_individual_data,age,flag=0)
+census_sample_1920_individual_data <- f_ind1950(census_sample_1920_individual_data,ind1950,flag=0) 
+census_sample_1920_individual_data <- f_occ1950(census_sample_1920_individual_data,occ1950,flag=0)
+census_sample_1920_individual_data <- f_mar(census_sample_1920_individual_data,marst) 
+census_sample_1920_individual_data <- f_race(census_sample_1920_individual_data,race)
+census_sample_1920_individual_data[,male:=ifelse(sex==1,1,0)][,sex:=NULL]
+census_sample_1920_individual_data[,urban:=ifelse(urban==2,1,0)] 
+census_sample_1920_individual_data[,farm:=ifelse(farm==2,1,0)]  
+census_sample_1920_individual_data[,ownershp:=na_if(ownershp,0)][!is.na(ownershp),ownershp:=ifelse(ownershp==1,1,0)] 
+census_sample_1920_individual_data[,wwages:=ifelse(classwkr==2,1,0)]   # Works for wages
+
+```
+
+### 5.2.4. Saving individual data (without aggregate variables at the geographical level)
+
+```{r}
+write_fst(census_sample_1920_individual_data, here(paste0("output/Rdata/census_sample_1920_individual_data.fst")))
+rm(census_sample_1920_individual_data)
+```
+
+## 5.2. 1930
+NOTE: We don't do this for the 1920 database as we don't have information about new sectors and we won't use it later.
+
+### 5.2.1. Importing, selecting the appropriate data
 ```{r}
 census_sample_1930_individual_data <-read_fst(paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1930.fst"),as.data.table=TRUE,columns=c("ID","perwt_ID","sh_area","statefip","countynhg_1910","metarea_1940","urban","farm","ownershp","famsize","sex","lit","age","marst","race","bpl","mbpl","fbpl","empstat","labforce","classwkr","occ1950","ind1950","occind","occscore"))[!is.na(countynhg_1910)]
 
@@ -1412,7 +1470,7 @@ census_sample_1930_individual_data <- census_sample_1930_individual_data[!is.na(
 
 ```
 
-### 5.1.2. Simplify some variables
+### 5.2.2. Simplify some variables
 ```{r}
 census_sample_1930_individual_data <- f_bpl(census_sample_1930_individual_data,statefip,birth_v=bpl,flag=0,name=c("mig_us","mig_ab")) 
 census_sample_1930_individual_data <- f_bpl(census_sample_1930_individual_data,statefip,birth_v=mbpl,flag=0,name=c("m_mig_us","m_mig_ab"))
@@ -1432,7 +1490,7 @@ census_sample_1930_individual_data[,wwages:=ifelse(classwkr==2,1,0)]   # Works f
 
 ```
 
-### 5.1.3. Adding the new work variable
+### 5.2.3. Adding the new work variable
 ```{r}
 # Variable
 if (!exists("new_titles.occind1930")) {
@@ -1451,17 +1509,17 @@ census_sample_1930_individual_data <- merge(census_sample_1930_individual_data,n
 
 ```
 
-### 5.1.4. Saving individual data (without aggregate variables at the geographical level)
+### 5.2.4. Saving individual data (without aggregate variables at the geographical level)
 
 ```{r}
 write_fst(census_sample_1930_individual_data, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1930_individual_data.fst"))
 rm(census_sample_1930_individual_data,new_titles.occind1930,occ1930.codes)
 ```
 
-## 5.2. 1940
+## 5.3. 1940
 NOTE: We don't do this for the 1920 database as we don't have information about new sectors and we won't use it later.
 
-### 5.2.1. Importing, selecting the appropriate data
+### 5.3.1. Importing, selecting the appropriate data
 *** NOTE: We could further select the individuals that work a certain amount of time (weeks or hours) or that have a positive income
 ```{r}
 census_sample_1940_individual_data <-read_fst(paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1940.fst"),as.data.table=TRUE,columns=c("ID","perwt_ID","sh_area","statefip","icpsrfip","countynhg_1910","metarea_1940","urban","farm","ownershp","perwt","famsize","sex","educ","school","age","marst","race","bpl","mbpl","fbpl","migrate5","migrate5d","empstat","labforce","classwkr","incwage","wkswork1","wkswork2","hrswork1","hrswork2","occ1940","ind1940","name_ind1940_subgroup","occ1950","ind1950","occscore"))[!is.na(countynhg_1910)]
@@ -1502,13 +1560,18 @@ print(
 - We also don't drop workers without income or weeks worked (aprox 24%). More than 50% of them work in the Agriculture sector
 
 
-### 5.2.2. Simplify some variables
+### 5.3.2. Simplify some variables
 ```{r}
 census_sample_1940_individual_data <- f_census_simplify(census_sample_1940_individual_data)
 ```
 
-### 5.2.3. Adding the new work variable
+### 5.3.3. Adding the new work variable
 ```{r}
+# Importing new titles
+if (!exists("new_titles_1940.by_occ_subind")) {
+  new_titles_1940.by_occ_subind <- read_fst(paste0(main_directory,"R - Processing data/output/Rdata/new_titles_1940_by_occ_subind.fst"),as.data.table=TRUE)[set=="within"][,set:=NULL]
+}
+
 # Adding the new work variable
 census_sample_1940_individual_data <- 
   merge(
@@ -1527,10 +1590,10 @@ census_sample_1940_individual_data <-
 - We don't assign a share of new jobs variable using dataset1 and dataset2 for workers with a NONCLASSIFIABLE occupation.
 - The Share of new jobs variable using dataset3 is assigned to all the workers with a valid occupation, no matter if the subindustry is valid.
 
-### 5.2.4. Saving individual data (without aggregate variables at the geographical level)
+### 5.3.4. Saving individual data (without aggregate variables at the geographical level)
 
 ```{r}
-write_fst(census_sample_1940_individual_data, paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1940_individual_data.fst"))
+write_fst(census_sample_1940_individual_data, here(paste0("output/Rdata/census_sample_1940_individual_data.fst")))
 rm(census_sample_1940_individual_data,new_titles_1940.by_occ_subind,occ1940.codes)
 ```
 
