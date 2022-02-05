@@ -15,6 +15,7 @@ f_load_pk <- function() {
   # Statistical packages
   p_load(fastDummies,sandwich,lmtest,estimatr)
   p_load(weights)  # To perform weighted correlations
+  p_load(here)
   
   #graphs
   p_load(ggplot2,maps,ggthemes,sjPlot,sjmisc,sjlabelled,jtools,ggstance,broom.mixed)
@@ -36,7 +37,7 @@ Here we look at correlations between the share of new titles and different geogr
 ### Histogram and correlation graphs
 ```{r}
 # Note: We work with counties with more than 10000 inhabitants
-census_sample_1930_agg_countynhg_1910 <- read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1930_agg_countynhg_1910.fst",as.data.table=TRUE)[perwt>=10000][,statefip:=as.factor(statefip)]
+census_sample_1930_agg_countynhg_1910 <- read_fst(here(paste0("output/Rdata/census_sample_1930_agg_countynhg_1910.fst")),as.data.table=TRUE)[perwt>=10000][,statefip:=as.factor(statefip)]
 
 # Histogram
 ggplot(census_sample_1930_agg_countynhg_1910, aes(x=sh_red_tit)) +
@@ -44,60 +45,60 @@ ggplot(census_sample_1930_agg_countynhg_1910, aes(x=sh_red_tit)) +
   labs(title="",x="Share of New Work", y = "Count")  + 
   theme_tufte() + theme(legend.position = "none")
 
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/histogram_share_red_tit.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/histogram_share_red_tit.jpeg")),plot=last_plot())
 
 
 # Some Scatterplots
 # Population
 ggplot(census_sample_1930_agg_countynhg_1910, aes(y=sh_red_tit, x=log(perwt))) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and population",x="Population (log)", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/corr_pop_x_sh_red_tit.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_pop_x_sh_red_tit.jpeg")),plot=last_plot())
 
 # Gender
 ggplot(census_sample_1930_agg_countynhg_1910, aes(y=sh_red_tit, x=sh_male)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and male population",x="Share of Males", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/corr_sh_male_x_sh_red_tit.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_male_x_sh_red_tit.jpeg")),plot=last_plot())
 
 # Black population
 ggplot(census_sample_1930_agg_countynhg_1910, aes(y=sh_red_tit, x=sh_race_2)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and black population",x="Share of Black population", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/corr_sh_race_2_x_sh_red_tit.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_race_2_x_sh_red_tit.jpeg")),plot=last_plot())
 
 
 # Literate
 ggplot(census_sample_1930_agg_countynhg_1910, aes(y=sh_red_tit, x=sh_lit)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of literate population",x="Share of literate population", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/corr_sh_lit_x_sh_red_tit.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_lit_x_sh_red_tit.jpeg")),plot=last_plot())
 
 # Labor force
 ggplot(census_sample_1930_agg_countynhg_1910, aes(y=sh_red_tit, x=sh_labforce_emp)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of labor force",x="Share of labor force", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/corr_sh_labforce_emp_x_sh_red_tit.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_labforce_emp_x_sh_red_tit.jpeg")),plot=last_plot())
 
 # Working for wages
 ggplot(census_sample_1930_agg_countynhg_1910, aes(y=sh_red_tit, x=sh_wrkwage)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of population working for wages",x="Share of population working for wages", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/corr_sh_wrkwage_x_sh_red_tit.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_wrkwage_x_sh_red_tit.jpeg")),plot=last_plot())
 
 # Urban
 ggplot(census_sample_1930_agg_countynhg_1910, aes(y=sh_red_tit, x=sh_urban)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of urban population",x="Share of urban population", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/corr_sh_urban_x_sh_red_tit.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_urban_x_sh_red_tit.jpeg")),plot=last_plot())
 
 # Farm
 ggplot(census_sample_1930_agg_countynhg_1910, aes(y=sh_red_tit, x=sh_farm)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of farm population",x="Share of farm population", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/corr_sh_farm_x_sh_red_tit.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_farm_x_sh_red_tit.jpeg")),plot=last_plot())
 
 # Migration within the US
 ggplot(census_sample_1930_agg_countynhg_1910, aes(y=sh_red_tit, x=sh_mig_us)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of internal migrants",x="Share of internal migrants", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/corr_sh_mig_us_x_sh_red_tit.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_mig_us_x_sh_red_tit.jpeg")),plot=last_plot())
 
 # Goreign migrants
 ggplot(census_sample_1930_agg_countynhg_1910, aes(y=sh_red_tit, x=sh_mig_ab)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of foreign migrants",x="Share of foreign migrants", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/corr_sh_mig_ab_x_sh_red_tit.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_mig_ab_x_sh_red_tit.jpeg")),plot=last_plot())
 
 
 # Industry
@@ -108,10 +109,10 @@ for (i in 1:7) {
 }
 ggarrange(p[[1]],p[[2]],p[[3]],p[[4]],labels=c("Agriculture","Mining-Construction","Manufacturing","Tr-Comm-Util"),
           ncol=2,nrow=2)
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/corr_sh_ind1950_main_x_sh_red_tit_1.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_ind1950_main_x_sh_red_tit_1.jpeg")),plot=last_plot())
 ggarrange(p[[5]],p[[6]],p[[7]],labels=c("Trade","Services","Public Admin."),
           ncol=2,nrow=2)
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/corr_sh_ind1950_main_x_sh_red_tit_2.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_ind1950_main_x_sh_red_tit_2.jpeg")),plot=last_plot())
 
 
 # Occupation
@@ -124,12 +125,12 @@ for (i in 1:length(x)) {
 }
 ggarrange(p[[1]],p[[2]],p[[3]],p[[4]],labels=c("Professional, Technical","Farmers","Managers, Officials and Proprietors","Clerical and Kindred"),font.label = list(size = 10),
           ncol = 2, nrow =2)
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/corr_sh_occ1950_main_x_sh_red_tit_1.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_occ1950_main_x_sh_red_tit_1.jpeg")),plot=last_plot())
 ggarrange(p[[5]],p[[6]],p[[7]],p[[8]],labels=c("Sales workers","Craftsmen","Operatives","Service Workers (private household)"),font.label = list(size = 10), ncol = 2, nrow =2)
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/corr_sh_occ1950_main_x_sh_red_tit_2.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_occ1950_main_x_sh_red_tit_2.jpeg")),plot=last_plot())
 ggarrange(p[[9]],p[[10]],p[[11]],labels=c("Service Workers (not household)","Farm laborers","Laborers"),font.label = list(size = 10),
           ncol = 2, nrow =2)
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/corr_sh_occ1950_main_x_sh_red_tit_3.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_occ1950_main_x_sh_red_tit_3.jpeg")),plot=last_plot())
 ```
 
 ### Basic regressions
@@ -144,7 +145,7 @@ m3 <- plm(sh_red_tit ~ log(perwt) + sh_race_1 + sh_race_2 + sh_lit + sh_urban + 
 
 tab_model(m1,m2,m3,show.ci=FALSE,show.se=TRUE,use.viewer=FALSE)
 plot_summs(m1,m3, scale = FALSE,legend.title = "") + theme_tufte()
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/reg_basic.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/reg_basic.jpeg")),plot=last_plot())
 
 # Industry variables
 (indvar <- grep("^sh_ind1950_main_[^1]",names(census_sample_1930_agg_countynhg_1910),value=TRUE))
@@ -161,7 +162,7 @@ m6 <- plm(form1,
 
 tab_model(m4,m5,m6,show.ci=FALSE,show.se=TRUE,use.viewer=FALSE)
 plot_summs(m4,m6, scale = FALSE,legend.title = "") + theme_tufte()
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/reg_industry.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/reg_industry.jpeg")),plot=last_plot())
 
 
 # Occupation variables
@@ -179,7 +180,7 @@ m9 <- plm(form1,
 
 tab_model(m7,m8,m9,show.ci=FALSE,show.se=TRUE,use.viewer=FALSE)
 plot_summs(m7,m9, scale = FALSE,legend.title = "") + theme_tufte()
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/reg_occupation.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/reg_occupation.jpeg")),plot=last_plot())
 
 
 # Industry and occupation variables
@@ -195,15 +196,15 @@ m12 <- plm(form1,
 
 tab_model(m10,m11,m12,show.ci=FALSE,show.se=TRUE,use.viewer=FALSE)
 plot_summs(m10,m12, scale = FALSE,legend.title = "") + theme_tufte()
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/reg_industry_occupation.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/reg_industry_occupation.jpeg")),plot=last_plot())
 
 
 
 plot_summs(m1,m4,m7,m10, scale = FALSE,legend.title = "") + theme_tufte()
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/reg_all_no_statefip.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/reg_all_no_statefip.jpeg")),plot=last_plot())
 
 plot_summs(m3,m6,m9,m12, scale = FALSE,legend.title = "") + theme_tufte()
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/reg_all_statefip.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/reg_all_statefip.jpeg")),plot=last_plot())
 
 
 rm(list=paste0("m",1:12))
@@ -216,7 +217,7 @@ Notes:
 
 ### Histogram and correlation grpahs
 ```{r}
-census_sample_1930_agg_metarea_1940 <- read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1930_agg_metarea_1940.fst",as.data.table=TRUE)[,MSA:=factor(ifelse(metarea_1940<1000,1,0), levels = c(0,1),labels = c("Non MSAs","MSAs"))]
+census_sample_1930_agg_metarea_1940 <- read_fst(here(paste0("output/Rdata/census_sample_1930_agg_metarea_1940.fst")),as.data.table=TRUE)[,MSA:=factor(ifelse(metarea_1940<1000,1,0), levels = c(0,1),labels = c("Non MSAs","MSAs"))]
 
 # Histogram
 ggplot(census_sample_1930_agg_metarea_1940, aes(x=sh_red_tit)) +
@@ -227,60 +228,60 @@ ggplot(census_sample_1930_agg_metarea_1940, aes(x=sh_red_tit)) +
            linetype="dashed") + 
   theme_tufte() + theme(legend.position = "none")
 
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/metarea_1940/histogram_share_red_tit.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/histogram_share_red_tit.jpeg")),plot=last_plot())
 
 
 # Some Scatterplots
 # Population
 ggplot(census_sample_1930_agg_metarea_1940, aes(y=sh_red_tit, x=log(perwt),color=MSA)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and population",x="Population (log)", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/metarea_1940/corr_pop_x_sh_red_tit.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_pop_x_sh_red_tit.jpeg")),plot=last_plot())
 
 # Gender
 ggplot(census_sample_1930_agg_metarea_1940, aes(y=sh_red_tit, x=sh_male,color=MSA)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and male population",x="Share of Males", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/metarea_1940/corr_sh_male_x_sh_red_tit.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_male_x_sh_red_tit.jpeg")),plot=last_plot())
 
 # Black population
 ggplot(census_sample_1930_agg_metarea_1940, aes(y=sh_red_tit, x=sh_race_2,color=MSA)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and black population",x="Share of Black population", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/metarea_1940/corr_sh_race_2_x_sh_red_tit.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_race_2_x_sh_red_tit.jpeg")),plot=last_plot())
 
 
 # Literate
 ggplot(census_sample_1930_agg_metarea_1940, aes(y=sh_red_tit, x=sh_lit,color=MSA)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of literate population",x="Share of literate population", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/metarea_1940/corr_sh_lit_x_sh_red_tit.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_lit_x_sh_red_tit.jpeg")),plot=last_plot())
 
 # Labor force
 ggplot(census_sample_1930_agg_metarea_1940, aes(y=sh_red_tit, x=sh_labforce_emp,color=MSA)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of labor force",x="Share of labor force", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/metarea_1940/corr_sh_labforce_emp_x_sh_red_tit.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_labforce_emp_x_sh_red_tit.jpeg")),plot=last_plot())
 
 # Working for wages
 ggplot(census_sample_1930_agg_metarea_1940, aes(y=sh_red_tit, x=sh_wrkwage,color=MSA)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of population working for wages",x="Share of population working for wages", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/metarea_1940/corr_sh_wrkwage_x_sh_red_tit.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_wrkwage_x_sh_red_tit.jpeg")),plot=last_plot())
 
 # Urban
 ggplot(census_sample_1930_agg_metarea_1940, aes(y=sh_red_tit, x=sh_urban,color=MSA)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of urban population",x="Share of urban population", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/metarea_1940/corr_sh_urban_x_sh_red_tit.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_urban_x_sh_red_tit.jpeg")),plot=last_plot())
 
 # Farm
 ggplot(census_sample_1930_agg_metarea_1940, aes(y=sh_red_tit, x=sh_farm,color=MSA)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of farm population",x="Share of farm population", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/metarea_1940/corr_sh_farm_x_sh_red_tit.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_farm_x_sh_red_tit.jpeg")),plot=last_plot())
 
 # Migration within the US
 ggplot(census_sample_1930_agg_metarea_1940, aes(y=sh_red_tit, x=sh_mig_us,color=MSA)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of internal migrants",x="Share of internal migrants", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/metarea_1940/corr_sh_mig_us_x_sh_red_tit.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_mig_us_x_sh_red_tit.jpeg")),plot=last_plot())
 
 # Goreign migrants
 ggplot(census_sample_1930_agg_metarea_1940, aes(y=sh_red_tit, x=sh_mig_ab,color=MSA)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of foreign migrants",x="Share of foreign migrants", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/metarea_1940/corr_sh_mig_ab_x_sh_red_tit.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_mig_ab_x_sh_red_tit.jpeg")),plot=last_plot())
 
 
 # Industry
@@ -291,10 +292,10 @@ for (i in 1:7) {
 }
 ggarrange(p[[1]],p[[2]],p[[3]],p[[4]],labels=c("Agriculture","Mining-Construction","Manufacturing","Tr-Comm-Util"),
           ncol=2,nrow=2)
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/metarea_1940/corr_sh_ind1950_main_x_sh_red_tit_1.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_ind1950_main_x_sh_red_tit_1.jpeg")),plot=last_plot())
 ggarrange(p[[5]],p[[6]],p[[7]],labels=c("Trade","Services","Public Admin."),
           ncol=2,nrow=2)
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/metarea_1940/corr_sh_ind1950_main_x_sh_red_tit_2.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_ind1950_main_x_sh_red_tit_2.jpeg")),plot=last_plot())
 
 
 # Occupation
@@ -305,13 +306,13 @@ for (i in 1:length(x)) {
 }
 ggarrange(p[[1]],p[[2]],p[[3]],p[[4]],labels=c("Farmers","Managers, Officials/n and Proprietors","Clerical and Kindred","Sales workers"),
           ncol = 2, nrow =2)
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/metarea_1940/corr_sh_occ1950_main_x_sh_red_tit_1.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_occ1950_main_x_sh_red_tit_1.jpeg")),plot=last_plot())
 ggarrange(p[[5]],p[[6]],p[[7]],p[[8]],labels=c("Craftsmen","Operatives","Public Admin.","Service Workers (priv. hs.)"),
           ncol = 2, nrow =2)
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/metarea_1940/corr_sh_occ1950_main_x_sh_red_tit_2.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_occ1950_main_x_sh_red_tit_2.jpeg")),plot=last_plot())
 ggarrange(p[[9]],p[[10]],p[[11]],labels=c("Service Workers","Farm laborers","Laborers"),
           ncol = 2, nrow =2)
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/metarea_1940/corr_sh_occ1950_main_x_sh_red_tit_3.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_occ1950_main_x_sh_red_tit_3.jpeg")),plot=last_plot())
 ```
 
 ### Basic regressions
@@ -323,7 +324,7 @@ m3 <- lm(sh_red_tit ~ log(perwt) + sh_race_1 + sh_race_2 + sh_lit + sh_urban + s
 
 tab_model(m1,m2,m3,show.ci=FALSE,show.se=TRUE,use.viewer=FALSE)
 plot_summs(m1,m2,m3, scale = TRUE) + theme_tufte()
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/metarea_1940/reg_basic.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/reg_basic.jpeg")),plot=last_plot())
 
 # Industry variables
 (indvar <- grep("^sh_ind1950_main_[^1]",names(census_sample_1930_agg_metarea_1940),value=TRUE))
@@ -337,7 +338,7 @@ m6 <- lm(form, data=census_sample_1930_agg_metarea_1940[MSA=="MSAs"])
 
 tab_model(m4,m5,m6,show.ci=FALSE,show.se=TRUE,use.viewer=FALSE)
 plot_summs(m4, m5,m6, scale = FALSE) + theme_tufte()
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/metarea_1940/reg_industry.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/reg_industry.jpeg")),plot=last_plot())
 
 
 # Occupation variables
@@ -351,7 +352,7 @@ m9 <- lm(form, data=census_sample_1930_agg_metarea_1940[MSA=="MSAs"])
 
 tab_model(m7,m8,m9,show.ci=FALSE,show.se=TRUE,use.viewer=FALSE)
 plot_summs(m7, m8,m9, scale = FALSE) + theme_tufte()
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/metarea_1940/reg_occupation.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/reg_occupation.jpeg")),plot=last_plot())
 
 
 # Industry + Occupation variables
@@ -363,18 +364,18 @@ m12 <- lm(form, data=census_sample_1930_agg_metarea_1940[MSA=="MSAs"])
 
 tab_model(m10,m11,m12,show.ci=FALSE,show.se=TRUE,use.viewer=FALSE)
 plot_summs(m10,m12, scale = FALSE,legend.title = "") + theme_tufte()
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/metarea_1940/reg_industry_occupation.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/reg_industry_occupation.jpeg")),plot=last_plot())
 
 
 
 plot_summs(m1,m4,m7,m10, scale = FALSE,legend.title = "") + theme_tufte()
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/metarea_1940/reg_all.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/reg_all.jpeg")),plot=last_plot())
 
 plot_summs(m2,m5,m8,m11, scale = FALSE,legend.title = "") + theme_tufte()
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/metarea_1940/reg_all_non_MSAs.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/reg_all_non_MSAs.jpeg")),plot=last_plot())
 
 plot_summs(m3,m6,m9,m12, scale = FALSE,legend.title = "") + theme_tufte()
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/metarea_1940/reg_all_MSAs.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/reg_all_MSAs.jpeg")),plot=last_plot())
 
 rm(list=paste0("m",1:12))
 ```
@@ -474,11 +475,11 @@ f_occ_new_titles <- function(X,id_N,ind_v=ind,sh_v,w_v=perwt,occind_v=occind,nam
 ### 1.2. Creating sample of interest
 #### New occuaption variables
 ```{r}
-occ1930.codes <- as.data.table( read_excel(paste0(main_directory,"R - Processing data/input/1930 - Cleaned.xlsx"), sheet = "1930 main groups",guess_max=10000) )[,!c("occ_ini_1930","occ1930","occ_name")]
+occ1930.codes <- as.data.table( read_excel(here(paste0("input/1930 - Cleaned.xlsx")), sheet = "1930 main groups",guess_max=10000) )[,!c("occ_ini_1930","occ1930","occ_name")]
 
 new_titles.occind1930 <- list(
-                                read_fst(paste0(main_directory,"R - Processing data/output/Rdata/new_titles_1930_by_occind.fst"),as.data.table=TRUE),
-                                read_fst(paste0(main_directory,"R - Processing data/output/Rdata/new_titles_1930_by_occind.all.fst"),as.data.table=TRUE)
+                                read_fst(here(paste0("output/Rdata/new_titles_1930_by_occind.fst")),as.data.table=TRUE),
+                                read_fst(here(paste0("output/Rdata/new_titles_1930_by_occind.all.fst")),as.data.table=TRUE)
 )
 
 new_titles.occind1930[[1]] <- merge(new_titles.occind1930[[1]],occ1930.codes[,c("occind1930","occind1930_name","occ","ind","occind","flag")],by="occind1930",all=TRUE)
@@ -487,7 +488,7 @@ new_titles.occind1930[[2]] <- merge(new_titles.occind1930[[2]],occ1930.codes[,c(
 
 
 ```{r}
-census_sample_1930_ind_occ_table <- read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/input/census_sample/census_sample_1930.fst",as.data.table=TRUE,columns=c("perwt","occ1950","occ","occind","ind","ind1950"))[!(occ %in% c(998,999)) & (ind1950 >=1 & ind1950<=990)]
+census_sample_1930_ind_occ_table <- read_fst(here(paste0("input/census_sample/census_sample_1930.fst")),as.data.table=TRUE,columns=c("perwt","occ1950","occ","occind","ind","ind1950"))[!(occ %in% c(998,999)) & (ind1950 >=1 & ind1950<=990)]
 
 census_sample_1930_ind_occ_table <-  merge(census_sample_1930_ind_occ_table,new_titles.occind1930[[1]][,c("occind","sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind")],by="occind",all=FALSE)[,perwt_sum:=sum(perwt),by=c("occ1950","occ","occind","ind","ind1950")][,lapply(.SD,weighted.mean,w=perwt),by=c("occ1950","occ","occind","ind","ind1950"),.SDcols=c("perwt_sum","sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind")]
 setnames(census_sample_1930_ind_occ_table,"perwt_sum","perwt")
@@ -497,11 +498,11 @@ setnames(census_sample_1930_ind_occ_table,"perwt_sum","perwt")
 
 ### Calling names of industries and occupations
 ```{r}
-ind1950.codes <- as.data.table( read_excel("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/input/1930 - Cleaned.xlsx", sheet = "ind1950",guess_max=10000) )
+ind1950.codes <- as.data.table( read_excel(here(paste0("input/1930 - Cleaned.xlsx")), sheet = "ind1950",guess_max=10000) )
 
-occ1930.codes <- as.data.table( read_excel("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/input/1930 - Cleaned.xlsx", sheet = "1930 main groups",guess_max=10000) )[,!c("occ_ini_1930","occ1930","occ_name")]
+occ1930.codes <- as.data.table( read_excel(here(paste0("input/1930 - Cleaned.xlsx")), sheet = "1930 main groups",guess_max=10000) )[,!c("occ_ini_1930","occ1930","occ_name")]
 
-occ1950.codes <- as.data.table( read_excel("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/input/1930 - Cleaned.xlsx", sheet = "occ1950",guess_max=10000) )
+occ1950.codes <- as.data.table( read_excel(here(paste0("input/1930 - Cleaned.xlsx")), sheet = "occ1950",guess_max=10000) )
 ```
 
 
@@ -516,7 +517,6 @@ census_sample_1930_occ_table <- f_occ_new_titles(census_sample_1930_ind_occ_tabl
 
 ## 2. Locations and new titles
 ### 2.1. Functions
-
 ```{r}
 f_location_new_titles <- function(X,sh_v,w_v=perwt,geof1_v,geof2_v,merge_geof,geof_m,geof_final1_m,geof_final2_m,share_m) {
   # Avoids confusion with variable ind
@@ -566,21 +566,21 @@ f_location_new_titles <- function(X,sh_v,w_v=perwt,geof1_v,geof2_v,merge_geof,ge
 ```
 
 ### 2.2. Preparing the data
-# Data at the county level (county 1910)
+#### Data at the county level (county 1910)
 We can simply use the aggregated county level data created in Part 1.
 ```{r}
-new_title_location.countynhg_1910_more1000 <- read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1930_agg_countynhg_1910.fst",as.data.table=TRUE,columns=c("countynhg_1910","perwt","sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind"))[perwt>=1000 & !is.na(countynhg_1910)]
+new_title_location.countynhg_1910_more1000 <- read_fst(here(paste0("output/Rdata/census_sample_1930_agg_countynhg_1910.fst")),as.data.table=TRUE,columns=c("countynhg_1910","perwt","sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind"))[perwt>=1000 & !is.na(countynhg_1910)]
 
-new_title_location.countynhg_1910_more10000 <- read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1930_agg_countynhg_1910.fst",as.data.table=TRUE,columns=c("countynhg_1910","perwt","sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind"))[perwt>=10000 & !is.na(countynhg_1910)]
+new_title_location.countynhg_1910_more10000 <- read_fst(here(paste0("output/Rdata/census_sample_1930_agg_countynhg_1910.fst")),as.data.table=TRUE,columns=c("countynhg_1910","perwt","sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind"))[perwt>=10000 & !is.na(countynhg_1910)]
 
 ```
 
-## Data at the metarea level
+#### Data at the metarea level
 For the mapping we aggregate MSAs and those non-dentified MSAs we aggregate by state.
 We use a dataset previously created that contains the share of new titles by occind, countynhg, countynhg_1910, metarea_1940. 
 ** We could use the data aggregated at the MSA level once we know how to combine counties in the map function
 ```{r}
-new_titles_agg <- read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/new_titles_agg.fst",as.data.table=TRUE)
+new_titles_agg <- read_fst(here(paste0("output/Rdata/new_titles_agg.fst")),as.data.table=TRUE)
 
 new_title_location.metarea_1940 <- new_titles_agg[!is.na(metarea_1940) & !is.na(countynhg_1910),!c("occind")][,perwt_sum:=sum(perwt),by=c("countynhg_1910","metarea_1940")][,lapply(.SD,weighted.mean,w=perwt),by=c("countynhg_1910","metarea_1940"),.SDcols=c("perwt_sum","sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind")]
 
@@ -594,25 +594,26 @@ new_title_location.metarea_1940 <- new_title_location.metarea_1940[,perwt:=sum(p
 ```
 
 
-### 2.3. Mapping
-#### 2.3.1. Import and subset shape files
+
+### 2.4. Mapping
+#### 2.4.1. Import and subset shape files
 ```{r}
 # Importing shp file 
 # 1 Option
-map.cty <- st_read("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/input/shapefiles/shapefile_us_county_1910", quiet = TRUE)
+map.cty <- st_read(here(paste0("input/shapefiles/shapefile_us_county_1910")), quiet = TRUE)
 
 
-map.state <- st_read("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/input/shapefiles/shapefile_us_state_1910", quiet = TRUE)
+map.state <- st_read(here(paste0("input/shapefiles/shapefile_us_state_1910")), quiet = TRUE)
 
 if (FALSE) {
 # 2 option
-map.cty <- read_sf(dsn="/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/input/shapefiles/shapefile_us_county_1910")
+map.cty <- read_sf(dsn=here(paste0("input/shapefiles/shapefile_us_county_1910")))
 
 # 3 option
 # NOTE requires the data_file
 map.state <- read_nhgis_sf(
-  data_file = "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/input/shapefiles/nhgis0006_csv",
-  shape_file = "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/input/shapefiles/nhgis0006_shape.zip"
+  data_file = here(paste0("input/shapefiles/nhgis0006_csv")),
+  shape_file = here(paste0("input/shapefiles/nhgis0006_shape.zip"))
 )
 }
 #subsetting it and dropping Alaska and Hawaii
@@ -622,27 +623,37 @@ map.cty$GISJOIN2 <- as.numeric(map.cty$GISJOIN2)
 map.state <- subset(map.state,select=c(GISJOIN2,STATENAM,geometry))
 map.state <- subset(map.state, STATENAM !="Alaska Territory" & STATENAM != "Hawaii Territory")
 
+
+map.state_1 <- st_read(here(paste0("input/shapefiles/shapefile_us_state_1910")), quiet = TRUE)
+map.state_1 <- subset(map.state_1, STATENAM !="Alaska Territory" & STATENAM != "Hawaii Territory")
+
 ```
 
 
-#### 2.3.2. Join with info for population and share of new work
+#### 2.4.2. Join with info for population and share of new work
 
 ##### countynhg_1910
 ```{r}
+# More than 10000 inhabitants
 setnames(new_title_location.countynhg_1910_more10000,c("countynhg_1910"),c("GISJOIN2"))
-map.countynhg_1910_more10000 <- merge(map.cty,new_title_location.countynhg_1910_more10000,by="GISJOIN2",all.x=TRUE,all.y=FALSE)
-county <- tm_shape(subset(map.countynhg_1910_more10000)) + tm_polygons("sh_base_tit",style = "pretty", n=10,lwd=0) +
-  tm_shape(map.state) + tm_borders(alpha=0.1,lwd=0.5)
-tmap_save(county, "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Maps/sh_new_occupations_countynhg_1910_more10000.jpeg")
-rm(county)
 
-setnames(new_title_location.countynhg_1910_more1000,c("countynhg_1910"),c("GISJOIN2"))
-map.countynhg_1910_more1000 <- merge(map.cty,new_title_location.countynhg_1910_more1000,by="GISJOIN2",all.x=TRUE,all.y=FALSE)
-county <- tm_shape(subset(map.countynhg_1910_more1000)) + tm_polygons("sh_base_tit",style = "pretty", n=10,lwd=0) +
-  tm_shape(map.state) + tm_borders(alpha=0.1,lwd=0.5)
-tmap_save(county, "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Maps/sh_new_occupations_countynhg_1910_more1000.jpeg")
-rm(county)
+map.countynhg_1910_more10000 <-
+  merge(map.cty,new_title_location.countynhg_1910_more10000,by="GISJOIN2",all.x=TRUE,all.y=FALSE)
 
+png(here("output/Maps/1930/sh_red_tit_1930_countynhg_1910_p10000.png"),900,900*2/3)  
+tm_shape(map.countynhg_1910_more10000) + tm_fill("sh_red_tit",title="Share of New Work",palette="viridis",n=7,style="quantile",colorNA=NULL) +
+tm_shape(map.state) + tm_borders(alpha=0.1,lwd=0.5) 
+dev.off()  
+
+png(here("output/Maps/1930/sh_red_tit_1930_countynhg_1910_p1000.png"),900,900*2/3)  
+tm_shape(map.countynhg_1910_more1000) + tm_fill("sh_red_tit",title="Share of New Work",palette="viridis",n=7,style="quantile",colorNA=NULL) +
+tm_shape(map.state) + tm_borders(alpha=0.1,lwd=0.5) 
+dev.off()  
+
+t <- tm_shape(map.countynhg_1910_more10000) + tm_fill("sh_red_tit",title="Share of New Work",palette="viridis",n=7,style="quantile",colorNA=NULL)
+tmap_save(t,filename=here("output/Maps/paper.png"),height=4,width=6,units="in",dpi=100)
+
+#*** NOTE *** The more straightforward way to export a map created with tm is to use tmap_save(). Nonetheless with this option it takes a very long time to create the map (e.g. the county map without the state lines took 848 secs vs. less than 100 using png()). For now I use a faster way, eventhough the maps don't look as good as with tmap_save
 ```
 
 ##### metarea_1940
@@ -651,7 +662,7 @@ setnames(new_title_location.metarea_1940,c("countynhg_1910"),c("GISJOIN2"))
 map.metarea <- merge(map.cty,new_title_location.metarea_1940,by="GISJOIN2",all.x=TRUE,all.y=FALSE)
 metarea <- tm_shape(subset(map.metarea)) + tm_polygons("sh_base_tit",style = "pretty", n=10,lwd=0) +
   tm_shape(map.state) + tm_borders(alpha=0.1,lwd=0.5)
-tmap_save(metarea, "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Maps/sh_new_occupations_metarea_1940.jpeg")
+tmap_save(metarea, here(paste0("output/Maps/sh_new_occupations_metarea_1940.jpeg")))
 rm(metarea)
 ```
 
@@ -662,7 +673,7 @@ We construct scatterplots to see the relationship between different individual l
 *** TO-DO: Include here the individual level regressions.
 
 ```{r}
-census_sample_1930_individual_data <- read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1930_individual_data.fst",as.data.table=TRUE)
+census_sample_1930_individual_data <- read_fst(here(paste0("output/Rdata/census_sample_1930_individual_data.fst")),as.data.table=TRUE)
 ```
 
 
@@ -676,7 +687,7 @@ for (i in 1:length(y)) {
     geom_point(size=0.5) +
     stat_summary_bin(fun='mean', bins=10,
                      color='orange', size=4, geom='point') + labs(title=paste0(y[i]," x Share of New Work (sh_base_tit)"),x="Share of New Work", y = y[i]) + theme_tufte() 
-  ggsave(paste0("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/individual_basic_plots/corr_sh_base_tit_x_",y[i],".jpeg"),plot=p)
+  ggsave(paste0(here(paste0("output/Graphs/individual_basic_plots/corr_sh_base_tit_x_",y[i],".jpeg"))),plot=p)
   setnames(census_sample_1930_individual_data,c("v_plot"),y[i])
 }
 
@@ -687,7 +698,7 @@ for (i in 1:length(y)) {
 ## 1. countynhg_1910
 ### 1.1. Call individual level data
 ```{r}
-census_sample_1930_individual_data <-read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1930_individual_data_x_countynhg_1910.fst",as.data.table=TRUE)
+census_sample_1930_individual_data <-read_fst(here(paste0("output/Rdata/census_sample_1930_individual_data_x_countynhg_1910.fst")),as.data.table=TRUE)
 ```
 
 ### 1.2. Database for histogram and map
@@ -705,7 +716,7 @@ p[[1]] <- ggplot(new_sectors_countynhg_1910[perwt_1920>=10000], aes(x=new_sec_al
   scale_y_continuous(labels = percent_format()) +
   labs(title="",x="Share of New Sector", y = "")  + 
   theme_tufte() + theme(legend.position = "none")
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/histogram_share_new_sec_1920.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/histogram_share_new_sec_1920.jpeg")),plot=last_plot())
 
 p[[2]] <- ggplot(new_sectors_countynhg_1910[perwt_1930>=10000], aes(x=new_sec_all_1930)) +
   geom_histogram(color="black",bins=40,  aes(y = stat(width*density)),fill="white") +
@@ -713,7 +724,7 @@ p[[2]] <- ggplot(new_sectors_countynhg_1910[perwt_1930>=10000], aes(x=new_sec_al
   labs(title="",x="Share of New Sector", y = "")  + 
   theme_tufte() + theme(legend.position = "none")
 
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/histogram_share_new_sec_1930.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/histogram_share_new_sec_1930.jpeg")),plot=last_plot())
 
 # Excluding counties with the highest share of new sectors
 j <- 3
@@ -734,31 +745,31 @@ for (i in c(3,5,10,20,50,100,200)) {
 ggarrange(p[[1]], p[[3]], p[[5]], p[[7]],
           labels = c("All", "Excl. 2", "Excl. 4", "Excl. 9"),
           ncol = 2, nrow = 2)
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/histogram_share_new_sec_1920_excluding_regions_1.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/histogram_share_new_sec_1920_excluding_regions_1.jpeg")),plot=last_plot())
 ggarrange(p[[9]], p[[11]], p[[13]], p[[15]],
           labels = c("Excl. 19", "Excl. 49", "Excl. 99", "Excl. 199"),
           ncol = 2, nrow = 2)
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/histogram_share_new_sec_1920_excluding_regions_2.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/histogram_share_new_sec_1920_excluding_regions_2.jpeg")),plot=last_plot())
 
 ggarrange(p[[2]], p[[4]], p[[6]], p[[8]],
           labels = c("All", "Excl. 2", "Excl. 4", "Excl. 9"),
           ncol = 2, nrow = 2)
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/histogram_share_new_sec_1930_excluding_regions_1.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/histogram_share_new_sec_1930_excluding_regions_1.jpeg")),plot=last_plot())
 ggarrange(p[[10]], p[[12]], p[[14]], p[[16]],
           labels = c("Excl. 19", "Excl. 49", "Excl. 99", "Excl. 199"),
           ncol = 2, nrow = 2)
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/histogram_share_new_sec_1930_excluding_regions_2.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/histogram_share_new_sec_1930_excluding_regions_2.jpeg")),plot=last_plot())
 
 
 # DELETE LATER - Graphs for presentation
 ggarrange(p[[1]], p[[3]], p[[11]], p[[13]],
           labels = c("All", "Excl. 4", "Excl. 49", "Excl. 99"),
           ncol = 2, nrow = 2)
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/histogram_share_new_sec_1920_excluding_regions_3-DELETE.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/histogram_share_new_sec_1920_excluding_regions_3-DELETE.jpeg")),plot=last_plot())
 ggarrange(p[[2]], p[[4]], p[[12]], p[[14]],
           labels = c("All", "Excl. 4", "Excl. 49", "Excl. 99"),
           ncol = 2, nrow = 2)
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/histogram_share_new_sec_1930_excluding_regions_3-DELETE.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/histogram_share_new_sec_1930_excluding_regions_3-DELETE.jpeg")),plot=last_plot())
 
 rm(p)
 ```
@@ -770,20 +781,20 @@ rm(p)
 ```{r}
 # Importing shp file 
 # 1 Option
-map.cty <- st_read("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/input/shapefiles/shapefile_us_county_1910", quiet = TRUE)
+map.cty <- st_read(here(paste0("input/shapefiles/shapefile_us_county_1910")), quiet = TRUE)
 
 
-map.state <- st_read("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/input/shapefiles/shapefile_us_state_1910", quiet = TRUE)
+map.state <- st_read(here(paste0("input/shapefiles/shapefile_us_state_1910")), quiet = TRUE)
 
 if (FALSE) {
 # 2 option
-map.cty <- read_sf(dsn="/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/input/shapefiles/shapefile_us_county_1910")
+map.cty <- read_sf(dsn=here(paste0("input/shapefiles/shapefile_us_county_1910")))
 
 # 3 option
 # NOTE requires the data_file
 map.state <- read_nhgis_sf(
-  data_file = "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/input/shapefiles/nhgis0006_csv",
-  shape_file = "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/input/shapefiles/nhgis0006_shape.zip"
+  data_file = here(paste0("input/shapefiles/nhgis0006_csv")),
+  shape_file = here(paste0("input/shapefiles/nhgis0006_shape.zip"))
 )
 }
 #subsetting it and dropping Alaska and Hawaii
@@ -804,20 +815,20 @@ setnames(new_sectors_countynhg_1910,c("countynhg_1910"),c("GISJOIN2"))
 map.countynhg_1910 <- merge(map.cty,new_sectors_countynhg_1910,by="GISJOIN2",all.x=TRUE,all.y=FALSE)
 county <- tm_shape(subset(map.countynhg_1910)) + tm_polygons("new_sec_all_1920",style = "pretty", n=10,lwd=0) +
   tm_shape(map.state) + tm_borders(alpha=0.1,lwd=0.5)
-tmap_save(county, "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Maps/sh_new_sector_all_countynhg_1910.jpeg")
+tmap_save(county, here(paste0("output/Maps/sh_new_sector_all_countynhg_1910.jpeg")))
 rm(county)
 
 #1930
 county <- tm_shape(subset(map.countynhg_1910)) + tm_polygons("new_sec_all_1930",style = "pretty", n=10,lwd=0) +
   tm_shape(map.state) + tm_borders(alpha=0.1,lwd=0.5)
-tmap_save(county, "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Maps/sh_new_sector_1930_all_countynhg_1910.jpeg")
+tmap_save(county, here(paste0("output/Maps/sh_new_sector_1930_all_countynhg_1910.jpeg")))
 rm(county)
 ```
 
 ## 2. metarea_1940
 ### 2.1. Call individual level data
 ```{r}
-census_sample_1930_individual_data <-read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1930_individual_data_x_metarea_1940.fst",as.data.table=TRUE)
+census_sample_1930_individual_data <-read_fst(here(paste0("output/Rdata/census_sample_1930_individual_data_x_metarea_1940.fst")),as.data.table=TRUE)
 ```
 
 ### 2.2. Database for histogram and map
@@ -835,7 +846,7 @@ p[[1]] <- ggplot(new_sectors_metarea_1940[perwt_1920>=10000], aes(x=new_sec_all_
   scale_y_continuous(labels = percent_format()) +
   labs(title="",x="Share of New Sector", y = "")  + 
   theme_tufte() + theme(legend.position = "none")
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/metarea_1940/histogram_share_new_sec_1920.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/histogram_share_new_sec_1920.jpeg")),plot=last_plot())
 
 p[[2]] <- ggplot(new_sectors_metarea_1940[perwt_1930>=10000], aes(x=new_sec_all_1930)) +
   geom_histogram(color="black",bins=40,  aes(y = stat(width*density)),fill="white") +
@@ -843,7 +854,7 @@ p[[2]] <- ggplot(new_sectors_metarea_1940[perwt_1930>=10000], aes(x=new_sec_all_
   labs(title="",x="Share of New Sector", y = "")  + 
   theme_tufte() + theme(legend.position = "none")
 
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/metarea_1940/histogram_share_new_sec_1930.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/histogram_share_new_sec_1930.jpeg")),plot=last_plot())
 
 # Excluding counties with the highest share of new sectors
 j <- 3
@@ -864,12 +875,12 @@ for (i in c(3,5,10)) {
 ggarrange(p[[1]], p[[3]], p[[5]], p[[7]],
           labels = c("All", "Excl. 2", "Excl. 4", "Excl. 9"),
           ncol = 2, nrow = 2)
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/metarea_1940/histogram_share_new_sec_1920_excluding_regions_1.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/histogram_share_new_sec_1920_excluding_regions_1.jpeg")),plot=last_plot())
 
 ggarrange(p[[2]], p[[4]], p[[6]], p[[8]],
           labels = c("All", "Excl. 2", "Excl. 4", "Excl. 9"),
           ncol = 2, nrow = 2)
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/metarea_1940/histogram_share_new_sec_1930_excluding_regions_2.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/histogram_share_new_sec_1930_excluding_regions_2.jpeg")),plot=last_plot())
 
 rm(p)
 ```
@@ -881,19 +892,19 @@ rm(p)
 ```{r}
 # Importing shp file 
 # 1 Option
-map.cty <- st_read("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/input/shapefiles/shapefile_us_county_1910", quiet = TRUE)
+map.cty <- st_read(here(paste0("input/shapefiles/shapefile_us_county_1910")), quiet = TRUE)
 
-map.state <- st_read("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/input/shapefiles/shapefile_us_state_1910", quiet = TRUE)
+map.state <- st_read(here(paste0("input/shapefiles/shapefile_us_state_1910")), quiet = TRUE)
 
 if (FALSE) {
 # 2 option
-map.cty <- read_sf(dsn="/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/input/shapefiles/shapefile_us_county_1910")
+map.cty <- read_sf(dsn=here(paste0("input/shapefiles/shapefile_us_county_1910")))
 
 # 3 option
 # NOTE requires the data_file
 map.state <- read_nhgis_sf(
-  data_file = "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/input/shapefiles/nhgis0006_csv",
-  shape_file = "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/input/shapefiles/nhgis0006_shape.zip"
+  data_file = here(paste0("input/shapefiles/nhgis0006_csv")),
+  shape_file = here(paste0("input/shapefiles/nhgis0006_shape.zip"))
 )
 }
 #subsetting it and dropping Alaska and Hawaii
@@ -913,12 +924,12 @@ map.metarea_1940 <- merge(map.cty,new_sectors_metarea_1940,by="GISJOIN2",all.x=T
 
 county <- tm_shape(subset(map.metarea_1940)) + tm_polygons("new_sec_all_1920",style = "pretty", n=10,lwd=0) +
   tm_shape(map.state) + tm_borders(alpha=0.1,lwd=0.5)
-tmap_save(county, "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Maps/sh_new_sector_1920_all_metarea_1940.jpeg")
+tmap_save(county, here(paste0("output/Maps/sh_new_sector_1920_all_metarea_1940.jpeg")))
 rm(county)
 
 county <- tm_shape(subset(map.metarea_1940)) + tm_polygons("new_sec_all_1930",style = "pretty", n=10,lwd=0) +
   tm_shape(map.state) + tm_borders(alpha=0.1,lwd=0.5)
-tmap_save(county, "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Maps/sh_new_sector_1930_all_metarea_1940.jpeg")
+tmap_save(county, here(paste0("output/Maps/sh_new_sector_1930_all_metarea_1940.jpeg")))
 rm(county)
 ```
 
@@ -1096,7 +1107,7 @@ wrapper_Excel <- function(list_table,list_name,output) {
 ## 1. Regressions following Lin (2011) - At the countynhg_1910 level
 ### 1.1. Call individual level data
 ```{r}
-census_sample_1930_individual_data <-read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1930_individual_data_x_countynhg_1910.fst",as.data.table=TRUE)
+census_sample_1930_individual_data <-read_fst(here(paste0("output/Rdata/census_sample_1930_individual_data_x_countynhg_1910.fst")),as.data.table=TRUE)
 ```
 ***!!! NOTE: 
 
@@ -1244,40 +1255,40 @@ coef.J.cluster.drop <- f_regressions (arg_formula=a,arg_data=census_sample_1930_
 list_name <- list("No_cluster_No_drop","No_cluster_Drop","Cluster_No_drop","Cluster_Drop")
 list_table <- list(coef.J[variable=="coef_star" | variable =="std_par" | variable=="zother"],coef.J.drop[variable=="coef_star" | variable =="std_par" | variable=="zother"],coef.J.cluster[variable=="coef_star" | variable =="std_par" |variable=="zother"],coef.J.cluster.drop[variable=="coef_star" | variable =="std_par" | variable=="zother"])
 
-wrapper_Excel(list_table,list_name,"/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Tables/individual_regression_1930_countynhg_1910.xlsx")
+wrapper_Excel(list_table,list_name,here(paste0("output/Tables/individual_regression_1930_countynhg_1910.xlsx")))
 
 # 1920 Regressors
 ## Region coefficients, New sector Main
 wrapper_Excel(list(coef.J.cluster[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_all_1920","log(perwt_1920)","H_1920","sh_lit_1920","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1920",unique(coef.J.cluster$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1920",unique(coef.J.cluster$rn),value=TRUE))),c("rn",c(paste0("model_",c(1,28,10,30,19,32))))],coef.J.cluster.drop[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_all_1920","log(perwt_1920)","H_1920","sh_lit_1920","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1920",unique(coef.J.cluster$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1920",unique(coef.J.cluster$rn),value=TRUE))),c("rn",c(paste0("model_",c(1,28,10,30,19,32))))]),
               list("Cluster_No_drop","Cluster_Drop"),
-              "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Tables/ind_reg_1930_ctynhg_1910_New_Sector_reg_1920.xlsx")
+              here(paste0("output/Tables/ind_reg_1930_ctynhg_1910_New_Sector_reg_1920.xlsx")))
 
 ## Region coefficients, New sector Serv and Main
 wrapper_Excel(list(coef.J.cluster[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_main_1920","new_sec_serv_1920","log(perwt_1920)","H_1920","sh_lit_1920","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1920",unique(coef.J.cluster$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1920",unique(coef.J.cluster$rn),value=TRUE))),c("rn",c(paste0("model_",c(3,29,12,31,21,33))))],coef.J.cluster.drop[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_main_1920","new_sec_serv_1920","log(perwt_1920)","H_1920","sh_lit_1920","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1920",unique(coef.J.cluster$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1920",unique(coef.J.cluster$rn),value=TRUE))),c("rn",c(paste0("model_",c(3,29,12,31,21,33))))]),
               list("Cluster_No_drop","Cluster_Drop"),
-              "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Tables/ind_reg_1930_ctynhg_1910_New_Main_Serv_reg_1920.xlsx")
+              here(paste0("output/Tables/ind_reg_1930_ctynhg_1910_New_Main_Serv_reg_1920.xlsx")))
 
 # 1930 Regressors
 ## Region coefficients, New sector Main
 wrapper_Excel(list(coef.J.cluster[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_all_1930","log(perwt_1930)","H_1930","sh_lit_1930","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1930",unique(coef.J.cluster$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1930",unique(coef.J.cluster$rn),value=TRUE))),c("rn",c(paste0("model_",c(4,34,13,36,22,38))))],coef.J.cluster.drop[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_all_1930","log(perwt_1930)","H_1930","sh_lit_1930","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1930",unique(coef.J.cluster$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1930",unique(coef.J.cluster$rn),value=TRUE))),c("rn",c(paste0("model_",c(4,34,13,36,22,38))))]),
               list("Cluster_No_drop","Cluster_Drop"),
-              "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Tables/ind_reg_1930_ctynhg_1910_New_Sector_reg_1930.xlsx")
+              here(paste0("output/Tables/ind_reg_1930_ctynhg_1910_New_Sector_reg_1930.xlsx")))
 
 ## Region coefficients, New sector Serv and Main
 wrapper_Excel(list(coef.J.cluster[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_main_1930","new_sec_serv_1930","log(perwt_1930)","H_1930","sh_lit_1930","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1930",unique(coef.J.cluster$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1930",unique(coef.J.cluster$rn),value=TRUE))),c("rn",c(paste0("model_",c(6,25,15,37,24,39))))],coef.J.cluster.drop[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_main_1930","new_sec_serv_1930","log(perwt_1930)","H_1930","sh_lit_1930","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1930",unique(coef.J.cluster$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1930",unique(coef.J.cluster$rn),value=TRUE))),c("rn",c(paste0("model_",c(6,25,15,37,24,39))))]),
               list("Cluster_No_drop","Cluster_Drop"),
-              "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Tables/ind_reg_1930_ctynhg_1910_New_Main_Serv_reg_1930.xlsx")
+              here(paste0("output/Tables/ind_reg_1930_ctynhg_1910_New_Main_Serv_reg_1930.xlsx")))
 
 # 1930 New Sec, 1920 rest
 ## Region coefficients, New sector Main
 wrapper_Excel(list(coef.J.cluster[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_all_1930","log(perwt_1920)","H_1920","sh_lit_1920","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1920",unique(coef.J.cluster$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1920",unique(coef.J.cluster$rn),value=TRUE))),c("rn",c(paste0("model_",c(7,40,16,42,25,44))))],coef.J.cluster.drop[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_all_1930","log(perwt_1920)","H_1920","sh_lit_1920","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1920",unique(coef.J.cluster$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1920",unique(coef.J.cluster$rn),value=TRUE))),c("rn",c(paste0("model_",c(7,40,16,42,25,44))))]),
               list("Cluster_No_drop","Cluster_Drop"),
-              "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Tables/ind_reg_1930_ctynhg_1910_New_Sector_reg_mix.xlsx")
+              here(paste0("output/Tables/ind_reg_1930_ctynhg_1910_New_Sector_reg_mix.xlsx")))
 
 ## Region coefficients, New sector Serv and Main
 wrapper_Excel(list(coef.J.cluster[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_main_1930","new_sec_serv_1930","log(perwt_1920)","H_1920","sh_lit_1920","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1920",unique(coef.J.cluster$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1920",unique(coef.J.cluster$rn),value=TRUE))),c("rn",c(paste0("model_",c(9,41,18,43,27,45))))],coef.J.cluster.drop[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_main_1930","new_sec_serv_1930","log(perwt_1920)","H_1920","sh_lit_1920","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1920",unique(coef.J.cluster$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1920",unique(coef.J.cluster$rn),value=TRUE))),c("rn",c(paste0("model_",c(9,41,18,43,27,45))))]),
               list("Cluster_No_drop","Cluster_Drop"),
-              "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Tables/ind_reg_1930_ctynhg_1910_New_Main_Serv_reg_mix.xlsx")
+              here(paste0("output/Tables/ind_reg_1930_ctynhg_1910_New_Main_Serv_reg_mix.xlsx")))
 
 
 ```
@@ -1321,7 +1332,7 @@ wrapper_Excel(list(
                     coef.J.cluster.drop.excluding_99[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_all_1920","log(perwt_1920)","H_1920","sh_lit_1920","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1920",unique(coef.J.cluster.drop.excluding_49$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1920",unique(coef.J.cluster.drop.excluding_49$rn),value=TRUE))),c("rn",c(paste0("model_",c(1,28,10,30,19,32))))],
                     coef.J.cluster.drop.excluding_199[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_all_1920","log(perwt_1920)","H_1920","sh_lit_1920","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1920",unique(coef.J.cluster.drop.excluding_49$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1920",unique(coef.J.cluster.drop.excluding_49$rn),value=TRUE))),c("rn",c(paste0("model_",c(1,28,10,30,19,32))))]),
               list("Cluster_Drop_Ex_2","Cluster_Drop_Ex_4","Cluster_Drop_Ex_9","Cluster_Drop_Ex_19","Cluster_Drop_Ex_49","Cluster_Drop_Ex_99","Cluster_Drop_Ex_199"),
-              "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Tables/ind_reg_1930_ctynhg_1910_New_Sector_reg_1920_exclus.xlsx")
+              here(paste0("output/Tables/ind_reg_1930_ctynhg_1910_New_Sector_reg_1920_exclus.xlsx")))
 
 ## Region coefficients, New sector Serv and Main
 wrapper_Excel(list(
@@ -1333,7 +1344,7 @@ wrapper_Excel(list(
                   coef.J.cluster.drop.excluding_99[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_main_1920","new_sec_serv_1920","log(perwt_1920)","H_1920","sh_lit_1920","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1920",unique(coef.J.cluster.drop.excluding_49$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1920",unique(coef.J.cluster.drop.excluding_49$rn),value=TRUE))),c("rn",c(paste0("model_",c(3,29,12,31,21,33))))],
                   coef.J.cluster.drop.excluding_199[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_main_1920","new_sec_serv_1920","log(perwt_1920)","H_1920","sh_lit_1920","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1920",unique(coef.J.cluster.drop.excluding_49$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1920",unique(coef.J.cluster.drop.excluding_49$rn),value=TRUE))),c("rn",c(paste0("model_",c(3,29,12,31,21,33))))]),
               list("Cluster_Drop_Ex_2","Cluster_Drop_Ex_4","Cluster_Drop_Ex_9","Cluster_Drop_Ex_19","Cluster_Drop_Ex_49","Cluster_Drop_Ex_99","Cluster_Drop_Ex_199"),
-              "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Tables/ind_reg_1930_ctynhg_1910_New_Main_Serv_reg_1920_exclus.xlsx")
+              here(paste0("output/Tables/ind_reg_1930_ctynhg_1910_New_Main_Serv_reg_1920_exclus.xlsx")))
 
 # 1930 Regressors
 ## Region coefficients, New sector Main
@@ -1346,7 +1357,7 @@ wrapper_Excel(list(
                   coef.J.cluster.drop.excluding_99[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_all_1930","log(perwt_1930)","H_1930","sh_lit_1930","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1930",unique(coef.J.cluster.drop.excluding_49$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1930",unique(coef.J.cluster.drop.excluding_49$rn),value=TRUE))),c("rn",c(paste0("model_",c(4,34,13,36,22,38))))],
                   coef.J.cluster.drop.excluding_199[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_all_1930","log(perwt_1930)","H_1930","sh_lit_1930","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1930",unique(coef.J.cluster.drop.excluding_49$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1930",unique(coef.J.cluster.drop.excluding_49$rn),value=TRUE))),c("rn",c(paste0("model_",c(4,34,13,36,22,38))))]),
               list("Cluster_Drop_Ex_2","Cluster_Drop_Ex_4","Cluster_Drop_Ex_9","Cluster_Drop_Ex_19","Cluster_Drop_Ex_49","Cluster_Drop_Ex_99","Cluster_Drop_Ex_199"),
-              "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Tables/ind_reg_1930_ctynhg_1910_New_Sector_reg_1930_exclus.xlsx")
+              here(paste0("output/Tables/ind_reg_1930_ctynhg_1910_New_Sector_reg_1930_exclus.xlsx")))
 
 ## Region coefficients, New sector Serv and Main
 wrapper_Excel(list(
@@ -1358,7 +1369,7 @@ wrapper_Excel(list(
                   coef.J.cluster.drop.excluding_99[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_main_1930","new_sec_serv_1930","log(perwt_1930)","H_1930","sh_lit_1930","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1930",unique(coef.J.cluster.drop.excluding_4$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1930",unique(coef.J.cluster.drop.excluding_4$rn),value=TRUE))),c("rn",c(paste0("model_",c(6,25,15,37,24,39))))],
                   coef.J.cluster.drop.excluding_199[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_main_1930","new_sec_serv_1930","log(perwt_1930)","H_1930","sh_lit_1930","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1930",unique(coef.J.cluster.drop.excluding_4$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1930",unique(coef.J.cluster.drop.excluding_4$rn),value=TRUE))),c("rn",c(paste0("model_",c(6,25,15,37,24,39))))]),
               list("Cluster_Drop_Ex_2","Cluster_Drop_Ex_4","Cluster_Drop_Ex_9","Cluster_Drop_Ex_19","Cluster_Drop_Ex_49","Cluster_Drop_Ex_99","Cluster_Drop_Ex_199"),
-              "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Tables/ind_reg_1930_ctynhg_1910_New_Main_Serv_reg_1930_exclus.xlsx")
+              here(paste0("output/Tables/ind_reg_1930_ctynhg_1910_New_Main_Serv_reg_1930_exclus.xlsx")))
 
 # 1930 New Sec, 1920 rest
 ## Region coefficients, New sector Main
@@ -1371,7 +1382,7 @@ wrapper_Excel(list(
                   coef.J.cluster.drop.excluding_99[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_all_1930","log(perwt_1920)","H_1920","sh_lit_1920","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1920",unique(coef.J.cluster.drop.excluding_4$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1920",unique(coef.J.cluster.drop.excluding_4$rn),value=TRUE))),c("rn",c(paste0("model_",c(7,40,16,42,25,44))))],
                   coef.J.cluster.drop.excluding_199[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_all_1930","log(perwt_1920)","H_1920","sh_lit_1920","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1920",unique(coef.J.cluster.drop.excluding_4$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1920",unique(coef.J.cluster.drop.excluding_4$rn),value=TRUE))),c("rn",c(paste0("model_",c(7,40,16,42,25,44))))]),
               list("Cluster_Drop_Ex_2","Cluster_Drop_Ex_4","Cluster_Drop_Ex_9","Cluster_Drop_Ex_19","Cluster_Drop_Ex_49","Cluster_Drop_Ex_99","Cluster_Drop_Ex_199"),
-              "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Tables/ind_reg_1930_ctynhg_1910_New_Sector_reg_mix_exclus.xlsx")
+              here(paste0("output/Tables/ind_reg_1930_ctynhg_1910_New_Sector_reg_mix_exclus.xlsx")))
 
 ## Region coefficients, New sector Serv and Main
 wrapper_Excel(list(
@@ -1383,14 +1394,14 @@ wrapper_Excel(list(
                   coef.J.cluster.drop.excluding_99[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_main_1930","new_sec_serv_1930","log(perwt_1920)","H_1920","sh_lit_1920","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1920",unique(coef.J.cluster.drop.excluding_4$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1920",unique(coef.J.cluster.drop.excluding_4$rn),value=TRUE))),c("rn",c(paste0("model_",c(9,41,18,43,27,45))))],
                   coef.J.cluster.drop.excluding_199[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_main_1930","new_sec_serv_1930","log(perwt_1920)","H_1920","sh_lit_1920","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1920",unique(coef.J.cluster.drop.excluding_4$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1920",unique(coef.J.cluster.drop.excluding_4$rn),value=TRUE))),c("rn",c(paste0("model_",c(9,41,18,43,27,45))))]),
               list("Cluster_Drop_Ex_2","Cluster_Drop_Ex_4","Cluster_Drop_Ex_9","Cluster_Drop_Ex_19","Cluster_Drop_Ex_49","Cluster_Drop_Ex_99","Cluster_Drop_Ex_199"),
-              "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Tables/ind_reg_1930_ctynhg_1910_New_Main_Serv_reg_mix_exclus.xlsx")
+              here(paste0("output/Tables/ind_reg_1930_ctynhg_1910_New_Main_Serv_reg_mix_exclus.xlsx")))
 ```
 
 
 ## 2. Regressions following Lin (2011) - At the metarea_1940 level
 ### 2.1. Call individual level data
 ```{r}
-census_sample_1930_individual_data <-read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1930_individual_data_x_metarea_1940.fst",as.data.table=TRUE)
+census_sample_1930_individual_data <-read_fst(here(paste0("output/Rdata/census_sample_1930_individual_data_x_metarea_1940.fst")),as.data.table=TRUE)
 ```
 
 ### 2.2. Creating dummy variables
@@ -1609,40 +1620,40 @@ coef.J.cluster.drop <- f_regressions (arg_formula=a,arg_data=census_sample_1930_
 list_name <- list("No_cluster_No_drop","No_cluster_Drop","Cluster_No_drop","Cluster_Drop")
 list_table <- list(coef.J[variable=="coef_star" | variable =="std_par" | variable=="zother"],coef.J.drop[variable=="coef_star" | variable =="std_par" | variable=="zother"],coef.J.cluster[variable=="coef_star" | variable =="std_par" |variable=="zother"],coef.J.cluster.drop[variable=="coef_star" | variable =="std_par" | variable=="zother"])
 
-wrapper_Excel(list_table,list_name,"/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Tables/individual_regression_1930_metarea_1940.xlsx")
+wrapper_Excel(list_table,list_name,here(paste0("output/Tables/individual_regression_1930_metarea_1940.xlsx")))
 
 # 1920 Regressors
 ## Region coefficients, New sector Main
 wrapper_Excel(list(coef.J.cluster[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_all_1920","log(perwt_1920)","H_1920","sh_lit_1920","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1920",unique(coef.J.cluster$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1920",unique(coef.J.cluster$rn),value=TRUE))),c("rn",c(paste0("model_",c(1,28,10,30,19,32))))],coef.J.cluster.drop[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_all_1920","log(perwt_1920)","H_1920","sh_lit_1920","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1920",unique(coef.J.cluster$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1920",unique(coef.J.cluster$rn),value=TRUE))),c("rn",c(paste0("model_",c(1,28,10,30,19,32))))]),
               list("Cluster_No_drop","Cluster_Drop"),
-              "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Tables/ind_reg_1930_met_1940_New_Sector_reg_1920.xlsx")
+              here(paste0("output/Tables/ind_reg_1930_met_1940_New_Sector_reg_1920.xlsx")))
 
 ## Region coefficients, New sector Serv and Main
 wrapper_Excel(list(coef.J.cluster[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_main_1920","new_sec_serv_1920","log(perwt_1920)","H_1920","sh_lit_1920","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1920",unique(coef.J.cluster$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1920",unique(coef.J.cluster$rn),value=TRUE))),c("rn",c(paste0("model_",c(3,29,12,31,21,33))))],coef.J.cluster.drop[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_main_1920","new_sec_serv_1920","log(perwt_1920)","H_1920","sh_lit_1920","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1920",unique(coef.J.cluster$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1920",unique(coef.J.cluster$rn),value=TRUE))),c("rn",c(paste0("model_",c(3,29,12,31,21,33))))]),
               list("Cluster_No_drop","Cluster_Drop"),
-              "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Tables/ind_reg_1930_met_1940_New_Main_Serv_reg_1920.xlsx")
+              here(paste0("output/Tables/ind_reg_1930_met_1940_New_Main_Serv_reg_1920.xlsx")))
 
 # 1930 Regressors
 ## Region coefficients, New sector Main
 wrapper_Excel(list(coef.J.cluster[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_all_1930","log(perwt_1930)","H_1930","sh_lit_1930","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1930",unique(coef.J.cluster$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1930",unique(coef.J.cluster$rn),value=TRUE))),c("rn",c(paste0("model_",c(4,34,13,36,22,38))))],coef.J.cluster.drop[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_all_1930","log(perwt_1930)","H_1930","sh_lit_1930","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1930",unique(coef.J.cluster$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1930",unique(coef.J.cluster$rn),value=TRUE))),c("rn",c(paste0("model_",c(4,34,13,36,22,38))))]),
               list("Cluster_No_drop","Cluster_Drop"),
-              "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Tables/ind_reg_1930_met_1940_New_Sector_reg_1930.xlsx")
+              here(paste0("output/Tables/ind_reg_1930_met_1940_New_Sector_reg_1930.xlsx")))
 
 ## Region coefficients, New sector Serv and Main
 wrapper_Excel(list(coef.J.cluster[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_main_1930","new_sec_serv_1930","log(perwt_1930)","H_1930","sh_lit_1930","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1930",unique(coef.J.cluster$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1930",unique(coef.J.cluster$rn),value=TRUE))),c("rn",c(paste0("model_",c(6,25,15,37,24,39))))],coef.J.cluster.drop[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_main_1930","new_sec_serv_1930","log(perwt_1930)","H_1930","sh_lit_1930","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1930",unique(coef.J.cluster$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1930",unique(coef.J.cluster$rn),value=TRUE))),c("rn",c(paste0("model_",c(6,25,15,37,24,39))))]),
               list("Cluster_No_drop","Cluster_Drop"),
-              "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Tables/ind_reg_1930_met_1940_New_Main_Serv_reg_1930.xlsx")
+              here(paste0("output/Tables/ind_reg_1930_met_1940_New_Main_Serv_reg_1930.xlsx")))
 
 # 1930 New Sec, 1920 rest
 ## Region coefficients, New sector Main
 wrapper_Excel(list(coef.J.cluster[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_all_1930","log(perwt_1920)","H_1920","sh_lit_1920","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1920",unique(coef.J.cluster$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1920",unique(coef.J.cluster$rn),value=TRUE))),c("rn",c(paste0("model_",c(7,40,16,42,25,44))))],coef.J.cluster.drop[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_all_1930","log(perwt_1920)","H_1920","sh_lit_1920","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1920",unique(coef.J.cluster$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1920",unique(coef.J.cluster$rn),value=TRUE))),c("rn",c(paste0("model_",c(7,40,16,42,25,44))))]),
               list("Cluster_No_drop","Cluster_Drop"),
-              "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Tables/ind_reg_1930_met_1940_New_Sector_reg_mix.xlsx")
+              here(paste0("output/Tables/ind_reg_1930_met_1940_New_Sector_reg_mix.xlsx")))
 
 ## Region coefficients, New sector Serv and Main
 wrapper_Excel(list(coef.J.cluster[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_main_1930","new_sec_serv_1930","log(perwt_1920)","H_1920","sh_lit_1920","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1920",unique(coef.J.cluster$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1920",unique(coef.J.cluster$rn),value=TRUE))),c("rn",c(paste0("model_",c(9,41,18,43,27,45))))],coef.J.cluster.drop[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_main_1930","new_sec_serv_1930","log(perwt_1920)","H_1920","sh_lit_1920","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1920",unique(coef.J.cluster$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1920",unique(coef.J.cluster$rn),value=TRUE))),c("rn",c(paste0("model_",c(9,41,18,43,27,45))))]),
               list("Cluster_No_drop","Cluster_Drop"),
-              "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Tables/ind_reg_1930_met_1940_New_Main_Serv_reg_mix.xlsx")
+              here(paste0("output/Tables/ind_reg_1930_met_1940_New_Main_Serv_reg_mix.xlsx")))
 
 
 
@@ -1686,7 +1697,7 @@ wrapper_Excel(list(
                     coef.J.cluster.drop.excluding_29[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_all_1920","log(perwt_1920)","H_1920","sh_lit_1920","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1920",unique(coef.J.cluster.drop.excluding_4$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1920",unique(coef.J.cluster.drop.excluding_4$rn),value=TRUE))),c("rn",c(paste0("model_",c(1,28,10,30,19,32))))],
                     coef.J.cluster.drop.excluding_49[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_all_1920","log(perwt_1920)","H_1920","sh_lit_1920","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1920",unique(coef.J.cluster.drop.excluding_4$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1920",unique(coef.J.cluster.drop.excluding_4$rn),value=TRUE))),c("rn",c(paste0("model_",c(1,28,10,30,19,32))))]),
               list("Cluster_Drop_Ex_2","Cluster_Drop_Ex_4","Cluster_Drop_Ex_9","Cluster_Drop_Ex_15","Cluster_Drop_Ex_19","Cluster_Drop_Ex_29","Cluster_Drop_Ex_49"),
-              "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Tables/ind_reg_1930_met_1940_New_Sector_reg_1920_exclus.xlsx")
+              here(paste0("output/Tables/ind_reg_1930_met_1940_New_Sector_reg_1920_exclus.xlsx")))
 
 ## Region coefficients, New sector Serv and Main
 wrapper_Excel(list(
@@ -1698,7 +1709,7 @@ wrapper_Excel(list(
                   coef.J.cluster.drop.excluding_29[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_main_1920","new_sec_serv_1920","log(perwt_1920)","H_1920","sh_lit_1920","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1920",unique(coef.J.cluster.drop.excluding_4$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1920",unique(coef.J.cluster.drop.excluding_4$rn),value=TRUE))),c("rn",c(paste0("model_",c(3,29,12,31,21,33))))],
                   coef.J.cluster.drop.excluding_49[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_main_1920","new_sec_serv_1920","log(perwt_1920)","H_1920","sh_lit_1920","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1920",unique(coef.J.cluster.drop.excluding_4$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1920",unique(coef.J.cluster.drop.excluding_4$rn),value=TRUE))),c("rn",c(paste0("model_",c(3,29,12,31,21,33))))]),
               list("Cluster_Drop_Ex_2","Cluster_Drop_Ex_4","Cluster_Drop_Ex_9","Cluster_Drop_Ex_15","Cluster_Drop_Ex_19","Cluster_Drop_Ex_29","Cluster_Drop_Ex_49"),
-              "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Tables/ind_reg_1930_met_1940_New_Main_Serv_reg_1920_exclus.xlsx")
+              here(paste0("output/Tables/ind_reg_1930_met_1940_New_Main_Serv_reg_1920_exclus.xlsx")))
 
 # 1930 Regressors
 ## Region coefficients, New sector Main
@@ -1711,7 +1722,7 @@ wrapper_Excel(list(
                   coef.J.cluster.drop.excluding_29[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_all_1930","log(perwt_1930)","H_1930","sh_lit_1930","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1930",unique(coef.J.cluster.drop.excluding_4$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1930",unique(coef.J.cluster.drop.excluding_4$rn),value=TRUE))),c("rn",c(paste0("model_",c(4,34,13,36,22,38))))],
                   coef.J.cluster.drop.excluding_49[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_all_1930","log(perwt_1930)","H_1930","sh_lit_1930","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1930",unique(coef.J.cluster.drop.excluding_4$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1930",unique(coef.J.cluster.drop.excluding_4$rn),value=TRUE))),c("rn",c(paste0("model_",c(4,34,13,36,22,38))))]),
               list("Cluster_Drop_Ex_2","Cluster_Drop_Ex_4","Cluster_Drop_Ex_9","Cluster_Drop_Ex_15","Cluster_Drop_Ex_19","Cluster_Drop_Ex_29","Cluster_Drop_Ex_49"),
-              "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Tables/ind_reg_1930_met_1940_New_Sector_reg_1930_exclus.xlsx")
+              here(paste0("output/Tables/ind_reg_1930_met_1940_New_Sector_reg_1930_exclus.xlsx")))
 
 ## Region coefficients, New sector Serv and Main
 wrapper_Excel(list(
@@ -1723,7 +1734,7 @@ wrapper_Excel(list(
                   coef.J.cluster.drop.excluding_29[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_main_1930","new_sec_serv_1930","log(perwt_1930)","H_1930","sh_lit_1930","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1930",unique(coef.J.cluster.drop.excluding_4$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1930",unique(coef.J.cluster.drop.excluding_4$rn),value=TRUE))),c("rn",c(paste0("model_",c(6,25,15,37,24,39))))],
                   coef.J.cluster.drop.excluding_49[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_main_1930","new_sec_serv_1930","log(perwt_1930)","H_1930","sh_lit_1930","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1930",unique(coef.J.cluster.drop.excluding_4$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1930",unique(coef.J.cluster.drop.excluding_4$rn),value=TRUE))),c("rn",c(paste0("model_",c(6,25,15,37,24,39))))]),
               list("Cluster_Drop_Ex_2","Cluster_Drop_Ex_4","Cluster_Drop_Ex_9","Cluster_Drop_Ex_15","Cluster_Drop_Ex_19","Cluster_Drop_Ex_29","Cluster_Drop_Ex_49"),
-              "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Tables/ind_reg_1930_met_1940_New_Main_Serv_reg_1930_exclus.xlsx")
+              here(paste0("output/Tables/ind_reg_1930_met_1940_New_Main_Serv_reg_1930_exclus.xlsx")))
 
 # 1930 New Sec, 1920 rest
 ## Region coefficients, New sector Main
@@ -1736,7 +1747,7 @@ wrapper_Excel(list(
                   coef.J.cluster.drop.excluding_29[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_all_1930","log(perwt_1920)","H_1920","sh_lit_1920","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1920",unique(coef.J.cluster.drop.excluding_4$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1920",unique(coef.J.cluster.drop.excluding_4$rn),value=TRUE))),c("rn",c(paste0("model_",c(7,40,16,42,25,44))))],
                   coef.J.cluster.drop.excluding_49[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_all_1930","log(perwt_1920)","H_1920","sh_lit_1920","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1920",unique(coef.J.cluster.drop.excluding_4$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1920",unique(coef.J.cluster.drop.excluding_4$rn),value=TRUE))),c("rn",c(paste0("model_",c(7,40,16,42,25,44))))]),
               list("Cluster_Drop_Ex_2","Cluster_Drop_Ex_4","Cluster_Drop_Ex_9","Cluster_Drop_Ex_15","Cluster_Drop_Ex_19","Cluster_Drop_Ex_29","Cluster_Drop_Ex_49"),
-              "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Tables/ind_reg_1930_met_1940_New_Sector_reg_mix_exclus.xlsx")
+              here(paste0("output/Tables/ind_reg_1930_met_1940_New_Sector_reg_mix_exclus.xlsx")))
 
 ## Region coefficients, New sector Serv and Main
 wrapper_Excel(list(
@@ -1748,7 +1759,7 @@ wrapper_Excel(list(
                   coef.J.cluster.drop.excluding_29[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_main_1930","new_sec_serv_1930","log(perwt_1920)","H_1920","sh_lit_1920","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1920",unique(coef.J.cluster.drop.excluding_4$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1920",unique(coef.J.cluster.drop.excluding_4$rn),value=TRUE))),c("rn",c(paste0("model_",c(9,41,18,43,27,45))))],
                   coef.J.cluster.drop.excluding_49[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% c("new_sec_main_1930","new_sec_serv_1930","log(perwt_1920)","H_1920","sh_lit_1920","adj.r2","nobs",c(grep("^sh_ind1950_main_[^1]_1920",unique(coef.J.cluster.drop.excluding_4$rn),value=TRUE),grep("^sh_occ1950_main_[^0].+_1920",unique(coef.J.cluster.drop.excluding_4$rn),value=TRUE))),c("rn",c(paste0("model_",c(9,41,18,43,27,45))))]),
               list("Cluster_Drop_Ex_2","Cluster_Drop_Ex_4","Cluster_Drop_Ex_9","Cluster_Drop_Ex_15","Cluster_Drop_Ex_19","Cluster_Drop_Ex_29","Cluster_Drop_Ex_49"),
-              "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Tables/ind_reg_1930_met_1940_New_Main_Serv_reg_mix_exclus.xlsx")
+              here(paste0("output/Tables/ind_reg_1930_met_1940_New_Main_Serv_reg_mix_exclus.xlsx")))
 ```
 
 
@@ -1757,7 +1768,7 @@ wrapper_Excel(list(
 ### 3.1. Looking at correlation between occ_1950 dummies and share of new work
 #### 3.1.1. Call individual level data
 ```{r}
-census_sample_1930_individual_data <-read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1930_individual_data.fst",as.data.table=TRUE)[occ1950_main!=979 & ind1950_main!=0,c("perwt_ID","ind1950_main","occ1950","occ1950_main","sh_base_tit","sh_red_tit")]
+census_sample_1930_individual_data <-read_fst(here(paste0("output/Rdata/census_sample_1930_individual_data.fst")),as.data.table=TRUE)[occ1950_main!=979 & ind1950_main!=0,c("perwt_ID","ind1950_main","occ1950","occ1950_main","sh_base_tit","sh_red_tit")]
 
 cols <- c("occ1950_main","occ1950")
 census_sample_1930_individual_data[,(cols):=lapply(.SD,as.factor),.SDcols=cols]
@@ -1776,7 +1787,7 @@ ggplot(census_sample_1930_individual_data, aes(x=occ1950_main, y=sh_red_tit)) +
   xlab("Main Occupational Groups") + ylab("Share of new work") +
   ggtitle("Share of New Work by New Occupation")
 
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/boxplot_sh_red_tit_by_occ1950_main.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/boxplot_sh_red_tit_by_occ1950_main.jpeg")),plot=last_plot())
 
 ## Histograms (y-axis displayed in percentages)
 ggplot(data=census_sample_1930_individual_data, aes(x=sh_red_tit)) +
@@ -1787,7 +1798,7 @@ ggplot(data=census_sample_1930_individual_data, aes(x=sh_red_tit)) +
   xlab("Share of New Work") + ylab("") +
   theme_tufte()
 
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/histogram_sh_red_tit_by_occ1950_main.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/histogram_sh_red_tit_by_occ1950_main.jpeg")),plot=last_plot())
 
 # Grouping by occ1950
 ## Aggregating the Data
@@ -1807,7 +1818,7 @@ ggplot(census_sample_1930_individual_data, aes(x=occ1950_main, y=sh_red_tit)) +
   xlab("Main Occupational Groups") + ylab("Share of new work") +
   ggtitle("Share of New Work by New Occupation")
 
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/boxplot_sh_red_tit_by_occ1950_main_groupedinfo.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/boxplot_sh_red_tit_by_occ1950_main_groupedinfo.jpeg")),plot=last_plot())
 
 
 ```
@@ -1821,20 +1832,20 @@ From the different graphs we notice a couple of things:
 census_sample_1930_individual_data <- census_sample_1930_individual_data[,perwt_occ1950_main:=sum(perwt_occ1950),by=c("occ1950_main")]
 census_sample_1930_individual_data <- census_sample_1930_individual_data[,lapply(.SD, weighted.mean,w=perwt_occ1950),by=c("occ1950_main"),.SDcols=c("perwt_occ1950_main","sh_base_tit","sh_red_tit")]
 
-write.xlsx(new_titles.occind1930[[1]],"/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Tables/Table_sh_red_tit_by_occ1950_main.xlsx",row.names = TRUE)
+write.xlsx(new_titles.occind1930[[1]],here(paste0("output/Tables/Table_sh_red_tit_by_occ1950_main.xlsx")),row.names = TRUE)
 
 ```
 
 #### 3.1.4. Regression of likelihood of new work only with occupation dummies
 ```{r}
-census_sample_1930_individual_data <-read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1930_individual_data.fst",as.data.table=TRUE)[,c("perwt_ID","ind1950_main","occind","occ1950_main","sh_base_tit","sh_red_tit")]
+census_sample_1930_individual_data <-read_fst(here(paste0("output/Rdata/census_sample_1930_individual_data.fst")),as.data.table=TRUE)[,c("perwt_ID","ind1950_main","occind","occ1950_main","sh_base_tit","sh_red_tit")]
 census_sample_1930_individual_data[,occ1950_main:=as.factor(occ1950_main)]
 
 a <- list(as.formula(paste0("sh_red_tit ~ occ1950_main")))
 coef <- f_regressions(arg_formula=a,arg_data=census_sample_1930_individual_data,arg_weights=perwt_ID,method="lm",arg_clusters=occind)
 
 write.xlsx(coef[(variable=="coef_star" | variable =="std_par" | variable=="zother"),c("rn",c(paste0("model_",c(1))))],
-           "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Tables/ind_reg_1930_sh_red_tit_by_occ1950_main.xlsx",row.names = TRUE)
+           here(paste0("output/Tables/ind_reg_1930_sh_red_tit_by_occ1950_main.xlsx")),row.names = TRUE)
 
 ```
 Note that the explanatory value of the occupational dummies is very high (adj R^2=0.23). In the regressions without occ1950_main, the explanatory value is of the order of 0.16.
@@ -1900,7 +1911,7 @@ f_occ1950 <- function(X,occ_v,flag=0) {
 ##### countynhg_1910
 ```{r}
 # Calling database of interest
-census_sample_1930_individual_data <-read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1930_individual_data_x_countynhg_1910.fst",as.data.table=TRUE)
+census_sample_1930_individual_data <-read_fst(here(paste0("output/Rdata/census_sample_1930_individual_data_x_countynhg_1910.fst")),as.data.table=TRUE)
 
 # Creating Categorical variables
 cols <- c("race","marst","age_main","ind1950_main","occ1950_main")
@@ -1997,11 +2008,11 @@ coef.positive_sh_new_sec_1930 <- f_regressions(arg_formula=a,arg_data=census_sam
 
 
 ## Exporting Regressions
-#write.xlsx(coef[(variable=="coef_star" | variable =="std_par" | variable=="zother"),c("rn",c(paste0("model_",c(1:4))))],"/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Tables/ind_reg_1930_sh_red_tit_by_sh_occ1950_main_countynhg_1910.xlsx",row.names = FALSE)
+#write.xlsx(coef[(variable=="coef_star" | variable =="std_par" | variable=="zother"),c("rn",c(paste0("model_",c(1:4))))],here(paste0("output/Tables/ind_reg_1930_sh_red_tit_by_sh_occ1950_main_countynhg_1910.xlsx")),row.names = FALSE)
 wrapper_Excel(list( coef.all, coef.no_new_all,coef.no_new_serv,coef.no_new_all_different_occsh,coef.new_sector_x_sh_occ,coef.positive_sh_new_sec_1920,coef.positive_sh_new_sec_1930
                   ),
               list("Cluster_No_Drop","Cluster_Drop_All_New","Cluster_Drop_New_Main","Cl_drop_All_Different_occsh","New_sec_x_sh_occ","Original_pos_all_new_1920","Original_pos_all_new_1930"),
-              "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Tables/ind_reg_1930_countynhg_1910_robustness_occsh_problem.xlsx")
+              here(paste0("output/Tables/ind_reg_1930_countynhg_1910_robustness_occsh_problem.xlsx")))
 
 ```
 The results don't give any further information about why the New Sector's variable looses significance when we introduce the share of the main occupations
@@ -2009,7 +2020,7 @@ The results don't give any further information about why the New Sector's variab
 #### 3.2.2. Ranking of sectors according to the share of different occupations
 ```{r}
 # Call the regional dataset
-census_sample_new_sectors_occsh_1920 <- read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/input/census_sample/census_sample_1920.fst",as.data.table=TRUE)[,c("perwt","ind1950","occ1950")]
+census_sample_new_sectors_occsh_1920 <- read_fst(here(paste0("input/census_sample/census_sample_1920.fst")),as.data.table=TRUE)[,c("perwt","ind1950","occ1950")]
 
 census_sample_new_sectors_occsh_1920 <- f_ind1950(census_sample_new_sectors_occsh_1920,ind1950,flag=0)[!(ind1950_main == 0 | is.na(ind1950))]
 census_sample_new_sectors_occsh_1920 <- f_occ1950(census_sample_new_sectors_occsh_1920,occ1950,flag=0)[!(occ1950_main == 979 | is.na(occ1950))]
@@ -2025,13 +2036,13 @@ setorder(census_sample_new_sectors_occsh_1920,occ1950_main,-sh_occ1950_main_x_in
 ```{r}
  
 ## Calling the regional level information
-census_sample_new_work_x_new_sectors <- read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1920_agg_countynhg_1910.fst",as.data.table=TRUE)
+census_sample_new_work_x_new_sectors <- read_fst(here(paste0("output/Rdata/census_sample_1920_agg_countynhg_1910.fst")),as.data.table=TRUE)
 census_sample_new_work_x_new_sectors <- census_sample_new_work_x_new_sectors[,grep("^countynhg_1910|^sh_red|^sh_base|^sh_occ1950_main|^sh_new_sector|^sh_ind1950|perwt",names(census_sample_new_work_x_new_sectors),value=TRUE),with=FALSE]
 
 col <- names(census_sample_new_work_x_new_sectors[,!c("countynhg_1910")])
 setnames(census_sample_new_work_x_new_sectors,col,paste0(col,"_1920"))
 
-temp <- read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1930_agg_countynhg_1910.fst",as.data.table=TRUE)
+temp <- read_fst(here(paste0("output/Rdata/census_sample_1930_agg_countynhg_1910.fst")),as.data.table=TRUE)
 temp <- temp[, grep("^countynhg_1910|^sh_red|^sh_base|^sh_occ1950_main|^sh_new_sector|^sh_ind1950|^perwt",names(temp),value=TRUE),with=FALSE]
 col <- names(temp[,!c("countynhg_1910")])
 setnames(temp,col,paste0(col,"_1930"))
@@ -2120,7 +2131,7 @@ reg.serv_weights_1930 <- f_regressions(arg_formula=c,arg_data=census_sample_new_
 wrapper_Excel(list( reg.all, reg.all_weights_1920, reg.all_weights_1930,reg.main, reg.main_weights_1920, reg.main_weights_1930,reg.serv, reg.serv_weights_1920, reg.serv_weights_1930
                   ),
               list("All","Main","Serv","All_wt1920","Main_wt1920","Serv_wt1920","All_wt1930","Main_wt1930","Serv_wt1930"),
-              "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Tables/ind_reg_1930_countynhg_1910_robustness_new_sec_x_occsh.xlsx")
+              here(paste0("output/Tables/ind_reg_1930_countynhg_1910_robustness_new_sec_x_occsh.xlsx")))
 
 
 ```
@@ -2129,12 +2140,12 @@ wrapper_Excel(list( reg.all, reg.all_weights_1920, reg.all_weights_1930,reg.main
 #### countynhg_1910
 ```{r}
 # Calling the data
-census_sample_new_work_x_new_sectors <- read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1920_agg_countynhg_1910.fst",as.data.table=TRUE)
+census_sample_new_work_x_new_sectors <- read_fst(here(paste0("output/Rdata/census_sample_1920_agg_countynhg_1910.fst")),as.data.table=TRUE)
 census_sample_new_work_x_new_sectors <- census_sample_new_work_x_new_sectors[,grep("^countynhg_1910|^sh_red|^sh_base|^sh_occ1950_main|^sh_new_sector|^sh_ind1950|perwt",names(census_sample_new_work_x_new_sectors),value=TRUE),with=FALSE]
 col <- names(census_sample_new_work_x_new_sectors[,!c("countynhg_1910")])
 setnames(census_sample_new_work_x_new_sectors,col,paste0(col,"_1920"))
 
-temp <- read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1930_agg_countynhg_1910.fst",as.data.table=TRUE)
+temp <- read_fst(here(paste0("output/Rdata/census_sample_1930_agg_countynhg_1910.fst")),as.data.table=TRUE)
 temp <- temp[, grep("^countynhg_1910|^sh_red|^sh_base|^sh_occ1950_main|^sh_new_sector|^sh_ind1950|^perwt",names(temp),value=TRUE),with=FALSE]
 col <- names(temp[,!c("countynhg_1910")])
 setnames(temp,col,paste0(col,"_1930"))
@@ -2153,7 +2164,7 @@ census_sample_new_work_x_new_sectors[,rank_new_sec_1930:=1:.N]
 ## New Work, New Sectors
 p <- vector(mode = "list")
 p[[1]] <- ggplot(census_sample_new_work_x_new_sectors[perwt_1930>=10000], aes(y=sh_red_tit_1930, x=new_sec_all_1920)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="",x="Share of New Sector", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/corr_sh_new_sectors_1930_x_sh_red_tit_1920.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_new_sectors_1930_x_sh_red_tit_1920.jpeg")),plot=last_plot())
 
 
 ### Excluding counties with the highest share of new sectors
@@ -2165,11 +2176,11 @@ for (i in c(3,5,10,20,50)) {
 ggarrange(p[[1]],p[[2]],p[[3]],p[[4]],
           labels = c("All", "Excl. 2", "Excl. 4", "Excl. 9"),
           ncol = 2, nrow = 2)
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/corr_sh_new_sectors_1930_x_sh_red_tit_1920_excl_reg_1.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_new_sectors_1930_x_sh_red_tit_1920_excl_reg_1.jpeg")),plot=last_plot())
 ggarrange(p[[5]],p[[6]],
           labels = c("Excl. 19", "Excl. 49"),
           ncol = 2, nrow = 2)
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/corr_sh_new_sectors_1930_x_sh_red_tit_1920_excl_reg_2.jpeg",plot=last_plot())  
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_new_sectors_1930_x_sh_red_tit_1920_excl_reg_2.jpeg")),plot=last_plot())  
 rm(p)
 
 ## New Sectors, Share of occupations
@@ -2182,24 +2193,24 @@ for (i in 1:length(x)) {
 }
 ggarrange(p[[1]],p[[2]],p[[3]],p[[4]],labels=c("Professional, Technical","Farmers","Managers, Officials and Proprietors","Clerical and Kindred"),font.label = list(size = 10),
           ncol = 2, nrow =2)
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/corr_sh_occ1950_main_x_sh_new_sectors_1.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_occ1950_main_x_sh_new_sectors_1.jpeg")),plot=last_plot())
 ggarrange(p[[5]],p[[6]],p[[7]],p[[8]],labels=c("Sales workers","Craftsmen","Operatives","Service Workers (private household)"),font.label = list(size = 10), ncol = 2, nrow =2)
-#ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/corr_sh_occ1950_main_x_sh_new_sectors_2.jpeg",plot=last_plot())
+#ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_occ1950_main_x_sh_new_sectors_2.jpeg")),plot=last_plot())
 ggarrange(p[[9]],p[[10]],p[[11]],labels=c("Service Workers (not household)","Farm laborers","Laborers"),font.label = list(size = 10),
           ncol = 2, nrow =2)
-#ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/corr_sh_occ1950_main_x_sh_new_sectors_3.jpeg",plot=last_plot())
+#ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_occ1950_main_x_sh_new_sectors_3.jpeg")),plot=last_plot())
 rm(p)
 ```
 
 #### metarea_1940
 ```{r}
 # Calling the data
-census_sample_new_work_x_new_sectors <- read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1920_agg_metarea_1940.fst",as.data.table=TRUE)
+census_sample_new_work_x_new_sectors <- read_fst(here(paste0("output/Rdata/census_sample_1920_agg_metarea_1940.fst")),as.data.table=TRUE)
 census_sample_new_work_x_new_sectors <- census_sample_new_work_x_new_sectors[,grep("^metarea_1940|^sh_red|^sh_base|^sh_occ1950_main|^sh_new_sector|^sh_ind1950|perwt",names(census_sample_new_work_x_new_sectors),value=TRUE),with=FALSE]
 col <- names(census_sample_new_work_x_new_sectors[,!c("metarea_1940")])
 setnames(census_sample_new_work_x_new_sectors,col,paste0(col,"_1920"))
 
-temp <- read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1930_agg_metarea_1940.fst",as.data.table=TRUE)
+temp <- read_fst(here(paste0("output/Rdata/census_sample_1930_agg_metarea_1940.fst")),as.data.table=TRUE)
 temp <- temp[, grep("^metarea_1940|^sh_red|^sh_base|^sh_occ1950_main|^sh_new_sector|^sh_ind1950|^perwt",names(temp),value=TRUE),with=FALSE]
 col <- names(temp[,!c("metarea_1940")])
 setnames(temp,col,paste0(col,"_1930"))
@@ -2219,7 +2230,7 @@ census_sample_new_work_x_new_sectors[,rank_new_sec_1930:=1:.N]
 ## New Work, New Sectors
 p <- vector(mode = "list")
 p[[1]] <- ggplot(census_sample_new_work_x_new_sectors[perwt_1930>=10000], aes(y=sh_red_tit_1930, x=new_sec_all_1920)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="",x="Share of New Sector", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/metarea_1940/corr_sh_new_sectors_1930_x_sh_red_tit_1920.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_new_sectors_1930_x_sh_red_tit_1920.jpeg")),plot=last_plot())
 
 
 ### Excluding counties with the highest share of new sectors
@@ -2231,11 +2242,11 @@ for (i in c(3,5,10,15,20)) {
 ggarrange(p[[1]],p[[2]],p[[3]],p[[4]],
           labels = c("All", "Excl. 2", "Excl. 4", "Excl. 9"),
           ncol = 2, nrow = 2)
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/metarea_1940/corr_sh_new_sectors_1930_x_sh_red_tit_1920_excl_reg_1.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_new_sectors_1930_x_sh_red_tit_1920_excl_reg_1.jpeg")),plot=last_plot())
 ggarrange(p[[5]],p[[6]],
           labels = c("Excl. 14", "Excl. 19"),
           ncol = 2, nrow = 2)
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/metarea_1940/corr_sh_new_sectors_1930_x_sh_red_tit_1920_excl_reg_2.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_new_sectors_1930_x_sh_red_tit_1920_excl_reg_2.jpeg")),plot=last_plot())
 
 rm(p)
 ## New Sectors, Share of occupations
@@ -2248,12 +2259,12 @@ for (i in 1:length(x)) {
 }
 ggarrange(p[[1]],p[[2]],p[[3]],p[[4]],labels=c("Professional, Technical","Farmers","Managers, Officials and Proprietors","Clerical and Kindred"),font.label = list(size = 10),
           ncol = 2, nrow =2)
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/metarea_1940/corr_sh_occ1950_main_x_sh_new_sectors_1.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_occ1950_main_x_sh_new_sectors_1.jpeg")),plot=last_plot())
 ggarrange(p[[5]],p[[6]],p[[7]],p[[8]],labels=c("Sales workers","Craftsmen","Operatives","Service Workers (private household)"),font.label = list(size = 10), ncol = 2, nrow =2)
-#ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/metarea_1940/corr_sh_occ1950_main_x_sh_new_sectors_2.jpeg",plot=last_plot())
+#ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_occ1950_main_x_sh_new_sectors_2.jpeg")),plot=last_plot())
 ggarrange(p[[9]],p[[10]],p[[11]],labels=c("Service Workers (not household)","Farm laborers","Laborers"),font.label = list(size = 10),
           ncol = 2, nrow =2)
-#ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/metarea_1940/corr_sh_occ1950_main_x_sh_new_sectors_3.jpeg",plot=last_plot())
+#ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_occ1950_main_x_sh_new_sectors_3.jpeg")),plot=last_plot())
 
 rm(p, mp)
 ```
@@ -2265,13 +2276,13 @@ rm(p, mp)
 ```{r}
 # Creating the info 
 ## Calling the regional level information
-census_sample_new_work_x_new_sectors <- read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1920_agg_countynhg_1910.fst",as.data.table=TRUE)
+census_sample_new_work_x_new_sectors <- read_fst(here(paste0("output/Rdata/census_sample_1920_agg_countynhg_1910.fst")),as.data.table=TRUE)
 census_sample_new_work_x_new_sectors <- census_sample_new_work_x_new_sectors[,grep("^countynhg_1910|^sh_red|^sh_base|^sh_occ1950_main|^sh_new_sector|^sh_ind1950|perwt",names(census_sample_new_work_x_new_sectors),value=TRUE),with=FALSE]
 
 col <- names(census_sample_new_work_x_new_sectors[,!c("countynhg_1910")])
 setnames(census_sample_new_work_x_new_sectors,col,paste0(col,"_1920"))
 
-temp <- read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1930_agg_countynhg_1910.fst",as.data.table=TRUE)
+temp <- read_fst(here(paste0("output/Rdata/census_sample_1930_agg_countynhg_1910.fst")),as.data.table=TRUE)
 temp <- temp[, grep("^countynhg_1910|^sh_red|^sh_base|^sh_occ1950_main|^sh_new_sector|^sh_ind1950|^perwt",names(temp),value=TRUE),with=FALSE]
 col <- names(temp[,!c("countynhg_1910")])
 setnames(temp,col,paste0(col,"_1930"))
@@ -2287,7 +2298,7 @@ setorder(census_sample_new_work_x_new_sectors,-new_sec_all_1930)
 census_sample_new_work_x_new_sectors[,rank_new_sec_1930:=1:.N]
 
 ## Calling the aggregate data to constructs information without workers in new sectors
-temp <- read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1930_individual_data.fst",as.data.table=TRUE)[occ1950_main!=979 & ind1950_main!=0 & !(ind1950 %in% c(376,377,466,556,606,667,668,816,856)),c("countynhg_1910","perwt_ID","ind1950","ind1950_main","occ1950_main","sh_red_tit","sh_base_tit")]
+temp <- read_fst(here(paste0("output/Rdata/census_sample_1930_individual_data.fst")),as.data.table=TRUE)[occ1950_main!=979 & ind1950_main!=0 & !(ind1950 %in% c(376,377,466,556,606,667,668,816,856)),c("countynhg_1910","perwt_ID","ind1950","ind1950_main","occ1950_main","sh_red_tit","sh_base_tit")]
 
 ### Aggregating by countynhg_1910 keeping info on share of new work
 temp <- temp[,lapply(.SD, weighted.mean,w=perwt_ID),by="countynhg_1910",.SDcols=c("sh_red_tit","sh_base_tit")] 
@@ -2321,11 +2332,11 @@ for (i in c(3,5,10,20,50,100,200)) {
 ggarrange(p[[1]],p[[2]],p[[3]],p[[4]],
           labels = c("All Regions", "Excl. 2 Reg.", "Excl. 4 Reg.", "Excl. 9 Reg."),
           ncol = 2, nrow = 2,common.legend = TRUE)
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/corr_sh_new_sectors_1930_x_sh_red_tit_1920_no_new_sec_1.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_new_sectors_1930_x_sh_red_tit_1920_no_new_sec_1.jpeg")),plot=last_plot())
 ggarrange(p[[5]],p[[6]],p[[7]],p[[8]],
           labels = c("Excl. 19 Reg", "Excl. 49 Reg.","Excl. 99 Reg", "Excl. 199 Reg."),
           ncol = 2, nrow = 2)
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/corr_sh_new_sectors_1930_x_sh_red_tit_1920_no_new_sec_2.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_new_sectors_1930_x_sh_red_tit_1920_no_new_sec_2.jpeg")),plot=last_plot())
 rm(p)
 
 ### Graph excluding regions in the Same plot
@@ -2361,7 +2372,7 @@ p[[2]] <- ggplot() +
 ggarrange(p[[1]],p[[2]],
           labels = c("All Sectors","No New Sectors"),
           ncol = 2, nrow = 1,common.legend = TRUE)
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/corr_sh_new_sectors_1930_x_sh_red_tit_1920_different_reg_secs.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_new_sectors_1930_x_sh_red_tit_1920_different_reg_secs.jpeg")),plot=last_plot())
 
 
 
@@ -2390,7 +2401,7 @@ for (i in c(3,5,10,20,50,100,200)) {
 ggarrange(p[[1]],p[[3]],p[[7]],p[[8]],
           labels = c("All Regions", "Excl. 4 Reg.", "Excl. 49 Reg.", "Excl. 99 Reg."),
           ncol = 2, nrow = 2,common.legend = TRUE)
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/corr_sh_new_sectors_1930_x_sh_red_tit_1920_no_new_sec_FOR_PRESENTATION_DELEEEETE.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_new_sectors_1930_x_sh_red_tit_1920_no_new_sec_FOR_PRESENTATION_DELEEEETE.jpeg")),plot=last_plot())
 rm(p)
 
 
@@ -2422,7 +2433,7 @@ p[[2]] <- ggplot() +
 ggarrange(p[[1]],p[[2]],
           labels = c("All Sectors","No New Sectors"),
           ncol = 2, nrow = 1,common.legend = TRUE)
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/corr_sh_new_sectors_1930_x_sh_red_tit_1920_different_reg_secs_FOR_PRESENTATION.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_new_sectors_1930_x_sh_red_tit_1920_different_reg_secs_FOR_PRESENTATION.jpeg")),plot=last_plot())
 
 
 
@@ -2433,13 +2444,13 @@ rm(p)
 ```{r}
 # Creating the info 
 ## Calling the regional level information
-census_sample_new_work_x_new_sectors <- read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1920_agg_metarea_1940.fst",as.data.table=TRUE)
+census_sample_new_work_x_new_sectors <- read_fst(here(paste0("output/Rdata/census_sample_1920_agg_metarea_1940.fst")),as.data.table=TRUE)
 census_sample_new_work_x_new_sectors <- census_sample_new_work_x_new_sectors[,grep("^metarea_1940|^sh_red|^sh_base|^sh_occ1950_main|^sh_new_sector|^sh_ind1950|perwt",names(census_sample_new_work_x_new_sectors),value=TRUE),with=FALSE]
 
 col <- names(census_sample_new_work_x_new_sectors[,!c("metarea_1940")])
 setnames(census_sample_new_work_x_new_sectors,col,paste0(col,"_1920"))
 
-temp <- read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1930_agg_metarea_1940.fst",as.data.table=TRUE)
+temp <- read_fst(here(paste0("output/Rdata/census_sample_1930_agg_metarea_1940.fst")),as.data.table=TRUE)
 temp <- temp[, grep("^metarea_1940|^sh_red|^sh_base|^sh_occ1950_main|^sh_new_sector|^sh_ind1950|^perwt",names(temp),value=TRUE),with=FALSE]
 col <- names(temp[,!c("metarea_1940")])
 setnames(temp,col,paste0(col,"_1930"))
@@ -2455,7 +2466,7 @@ setorder(census_sample_new_work_x_new_sectors,-new_sec_all_1930)
 census_sample_new_work_x_new_sectors[,rank_new_sec_1930:=1:.N]
 
 ## Calling the aggregate data to constructs information without workers in new sectors
-temp <- read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1930_individual_data.fst",as.data.table=TRUE)[occ1950_main!=979 & ind1950_main!=0 & !(ind1950 %in% c(376,377,466,556,606,667,668,816,856)),c("metarea_1940","perwt_ID","ind1950","ind1950_main","occ1950_main","sh_red_tit","sh_base_tit")]
+temp <- read_fst(here(paste0("output/Rdata/census_sample_1930_individual_data.fst")),as.data.table=TRUE)[occ1950_main!=979 & ind1950_main!=0 & !(ind1950 %in% c(376,377,466,556,606,667,668,816,856)),c("metarea_1940","perwt_ID","ind1950","ind1950_main","occ1950_main","sh_red_tit","sh_base_tit")]
 
 ### Aggregating by metarea_1940 keeping info on share of new work
 temp <- temp[,lapply(.SD, weighted.mean,w=perwt_ID),by="metarea_1940",.SDcols=c("sh_red_tit","sh_base_tit")] 
@@ -2489,11 +2500,11 @@ for (i in c(3,5,10,15,20,30,50)) {
 ggarrange(p[[1]],p[[2]],p[[3]],p[[4]],
           labels = c("All Regions", "Excl. 2 Reg.", "Excl. 4 Reg.", "Excl. 9 Reg."),
           ncol = 2, nrow = 2,common.legend = TRUE)
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/metarea_1940/corr_sh_new_sectors_1930_x_sh_red_tit_1920_no_new_sec_1.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_new_sectors_1930_x_sh_red_tit_1920_no_new_sec_1.jpeg")),plot=last_plot())
 ggarrange(p[[5]],p[[6]],p[[7]],p[[8]],
           labels = c("Excl. 15 Reg", "Excl. 19 Reg.","Excl. 29 Reg", "Excl. 49 Reg."),
           ncol = 2, nrow = 2)
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/metarea_1940/corr_sh_new_sectors_1930_x_sh_red_tit_1920_no_new_sec_2.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_new_sectors_1930_x_sh_red_tit_1920_no_new_sec_2.jpeg")),plot=last_plot())
 
 rm(p,i,j)
 
@@ -2530,7 +2541,7 @@ p[[2]] <- ggplot() +
 ggarrange(p[[1]],p[[2]],
           labels = c("All Sectors","No New Sectors"),
           ncol = 2, nrow = 1,common.legend = TRUE)
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/metarea_1940/corr_sh_new_sectors_1930_x_sh_red_tit_1920_different_reg_secs.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_new_sectors_1930_x_sh_red_tit_1920_different_reg_secs.jpeg")),plot=last_plot())
 
 rm(p)
 
@@ -2544,7 +2555,7 @@ rm(list=setdiff(ls(all.names = TRUE), "f_load_pk"))
 f_load_pk()
 
 # Calling the data
-census_sample_1930_individual_data <-read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1930_individual_data.fst",as.data.table=TRUE)[occ1950_main!=979 & ind1950_main!=0,c("perwt_ID","ind1950","ind1950_main","occind","occ1950","occ1950_main","sh_base_tit","sh_red_tit")]
+census_sample_1930_individual_data <-read_fst(here(paste0("output/Rdata/census_sample_1930_individual_data.fst")),as.data.table=TRUE)[occ1950_main!=979 & ind1950_main!=0,c("perwt_ID","ind1950","ind1950_main","occind","occ1950","occ1950_main","sh_base_tit","sh_red_tit")]
 
 # Combining New Sectors
 
@@ -2577,7 +2588,7 @@ census_sample_1930_occind_x_ind1950 <- census_sample_1930_occind_x_ind1950[,lapp
 
 # Merging with occind name
 ## Import names
-occ1930.codes <- as.data.table( read_excel("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/input/1930 - Cleaned.xlsx", sheet = "1930 main groups",guess_max=10000) )[,c("occind","occ","occind1930_name")]
+occ1930.codes <- as.data.table( read_excel(here(paste0("input/1930 - Cleaned.xlsx")), sheet = "1930 main groups",guess_max=10000) )[,c("occind","occ","occind1930_name")]
 
 ## Merge
 census_sample_1930_occind_x_ind1950 <- merge(census_sample_1930_occind_x_ind1950,occ1930.codes,by=c("occind"),all.x=TRUE,all.y=FALSE)
@@ -2591,7 +2602,7 @@ for (i in c(c(376,377,606,668,816,856),ind_1950[!ind_1950 %in% c(376,377,606,668
 setcolorder(census_sample_1930_occind_x_ind1950, organize) 
 
 # Export information
-write.xlsx(census_sample_1930_occind_x_ind1950,"/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Tables/census_sample_1930_occind_x_ind1950.xlsx",row.names = FALSE)
+write.xlsx(census_sample_1930_occind_x_ind1950,here(paste0("output/Tables/census_sample_1930_occind_x_ind1950.xlsx")),row.names = FALSE)
 
 ```
 
@@ -2605,7 +2616,7 @@ write.xlsx(census_sample_1930_occind_x_ind1950,"/Users/mauribev/Google Drive/New
 
 #### FOR PRESENTATION
 ```{r}
-temp_a <- read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1930_agg_metarea_1940.fst",as.data.table=TRUE)
+temp_a <- read_fst(here(paste0("output/Rdata/census_sample_1930_agg_metarea_1940.fst")),as.data.table=TRUE)
 length((unique(temp_a$metarea_1940)))
 temp_a <- temp_a[metarea_1940<1000]
 length((unique(temp_a$metarea_1940)))
@@ -2613,7 +2624,7 @@ temp_a <- temp_a[perwt>=10000]
 length((unique(temp_a$metarea_1940)))
 
 
-temp_a <- read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1930_agg_countynhg_1910.fst",as.data.table=TRUE)
+temp_a <- read_fst(here(paste0("output/Rdata/census_sample_1930_agg_countynhg_1910.fst")),as.data.table=TRUE)
 length((unique(temp_a$countynhg_1910)))
 temp_a <- temp_a[perwt>=10000]
 length((unique(temp_a$countynhg_1910)))
@@ -2809,7 +2820,7 @@ wrapper_Excel <- function(list_table,list_name,output) {
 ### 1.1. Construct regional level database
 ```{r}
 # 1930
-census_sample_1930_countynhg_1910 <-read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1930_agg_countynhg_1910.fst",as.data.table=TRUE)
+census_sample_1930_countynhg_1910 <-read_fst(here(paste0("output/Rdata/census_sample_1930_agg_countynhg_1910.fst")),as.data.table=TRUE)
 census_sample_1930_countynhg_1910 <- census_sample_1930_countynhg_1910[,`:=`(sh_age_less16 = sh_age_main_0+sh_age_main_1,sh_age_16_49 = sh_age_main_2+sh_age_main_3+sh_age_main_4+sh_age_main_5,sh_age_more50 = sh_age_main_6+sh_age_main_7)][,`:=`(new_sec_all=sh_new_sector_ind1950_376+sh_new_sector_ind1950_377+sh_new_sector_ind1950_466 +sh_new_sector_ind1950_556+sh_new_sector_ind1950_606+sh_new_sector_ind1950_667+sh_new_sector_ind1950_668+sh_new_sector_ind1950_816 + sh_new_sector_ind1950_856,
                               new_sec_main=sh_new_sector_ind1950_376+sh_new_sector_ind1950_377+sh_new_sector_ind1950_466+ sh_new_sector_ind1950_856,
                               new_sec_serv=sh_new_sector_ind1950_556+sh_new_sector_ind1950_606+sh_new_sector_ind1950_667+sh_new_sector_ind1950_668+sh_new_sector_ind1950_816)]
@@ -2818,7 +2829,7 @@ census_sample_1930_countynhg_1910 <- census_sample_1930_countynhg_1910[,cols,wit
 cols <- names(census_sample_1930_countynhg_1910[,!c("countynhg_1910")])
 setnames(census_sample_1930_countynhg_1910,cols,paste0(cols,"_1930"))
 
-temp <- read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1930_agg_countynhg_1910_no_new_sec_all.fst",as.data.table=TRUE)
+temp <- read_fst(here(paste0("output/Rdata/census_sample_1930_agg_countynhg_1910_no_new_sec_all.fst")),as.data.table=TRUE)
 cols <- grep("^countynhg_1910|^sh_ind1950|^sh_occ|^sh_base|^sh_red|^sh_race|^sh_male|^sh_lit|^H|^perwt",names(temp),value=TRUE)
 temp <- temp[,cols,with=FALSE]
 cols <- names(temp[,!c("countynhg_1910")])
@@ -2827,7 +2838,7 @@ setnames(temp,cols,paste0(cols,"_1930_no_new_sec_all"))
 census_sample_1930_countynhg_1910 <- merge(census_sample_1930_countynhg_1910,temp,by="countynhg_1910",all=FALSE)
 rm(temp)
 
-temp <- read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1930_agg_countynhg_1910_no_new_sec_main.fst",as.data.table=TRUE)
+temp <- read_fst(here(paste0("output/Rdata/census_sample_1930_agg_countynhg_1910_no_new_sec_main.fst")),as.data.table=TRUE)
 cols <- grep("^countynhg_1910|^sh_ind1950|^sh_occ|^sh_base|^sh_red|^sh_race|^sh_male|^sh_lit|^H|^perwt",names(temp),value=TRUE)
 temp <- temp[,cols,with=FALSE]
 cols <- names(temp[,!c("countynhg_1910")])
@@ -2837,7 +2848,7 @@ census_sample_1930_countynhg_1910 <- merge(census_sample_1930_countynhg_1910,tem
 rm(temp)
 
 # 1920
-temp <-read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1920_agg_countynhg_1910.fst",as.data.table=TRUE)
+temp <-read_fst(here(paste0("output/Rdata/census_sample_1920_agg_countynhg_1910.fst")),as.data.table=TRUE)
 temp <- temp[,`:=`(sh_age_less16 = sh_age_main_0+sh_age_main_1,sh_age_16_49 = sh_age_main_2+sh_age_main_3+sh_age_main_4+sh_age_main_5,sh_age_more50 = sh_age_main_6+sh_age_main_7)][,`:=`(new_sec_all=sh_new_sector_ind1950_376+sh_new_sector_ind1950_377+sh_new_sector_ind1950_466 +sh_new_sector_ind1950_556+sh_new_sector_ind1950_606+sh_new_sector_ind1950_667+sh_new_sector_ind1950_668+sh_new_sector_ind1950_816,
                               new_sec_main=sh_new_sector_ind1950_376+sh_new_sector_ind1950_377+sh_new_sector_ind1950_466,
                               new_sec_serv=sh_new_sector_ind1950_556+sh_new_sector_ind1950_606+sh_new_sector_ind1950_667+sh_new_sector_ind1950_668+sh_new_sector_ind1950_816)]
@@ -2849,7 +2860,7 @@ setnames(temp,cols,paste0(cols,"_1920"))
 census_sample_1930_countynhg_1910 <- merge(census_sample_1930_countynhg_1910,temp,by="countynhg_1910",all=FALSE)
 rm(temp)
 
-temp <- read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1920_agg_countynhg_1910_no_new_sec_all.fst",as.data.table=TRUE)
+temp <- read_fst(here(paste0("output/Rdata/census_sample_1920_agg_countynhg_1910_no_new_sec_all.fst")),as.data.table=TRUE)
 cols <- grep("^countynhg_1910|^sh_ind1950|^sh_occ|^sh_base|^sh_red|^sh_race|^sh_male|^sh_lit|^H|^perwt",names(temp),value=TRUE)
 temp <- temp[,cols,with=FALSE]
 cols <- names(temp[,!c("countynhg_1910")])
@@ -2858,7 +2869,7 @@ setnames(temp,cols,paste0(cols,"_1920_no_new_sec_all"))
 census_sample_1930_countynhg_1910 <- merge(census_sample_1930_countynhg_1910,temp,by="countynhg_1910",all=FALSE)
 rm(temp)
 
-temp <- read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1920_agg_countynhg_1910_no_new_sec_main.fst",as.data.table=TRUE)
+temp <- read_fst(here(paste0("output/Rdata/census_sample_1920_agg_countynhg_1910_no_new_sec_main.fst")),as.data.table=TRUE)
 cols <- grep("^countynhg_1910|^sh_ind1950|^sh_occ|^sh_base|^sh_red|^sh_race|^sh_male|^sh_lit|^H|^perwt",names(temp),value=TRUE)
 temp <- temp[,cols,with=FALSE]
 cols <- names(temp[,!c("countynhg_1910")])
@@ -3055,7 +3066,7 @@ wrapper_Excel(list(
                 f_order_reg(coef.excl_new_sec._no_new_sec_all.wt[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% names_vector],Order,rn)
 ),
             list("All","No_new_sec","No_new_sec_reg_exl_new","No_new_sec_main","No_new_sec_main_reg_exl_new","All_main_serv","No_new_sec_main_serv","No_new_sec_main_serv_excl_new","No_new_sec_weighted","No_new_sec_reg_exl_new+weighted"),
-            "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Tables/regional_reg_1930_ctynhg_1910.xlsx")
+            here(paste0("output/Tables/regional_reg_1930_ctynhg_1910.xlsx")))
 
 ```
 
@@ -3175,7 +3186,7 @@ wrapper_Excel(list(
                 f_order_reg(coef.excl_new_sec.main_serv_no_new_sec_all[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% names_vector],Order,rn)
             ),
             list("No_new_sec","No_new_sec_reg_exl_new","No_new_sec_main","No_new_sec_main_reg_exl_new","No_new_sec_main_serv","No_new_sec_main_serv_excl_new"),
-            "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Tables/regional_reg_1930_ctynhg_1910_occsh_exercise.xlsx")
+            here(paste0("output/Tables/regional_reg_1930_ctynhg_1910_occsh_exercise.xlsx")))
 
 
 
@@ -3387,7 +3398,7 @@ wrapper_Excel <- function(list_table,list_name,output) {
 ### 1.1. Construct regional level database
 ```{r}
 # 1930
-census_sample_1930_countynhg_1910 <-read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1930_agg_countynhg_1910.fst",as.data.table=TRUE)
+census_sample_1930_countynhg_1910 <-read_fst(here(paste0("output/Rdata/census_sample_1930_agg_countynhg_1910.fst")),as.data.table=TRUE)
 census_sample_1930_countynhg_1910 <- census_sample_1930_countynhg_1910[,`:=`(sh_age_less16 = sh_age_main_0+sh_age_main_1,sh_age_16_49 = sh_age_main_2+sh_age_main_3+sh_age_main_4+sh_age_main_5,sh_age_more50 = sh_age_main_6+sh_age_main_7)][,`:=`(new_sec_all=sh_new_sector_ind1950_376+sh_new_sector_ind1950_377+sh_new_sector_ind1950_466 +sh_new_sector_ind1950_556+sh_new_sector_ind1950_606+sh_new_sector_ind1950_667+sh_new_sector_ind1950_668+sh_new_sector_ind1950_816 + sh_new_sector_ind1950_856,
                               new_sec_main=sh_new_sector_ind1950_376+sh_new_sector_ind1950_377+sh_new_sector_ind1950_466+ sh_new_sector_ind1950_856,
                               new_sec_serv=sh_new_sector_ind1950_556+sh_new_sector_ind1950_606+sh_new_sector_ind1950_667+sh_new_sector_ind1950_668+sh_new_sector_ind1950_816)]
@@ -3396,7 +3407,7 @@ census_sample_1930_countynhg_1910 <- census_sample_1930_countynhg_1910[,cols,wit
 cols <- names(census_sample_1930_countynhg_1910[,!c("countynhg_1910")])
 setnames(census_sample_1930_countynhg_1910,cols,paste0(cols,"_1930"))
 
-temp <- read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1930_agg_countynhg_1910_no_new_sec_all.fst",as.data.table=TRUE)
+temp <- read_fst(here(paste0("output/Rdata/census_sample_1930_agg_countynhg_1910_no_new_sec_all.fst")),as.data.table=TRUE)
 cols <- grep("^countynhg_1910|^sh_ind1950|^sh_occ|^sh_base|^sh_red|^sh_race|^sh_male|^sh_lit|^H|^perwt",names(temp),value=TRUE)
 temp <- temp[,cols,with=FALSE]
 cols <- names(temp[,!c("countynhg_1910")])
@@ -3405,7 +3416,7 @@ setnames(temp,cols,paste0(cols,"_1930_no_new_sec_all"))
 census_sample_1930_countynhg_1910 <- merge(census_sample_1930_countynhg_1910,temp,by="countynhg_1910",all=FALSE)
 rm(temp)
 
-temp <- read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1930_agg_countynhg_1910_no_new_sec_main.fst",as.data.table=TRUE)
+temp <- read_fst(here(paste0("output/Rdata/census_sample_1930_agg_countynhg_1910_no_new_sec_main.fst")),as.data.table=TRUE)
 cols <- grep("^countynhg_1910|^sh_ind1950|^sh_occ|^sh_base|^sh_red|^sh_race|^sh_male|^sh_lit|^H|^perwt",names(temp),value=TRUE)
 temp <- temp[,cols,with=FALSE]
 cols <- names(temp[,!c("countynhg_1910")])
@@ -3415,7 +3426,7 @@ census_sample_1930_countynhg_1910 <- merge(census_sample_1930_countynhg_1910,tem
 rm(temp)
 
 # 1920
-temp <-read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1920_agg_countynhg_1910.fst",as.data.table=TRUE)
+temp <-read_fst(here(paste0("output/Rdata/census_sample_1920_agg_countynhg_1910.fst")),as.data.table=TRUE)
 temp <- temp[,`:=`(sh_age_less16 = sh_age_main_0+sh_age_main_1,sh_age_16_49 = sh_age_main_2+sh_age_main_3+sh_age_main_4+sh_age_main_5,sh_age_more50 = sh_age_main_6+sh_age_main_7)][,`:=`(new_sec_all=sh_new_sector_ind1950_376+sh_new_sector_ind1950_377+sh_new_sector_ind1950_466 +sh_new_sector_ind1950_556+sh_new_sector_ind1950_606+sh_new_sector_ind1950_667+sh_new_sector_ind1950_668+sh_new_sector_ind1950_816,
                               new_sec_main=sh_new_sector_ind1950_376+sh_new_sector_ind1950_377+sh_new_sector_ind1950_466,
                               new_sec_serv=sh_new_sector_ind1950_556+sh_new_sector_ind1950_606+sh_new_sector_ind1950_667+sh_new_sector_ind1950_668+sh_new_sector_ind1950_816)]
@@ -3427,7 +3438,7 @@ setnames(temp,cols,paste0(cols,"_1920"))
 census_sample_1930_countynhg_1910 <- merge(census_sample_1930_countynhg_1910,temp,by="countynhg_1910",all=FALSE)
 rm(temp)
 
-temp <- read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1920_agg_countynhg_1910_no_new_sec_all.fst",as.data.table=TRUE)
+temp <- read_fst(here(paste0("output/Rdata/census_sample_1920_agg_countynhg_1910_no_new_sec_all.fst")),as.data.table=TRUE)
 cols <- grep("^countynhg_1910|^sh_ind1950|^sh_occ|^sh_base|^sh_red|^sh_race|^sh_male|^sh_lit|^H|^perwt",names(temp),value=TRUE)
 temp <- temp[,cols,with=FALSE]
 cols <- names(temp[,!c("countynhg_1910")])
@@ -3436,7 +3447,7 @@ setnames(temp,cols,paste0(cols,"_1920_no_new_sec_all"))
 census_sample_1930_countynhg_1910 <- merge(census_sample_1930_countynhg_1910,temp,by="countynhg_1910",all=FALSE)
 rm(temp)
 
-temp <- read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1920_agg_countynhg_1910_no_new_sec_main.fst",as.data.table=TRUE)
+temp <- read_fst(here(paste0("output/Rdata/census_sample_1920_agg_countynhg_1910_no_new_sec_main.fst")),as.data.table=TRUE)
 cols <- grep("^countynhg_1910|^sh_ind1950|^sh_occ|^sh_base|^sh_red|^sh_race|^sh_male|^sh_lit|^H|^perwt",names(temp),value=TRUE)
 temp <- temp[,cols,with=FALSE]
 cols <- names(temp[,!c("countynhg_1910")])
@@ -3448,7 +3459,7 @@ rm(temp)
 #*** Adding the estimated coefficients from the first stage regression performed in the file bootstrap_fixed_effects_model.Rmd
 # NOTE: in the following temp files we use less counties because we are only working with counties that have at least 10000 workers
 # Base individual, no ind1950_main
-temp <- read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/estimation.bootstrap.perwtge_10000.nostatefe_noindmain.fst",as.data.table=TRUE)
+temp <- read_fst(here(paste0("output/Rdata/estimation.bootstrap.perwtge_10000.nostatefe_noindmain.fst")),as.data.table=TRUE)
 
 census_sample_1930_countynhg_1910 <- merge(census_sample_1930_countynhg_1910[,countynhg_1910:=as.factor(countynhg_1910)],temp[,c("rn","coef.b","se.b")],by.x="countynhg_1910",by.y="rn",all.x=TRUE,all.y=FALSE)
 # Constructing the weights
@@ -3457,7 +3468,7 @@ setnames(census_sample_1930_countynhg_1910,c("coef.b","se.b"),c("region_fe_base.
 
 
 # Base individual, with ind1950_main
-temp <- read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/estimation.bootstrap.perwtge_10000.nostatefe_with_indmain.fst",as.data.table=TRUE)
+temp <- read_fst(here(paste0("output/Rdata/estimation.bootstrap.perwtge_10000.nostatefe_with_indmain.fst")),as.data.table=TRUE)
 
 census_sample_1930_countynhg_1910 <- merge(census_sample_1930_countynhg_1910[,countynhg_1910:=as.factor(countynhg_1910)],temp[,c("rn","coef.b","se.b")],by.x="countynhg_1910",by.y="rn",all.x=TRUE,all.y=FALSE)
 # Constructing the weights
@@ -3465,7 +3476,7 @@ census_sample_1930_countynhg_1910[,weights_with_ind1950_main.no_new_sec_all:=1/(
 setnames(census_sample_1930_countynhg_1910,c("coef.b","se.b"),c("region_fe_with_ind1950_main.no_new_sec_all","se_region_fe_with_ind1950_main.no_new_sec_all"))
 
 # No individual controls
-temp <- read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/estimation.bootstrap.perwtge_10000.nostatefe_with_indmain.fst",as.data.table=TRUE)
+temp <- read_fst(here(paste0("output/Rdata/estimation.bootstrap.perwtge_10000.nostatefe_with_indmain.fst")),as.data.table=TRUE)
 
 census_sample_1930_countynhg_1910 <- merge(census_sample_1930_countynhg_1910[,countynhg_1910:=as.factor(countynhg_1910)],temp[,c("rn","coef.b","se.b")],by.x="countynhg_1910",by.y="rn",all.x=TRUE,all.y=FALSE)
 # Constructing the weights
@@ -3691,7 +3702,7 @@ wrapper_Excel(list(
                 f_order_reg(coef_no_indiv_controls.excl_new_sec.main_serv_no_new_sec_all[(variable=="coef_star" | variable =="std_par" | variable=="zother") & rn %in% names_vector],Order,rn)[,!c("variable")]
 ),
             list("Base_No_new_sec","Base_No_new_sec_reg_exl_new","Base_No_new_sec_m_s","Base_No_new_sec_main_s_e_new","Indmain_No_new_sec","Indmain_No_new_sec_reg_exl_new","Indmain_No_new_sec_main_serv","Indmain_No_new_sec_m_s_excl_new","No_cs_No_new_sec","No_cs_No_new_sec_reg_exl_new","No_cs_No_new_sec_m_s","No_cs_No_new_sec_m_s_excl_new"),
-            "/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Tables/two_stage_regional_reg_1930_ctynhg_1910.xlsx")
+            here(paste0("output/Tables/two_stage_regional_reg_1930_ctynhg_1910.xlsx")))
 
 ```
 
@@ -3882,7 +3893,7 @@ f_regressions <- function(arg_formula,arg_data,arg_weights,method,arg_clusters,t
 ### 1.1. Construct regional level database
 ```{r}
 # 1930
-correlations_data_1880_to_1930_countynhg_1910 <-read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1930_agg_countynhg_1910.fst",as.data.table=TRUE)
+correlations_data_1880_to_1930_countynhg_1910 <-read_fst(here(paste0("output/Rdata/census_sample_1930_agg_countynhg_1910.fst")),as.data.table=TRUE)
 correlations_data_1880_to_1930_countynhg_1910 <- correlations_data_1880_to_1930_countynhg_1910[,`:=`(new_sec_all=sh_new_sector_ind1950_376+sh_new_sector_ind1950_377+sh_new_sector_ind1950_466 +sh_new_sector_ind1950_556+sh_new_sector_ind1950_606+sh_new_sector_ind1950_667+sh_new_sector_ind1950_668+sh_new_sector_ind1950_816 + sh_new_sector_ind1950_856,
                               new_sec_main=sh_new_sector_ind1950_376+sh_new_sector_ind1950_377+sh_new_sector_ind1950_466+ sh_new_sector_ind1950_856,
                               new_sec_serv=sh_new_sector_ind1950_556+sh_new_sector_ind1950_606+sh_new_sector_ind1950_667+sh_new_sector_ind1950_668+sh_new_sector_ind1950_816)]
@@ -3890,7 +3901,7 @@ cols <- names(correlations_data_1880_to_1930_countynhg_1910[,!c("countynhg_1910"
 setnames(correlations_data_1880_to_1930_countynhg_1910,cols,paste0(cols,"_1930"))
 
 # 1920
-temp <- read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1920_agg_countynhg_1910.fst",as.data.table=TRUE)
+temp <- read_fst(here(paste0("output/Rdata/census_sample_1920_agg_countynhg_1910.fst")),as.data.table=TRUE)
 temp <- temp[,`:=`(new_sec_all=sh_new_sector_ind1950_376+sh_new_sector_ind1950_377+sh_new_sector_ind1950_466 +sh_new_sector_ind1950_556+sh_new_sector_ind1950_606+sh_new_sector_ind1950_667+sh_new_sector_ind1950_668+sh_new_sector_ind1950_816,
                               new_sec_main=sh_new_sector_ind1950_376+sh_new_sector_ind1950_377+sh_new_sector_ind1950_466,
                               new_sec_serv=sh_new_sector_ind1950_556+sh_new_sector_ind1950_606+sh_new_sector_ind1950_667+sh_new_sector_ind1950_668+sh_new_sector_ind1950_816)]
@@ -3901,7 +3912,7 @@ correlations_data_1880_to_1930_countynhg_1910 <- merge(correlations_data_1880_to
 rm(temp)
 
 #1910
-temp <- read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1910_agg_countynhg_1910.fst",as.data.table=TRUE)
+temp <- read_fst(here(paste0("output/Rdata/census_sample_1910_agg_countynhg_1910.fst")),as.data.table=TRUE)
 temp <- temp[,`:=`(new_sec_all=sh_new_sector_ind1950_376+sh_new_sector_ind1950_466 +sh_new_sector_ind1950_556+sh_new_sector_ind1950_606+sh_new_sector_ind1950_667+sh_new_sector_ind1950_668+sh_new_sector_ind1950_816,
                               new_sec_main=sh_new_sector_ind1950_376+sh_new_sector_ind1950_466,
                               new_sec_serv=sh_new_sector_ind1950_556+sh_new_sector_ind1950_606+sh_new_sector_ind1950_667+sh_new_sector_ind1950_668+sh_new_sector_ind1950_816)]
@@ -3912,7 +3923,7 @@ correlations_data_1880_to_1930_countynhg_1910 <- merge(correlations_data_1880_to
 rm(temp)
 
 #1900
-temp <- read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1900_agg_countynhg_1910.fst",as.data.table=TRUE)
+temp <- read_fst(here(paste0("output/Rdata/census_sample_1900_agg_countynhg_1910.fst")),as.data.table=TRUE)
 temp <- temp[,`:=`(new_sec_all=sh_new_sector_ind1950_376+sh_new_sector_ind1950_466 +sh_new_sector_ind1950_556+sh_new_sector_ind1950_606+sh_new_sector_ind1950_667+sh_new_sector_ind1950_668,
                               new_sec_main=sh_new_sector_ind1950_376+sh_new_sector_ind1950_466,
                               new_sec_serv=sh_new_sector_ind1950_556+sh_new_sector_ind1950_606+sh_new_sector_ind1950_667+sh_new_sector_ind1950_668)]
@@ -3923,7 +3934,7 @@ correlations_data_1880_to_1930_countynhg_1910 <- merge(correlations_data_1880_to
 rm(temp)
 
 #1880
-temp <- read_fst("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Rdata/census_sample_1880_agg_countynhg_1910.fst",as.data.table=TRUE)
+temp <- read_fst(here(paste0("output/Rdata/census_sample_1880_agg_countynhg_1910.fst")),as.data.table=TRUE)
 cols <- names(temp[,!c("countynhg_1910")])
 setnames(temp,cols,paste0(cols,"_1880"))
 
@@ -3956,7 +3967,7 @@ for (i in 1:length(p)) {
 
 ggarrange(p[[1]],p[[2]],p[[3]],labels=c("All New Sectors","Main New Sectors","Service New Sectors"),
           ncol=2,nrow=2)
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/corr_sh_new_sectors_1920_x_1930.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_new_sectors_1920_x_1930.jpeg")),plot=last_plot())
 
 # 1910 - 1920
 x <- paste0(c("new_sec_all","new_sec_main","new_sec_serv"),"_1910")
@@ -3971,7 +3982,7 @@ for (i in 1:length(p)) {
 
 ggarrange(p[[1]],p[[2]],p[[3]],labels=c("All New Sectors","Main New Sectors","Service New Sectors"),
           ncol=2,nrow=2)
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/corr_sh_new_sectors_1910_x_1920.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_new_sectors_1910_x_1920.jpeg")),plot=last_plot())
 
 # 1910 - 1930
 x <- paste0(c("new_sec_all","new_sec_main","new_sec_serv"),"_1910")
@@ -3986,7 +3997,7 @@ for (i in 1:length(p)) {
 
 ggarrange(p[[1]],p[[2]],p[[3]],labels=c("All New Sectors","Main New Sectors","Service New Sectors"),
           ncol=2,nrow=2)
-ggsave("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/corr_sh_new_sectors_1910_x_1930.jpeg",plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_new_sectors_1910_x_1930.jpeg")),plot=last_plot())
 
 ```
 #### 1.2.2 Regressions
@@ -4042,10 +4053,10 @@ for (var_y in c(1930,1920,1910)) {
       
       ggarrange(p[[1]],p[[2]],p[[3]],p[[4]],labels=c("Agriculture","Mining and Construction","Manufacturing","Trans., Comm., other Util."),
                 ncol=2,nrow=2)
-      ggsave(paste0("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/corr_sh_main_ind1950_",var_x,"_x_",var_y,"_1.jpeg"),plot=last_plot())
+      ggsave(paste0(here(paste0("output/Graphs/countynhg_1910/corr_sh_main_ind1950_",var_x,"_x_",var_y,"_1.jpeg"))),plot=last_plot())
       ggarrange(p[[5]],p[[6]],p[[7]],labels=c("Trade","Services","Public Administration"),
                 ncol=2,nrow=2)
-      ggsave(paste0("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/corr_sh_main_ind1950_",var_x,"_x_",var_y,"_2.jpeg"),plot=last_plot())
+      ggsave(paste0(here(paste0("output/Graphs/countynhg_1910/corr_sh_main_ind1950_",var_x,"_x_",var_y,"_2.jpeg"))),plot=last_plot())
     }
   }
 }
@@ -4068,13 +4079,13 @@ for (var_y in c(1930,1920,1910)) {
       }
       
       ggarrange(p[[1]],p[[2]],p[[3]],p[[4]],labels=c("Professional, Technical","Farmers","Managers, Officials, and Proprietors","Clerical and Kindred"),ncol=2,nrow=2)
-      ggsave(paste0("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/corr_sh_main_occ1950_",var_x,"_x_",var_y,"_1.jpeg"),plot=last_plot())
+      ggsave(paste0(here(paste0("output/Graphs/countynhg_1910/corr_sh_main_occ1950_",var_x,"_x_",var_y,"_1.jpeg"))),plot=last_plot())
       ggarrange(p[[5]],p[[6]],p[[7]],p[[8]],labels=c("Sales workers","Craftsmen","Operatives","Service Workers (private household)"),
                 ncol=2,nrow=2)
-      ggsave(paste0("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/corr_sh_main_occ1950_",var_x,"_x_",var_y,"_2.jpeg"),plot=last_plot())
+      ggsave(paste0(here(paste0("output/Graphs/countynhg_1910/corr_sh_main_occ1950_",var_x,"_x_",var_y,"_2.jpeg"))),plot=last_plot())
       ggarrange(p[[9]],p[[10]],p[[11]],labels=c("Service Workers (not household)","Farm laborers","Laborers"),
                 ncol=2,nrow=2)
-      ggsave(paste0("/Users/mauribev/Google Drive/New York 2015-2020/NYU/Year 4/Data Manuals/Alphabetical Index of Occupations and Industries/Occupational Title Lists - READY/R - Processing data/output/Graphs/countynhg_1910/corr_sh_main_occ1950_",var_x,"_x_",var_y,"_3.jpeg"),plot=last_plot())
+      ggsave(paste0(here(paste0("output/Graphs/countynhg_1910/corr_sh_main_occ1950_",var_x,"_x_",var_y,"_3.jpeg"))),plot=last_plot())
     }
   }
 }
@@ -4299,5 +4310,46 @@ for (i in c(1,3,10,12,19,21) ) {
 
 texreg(model[1:2],stars = c(0.01, 0.05, 0.1),custom.coef.map=list("new_sec_main_1920" = "New Sector","new_sec_main_1920"="Main New Sector","new_sec_serv_1920"="Service related New Sector","H_1920"="H-H Index","log(perwt_1920)"="Population (logs)","sh_lit_1920"="Share of Literate"))
 }
+```
+
+
+
+```{r}
+Y %>%
+  kbl(caption = "Comparing regressions (with and without industry fixed effects)") %>%
+  kable_classic(full_width = F, html_font = "Cambria")
+
+x_min <- -0.05 +min(
+             min(g_no_new_sec_occ[[1]][[1]]$new_work),
+             min(g_no_new_sec_occ[[2]][[1]]$new_work)
+           )
+x_max <- max(
+             max(g_no_new_sec_occ[[1]][[1]]$new_work),
+             max(g_no_new_sec_occ[[2]][[1]]$new_work)
+           )
+
+### Graph
+ggarrange(
+  g_no_new_sec_occ[[1]] + 
+  scale_x_continuous(limits=c(x_min, x_max)) +
+  theme(legend.position = "none",axis.title.x=element_blank(),axis.text.x=element_blank()) ,     # Last two elements delete text and title
+  
+  g_no_new_sec_occ[[2]] + 
+  scale_x_continuous(limits=c(x_min, x_max)),
+  
+  ncol = 1, nrow = 2,
+  labels=c("No New Sec workers (occupations) - Method 1 Dt 2","No New Sec (occupations) - Method 1 Dt3"),
+  align = "v"
+    )
+
+g_all_people[[i]] <- 
+      ggplot(copy(census_sample_1940_main[,c("new_work")]), aes(x=new_work)) +
+      geom_histogram(color="black",bins=40,  aes(y = stat(width*density)),  fill="white") +
+      geom_vline(data=census_sample_1940_main[,.(new_work=mean(new_work))],aes(xintercept=new_work),
+                 linetype="dashed") + 
+      scale_y_continuous(labels = percent_format()) +
+      labs(title="",x="", y = "Share of people")  + 
+      theme_tufte()
+
 ```
 

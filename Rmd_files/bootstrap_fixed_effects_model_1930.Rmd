@@ -16,6 +16,7 @@ f_load_pk <- function() {
   p_load(fastDummies,sandwich,lmtest,estimatr)
   p_load(lfe)
   p_load(weights)  # To perform weighted correlations
+  p_load(here)
   
   #graphs
   p_load(ggplot2,maps,ggthemes,sjPlot,sjmisc,sjlabelled,jtools,ggstance,broom.mixed)

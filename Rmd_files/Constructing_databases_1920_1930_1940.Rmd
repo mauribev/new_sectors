@@ -506,11 +506,11 @@ f_age <- function(X,age_v,flag=0) {
   setnames( X,c(deparse(substitute(age_v))),c("age_a"))
   X <- X[age_a %in% 0:9,age_main:=0] # 0-9
   X <- X[age_a %in% 10:15,age_main:=1] # 10-15
-  X <- X[age_a %in% 16:23,age_main:=2] # 16:23
-  X <- X[age_a %in% 24:29,age_main:=3] # 24:29
-  X <- X[age_a %in% 30:39,age_main:=4] # 30:39
-  X <- X[age_a %in% 40:49,age_main:=5] # 40:49
-  X <- X[age_a %in% 50:64,age_main:=6] # 50:64
+  X <- X[age_a %in% 16:23,age_main:=2] # 16-23
+  X <- X[age_a %in% 24:29,age_main:=3] # 24-29
+  X <- X[age_a %in% 30:39,age_main:=4] # 30-39
+  X <- X[age_a %in% 40:49,age_main:=5] # 40-49
+  X <- X[age_a %in% 50:64,age_main:=6] # 50-64
   X <- X[age_a >= 65,age_main:=7] # >=65
   
   if (flag==0) {

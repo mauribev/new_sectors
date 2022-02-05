@@ -41,19 +41,7 @@ main_directory <- "/Volumes/GoogleDrive/My Drive/New York 2015-2020/NYU/Year 4/D
 ```
 
 # 0 . Some functions
-## Function to export things to excel
-```{r}
-wrapper_Excel <- function(list_table,list_name,output) {
-  t <- createWorkbook()
-  for (i in 1:length(list_table)) {
-    addWorksheet(t, list_name[[i]])
-    writeData(t, list_name[[i]],list_table[[i]])
-  }
-  saveWorkbook(t, output,overwrite=TRUE)
-}
-```
-
-## Function to export results
+### Function to export results
 ```{r}
 f_reg_results <- function(Regresults,arg_round=4) {
   # NOTES:
@@ -69,7 +57,7 @@ f_reg_results <- function(Regresults,arg_round=4) {
 }
 ```
 
-## Function to add a YES,NO vector if a given variable exists
+### Function to add a YES,NO vector if a given variable exists
 ```{r}
 # arg_rn: name of the data.table variable containing all the names of the variables in the regression
 # var_rn: name of the Regression variable that will be used to construct the Yes, NO vector
@@ -91,7 +79,7 @@ f_reg_results_VAR_exist <- function(X,arg_rn,var_rn,name) {
 }
 ```
 
-## Function to perform a set of regressions
+### Function to perform a set of regressions
 This function works with methods lm and lm_robust
 TO-DO:
 - For lm_robust need to specify the possibility of not using clusters
@@ -314,10 +302,23 @@ f_order_reg <- function(X,Order,order_var) {
 }
 ```
 
+## Functions to export tables to Excel
+```{r}
+wrapper_Excel <- function(list_table,list_name,output) {
+  t <- createWorkbook()
+  for (i in 1:length(list_table)) {
+    addWorksheet(t, list_name[[i]])
+    writeData(t, list_name[[i]],list_table[[i]])
+  }
+  saveWorkbook(t, output,overwrite=TRUE)
+}
+```
+
+
 # 1. Regressions following Lin (2011) - At the countynhg_1910 level
 ## 1.1. Call individual level data
 ```{r}
-DT <-read_fst(paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1940_individual_data_x_countynhg_1910.fst"),as.data.table=TRUE)[occ1950_main!=979 & ind1950_main!=0 & perwt_1940 > 10000][,c("countynhg_1910","perwt_1940","perwt_ID","sh_new_all_dataset1","sh_new_all_dataset2","sh_new_all_dataset3","sh_new_method1_dataset1","sh_new_method1_dataset2","sh_new_method1_dataset3","sh_new_method2_dataset1","sh_new_method2_dataset2","sh_new_method2_dataset3","occ1940","name_ind1940_subgroup","statefip","urban","male","educ_main","marst","race","wwages","incwage","wkwage","hrwage","mig_us","mig_ab","mig5_state","mig5_county","age_main","occ1940","name_ind1940_subgroup","ind1950","ind1950_main","famsize","ownershp","m_mig_us","f_mig_us")][order(countynhg_1910,occ1940,name_ind1940_subgroup)]
+DT <-read_fst(paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1940_individual_data_x_countynhg_1910.fst"),as.data.table=TRUE)[occ1950_main!=979 & ind1950_main!=0 & perwt_1940 > 10000][,c("countynhg_1910","perwt_1940","perwt_ID","sh_new_all_dataset1","sh_new_all_dataset2","sh_new_all_dataset3","sh_new_method1_dataset1","sh_new_method1_dataset2","sh_new_method1_dataset3","sh_new_method2_dataset1","sh_new_method2_dataset2","sh_new_method2_dataset3","occ1940","name_ind1940_subgroup","statefip","urban","male","educ_main","marst","race","wwages","incwage","wkwage","hrwage","mig_us","mig_ab","mig5_state","mig5_county","age_main","occ1940","name_ind1940_subgroup","ind1950","ind1950_main","famsize","ownershp","m_mig_us","f_mig_us")][order(countynhg_1910,occ1940,name_ind1940_subgroup)][!(age_main<=1)]
 ```
 
 
@@ -347,7 +348,7 @@ DT[,`:=`(state_mig = 0+(mig5_state!=1),county_mig = 0+(mig5_county!=1))]
 
 ## 1.3 Creating some variables for regressions
 ```{r}
-base_individual  <- c("male","race",grep("^age_main_[^1]",names(DT),value=TRUE),"wwages","urban")
+base_individual  <- c("male",grep("^race_[^1]",names(DT),value=TRUE),grep("^age_main_[^1]",names(DT),value=TRUE),"wwages","urban")
 extra_individual <- c(grep("^marst_[^1]",names(DT),value=TRUE),"mig_us","mig_ab")
 other_individual <- c("famsize","ownershp","imm_parents")
 educ_main_vars        <- grep("^educ_main_[^1]",names(DT),value=TRUE)

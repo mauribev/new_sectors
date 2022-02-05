@@ -16,6 +16,7 @@ f_load_pk <- function() {
   library (pacman)
   p_load(readxl,foreign,readstata13,data.table,plyr,dplyr,stringr,openxlsx,stringdist,reshape2,qdap,fst,ipumsr,tm,textreg,tmap,tmaptools,sf,leaflet,ipumsr)
   p_load(tictoc)
+  p_load(here)
   
   # Statistical packages
   p_load(fastDummies,sandwich,lmtest,estimatr)
@@ -377,17 +378,36 @@ rm(ddi)
 
 # 1940
  # Used to load year 1940. This one has geographical variables
-    ddi <- read_ipums_ddi(paste0(main_directory,"R - Processing data/input/raw_data/usa_census_1940.xml"))
+    ddi <- read_ipums_ddi(here(paste0("input/raw_data/usa_census_1940.xml")))
     ## From IPUMS names of variables are in uppercase letters. Change to lower case
     ddi$var_info$var_name <- tolower(ddi$var_info$var_name)
-    census_sample_1940 <- as.data.table(read_ipums_micro(ddi))[,c("metaread","ownershpd","raced","bpld","mbpld","fbpld"):=NULL]
+    census_sample_1940_fc <- as.data.table(read_ipums_micro(ddi))[,c("metaread","ownershpd","raced","bpld","mbpld","fbpld"):=NULL]
     
-    write_fst(census_sample_1940,paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1940.fst"))
+    write_fst(census_sample_1940,here(paste0("input/census_sample/census_sample_1940.fst")))
 #}
     
 rm(ddi)
     
 ```
+
+```{r full count}
+
+# 1940
+ # Used to load year 1940. This one has geographical variables
+    ddi <- read_ipums_ddi(here(paste0("input/raw_data/usa_census_1940_full_count.xml")))
+    ## From IPUMS names of variables are in uppercase letters. Change to lower case
+    ddi$var_info$var_name <- tolower(ddi$var_info$var_name)
+    census_sample_1940_fc <- as.data.table(read_ipums_micro(ddi))
+    
+    write_fst(census_sample_1940_fc,here(paste0("input/census_sample/census_sample_1940_fc.fst")))
+#}
+# Dropping labels (No need since having labels doesn't change the size of the data.table)
+#census_sample_1940_fc[, names(census_sample_1940_fc) := lapply(.SD, setattr, "labels", NULL)]
+
+
+
+```
+
 
 # 1. Merging the Census Data with geographic location that is homogenenous across years
 ## 1.1. Load the crosswalk files
@@ -603,6 +623,51 @@ census_sample_1940[,metarea_1940:=as.numeric(metarea_1940)][metarea_1940==1,meta
 print(paste0("We lose ",(1-sum(census_sample_1940[!is.na(countynhg_1910)]$perwt)/sum(census_sample_1940$perwt))*100,"% of the population\n when we work with countynhg_1910/metarea_1940"))
 ```
 
+### 1940 Full Count
+```{r}
+census_sample_1940_fc <- read_fst(paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1940_fc.fst"),as.data.table=TRUE)
+
+# Census 1940 doesn't have a countynhg variable. Instead, we work with the icpsrfip variable
+census_sample_1940_fc[,icpsrfip:= statefip*1000 + countyicp/10]
+
+# Create an ID variable
+census_sample_1940_fc[,ID:=1:.N]
+
+# Merge with crooswork table
+## Method 1
+#census_sample_1940_fc <- merge(census_sample_1940_fc,countynhg_x_metarea1940_1940to1910[,c("icpsrfip","countynhg_1910","metarea_1940","sh_area")],by="icpsrfip",all.x=TRUE,all.y=FALSE,allow.cartesian=TRUE)
+
+## Method 2
+setkey(census_sample_1940_fc,icpsrfip)
+setkey(countynhg_x_metarea1940_1940to1910,icpsrfip)
+tic()  # It takes aorund 21 seconds to merge the files
+census_sample_1940_fc <- countynhg_x_metarea1940_1940to1910[,c("icpsrfip","countynhg_1910","metarea_1940","sh_area")][census_sample_1940_fc, on = "icpsrfip",allow.cartesian=TRUE]
+toc()
+
+# Use share_area as the perwt vector
+setnames(census_sample_1940_fc,c("sh_area"),c("perwt_ID"))
+census_sample_1940_fc <- census_sample_1940_fc[is.na(perwt_ID),perwt_ID:=1]
+
+# Modify metarea_1940. For each state we create a region corresponding to all the counties that don't belong to a metarea_1940
+# Transform on-identifiable metareas into different meareas by state
+census_sample_1940_fc[,metarea_1940:=as.numeric(metarea_1940)][metarea_1940==1,metarea_1940:=statefip*1000+999]
+
+
+cat(gsub(pattern = "\n", replacement = "  \n", 
+             x = paste0(
+               "We lose ",
+               (sum(census_sample_1940_fc[is.na(countynhg_1910)]$perwt_ID)/sum(census_sample_1940_fc$perwt_ID))*100,
+               "% of the population \nwhen we work with countynhg_1910/metarea_1940",
+               "\n\n"
+             )
+    ))
+
+# Drop if ID is NA
+census_sample_1940_fc <- census_sample_1940_fc[!is.na(ID)]
+
+```
+
+
 #### Some caveats about 1940 Census
 The 1940 Census has a larger set of variables. The new variables most relevant to our analysis are: (i) wage, (ii) education, (iii) migration status and location 5 years ago, (iv) usual occupation 5 years ago. The variable with migration information provides either the state where the person lived 5 years ago or the MIGMET5 variable, which ends up being similar to the State Economic Area (SEA). This variable is not exactly the same as the metropolitan area used as geographical variable in the different exercises (i.e. metarea_1940). 
 *** TO-DO: To be able to exploit the more specific MIGMET5 variable we would need to match SEA with metarea_1940 and countynhg_1910.
@@ -659,7 +724,7 @@ write_fst(census_sample_1930,paste0(main_directory,"R - Processing data/input/ce
 
 ###1940
 ```{r}
-write_fst(census_sample_1940,paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1940.fst"))
+write_fst(census_sample_1940_fc,paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1940_fc.fst"))
 ```
 
 # 2. Merging the Census data with an occind code
@@ -759,6 +824,37 @@ write_fst(
 Note: If you are going to use the dataset to construct a different dataset that aggregates and thus doesn't require individual level information, you can use perwt (and drop perwt_ID, ID and sh_area). If that is not the case, you should use variables perwt_ID, ID and sh_area
 
 
+### 2.2.3 1940 Full Count: occ (and ind) to occind
+#### Call Census 1940
+```{r}
+census_sample_1940_fc <-read_fst(paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1940_fc.fst"),as.data.table=TRUE)
+```
+
+#### Merge with occ1940.codes and ind1940.code
+```{r}
+# Merging with occ1940.codes
+setkey(census_sample_1940_fc,occ);   setkey(occ1940.codes,occ1940_IPUMS)
+#census_sample_1940_fc <- merge(census_sample_1940_fc,occ1940.codes[,c("occ1940_IPUMS","occ1940","name_occ1940")],by.x="occ",by.y="occ1940_IPUMS",all.x=TRUE,all.y=FALSE)
+census_sample_1940_fc <- occ1940.codes[,c("occ1940_IPUMS","occ1940","name_occ1940")][census_sample_1940_fc]
+
+# Merging with ind1940.codes
+setkey(census_sample_1940_fc,ind);  setkey(ind1940.codes,ind1940_IPUMS)
+#census_sample_1940_fc <- merge(census_sample_1940_fc,ind1940.codes[,c("ind1940_IPUMS","ind1940","name_ind1940","name_ind1940_subgroup")],by.x="ind",by.y="ind1940_IPUMS",all.x=TRUE,all.y=FALSE)
+census_sample_1940_fc <- ind1940.codes[,c("ind1940_IPUMS","ind1940","name_ind1940","name_ind1940_subgroup")][census_sample_1940_fc]
+
+```
+
+#### Save the Census data
+```{r}
+write_fst(
+  census_sample_1940_fc[,`:=`(ind1940=tolower(ind1940),occ1940=tolower(occ1940))],
+  paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1940_fc.fst")
+  )
+```
+Note: If you are going to use the dataset to construct a different dataset that aggregates and thus doesn't require individual level information, you can use perwt (and drop perwt_ID, ID and sh_area). If that is not the case, you should use variables perwt_ID, ID and sh_area
+
+
+
 
 ```{r}
 knitr::knit_exit()
@@ -828,5 +924,27 @@ f_merge_mew_titles <- function(X_census,X_new_titles,var_sh_new,occ_n,occind_n,i
 ```
 
 
+# Some basic histograms
+```{r}
+census_sample_1940_fc <-read_fst(paste0(main_directory,"R - Processing data/input/census_sample/census_sample_1940_fc.fst"),as.data.table=TRUE,columns=c("perwt_ID","countynhg_1910","empstat","occ","occ1940","ind","name_ind1940_subgroup"))[empstat==1 & occ<=988 & !is.na(occ) & ind <=994 & !is.na(ind)]
 
+# Importing database with new titles info
+new_titles_1940.by_occ_subind <- read_fst(paste0(main_directory,"R - Processing data/output/Rdata/new_titles_1940_by_occ_subind.fst"),as.data.table=TRUE)[set=="within"][,set:=NULL]
+
+a <- census_sample_1940_fc[,c("ind","occ","empstat"):=NULL]
+
+a <- a[,.(perwt_ID=sum(perwt_ID)),by=c("countynhg_1910","occ1940","name_ind1940_subgroup")]
+
+b <- merge(a,new_titles_1940.by_occ_subind[,c("occ1940","name_ind1940_subgroup","sh_new_method1_dataset2","sh_new_method1_dataset3")],by=c("occ1940","name_ind1940_subgroup"),all=FALSE)
+
+require(Hmisc)
+c <- 
+  b[,.(perwt=sum(perwt_ID),mean=weighted.mean(sh_new_method1_dataset2,w=perwt_ID,na.rm=TRUE),q25=wtd.quantile(sh_new_method1_dataset2, weights=perwt_ID, probs=.25, na.rm=TRUE),q75=wtd.quantile(sh_new_method1_dataset2, weights=perwt_ID, probs=.75, na.rm=TRUE)),by="countynhg_1910"][order(mean,q25)][,order:=1:.N]
+  
+ggplot(data=c[order %in% floor(seq(1,2905,length=200))], aes(x=order)) +
+    geom_line(aes(y=q75), color="blue") + geom_line(aes(y=q25), color="blue") +
+    geom_line(aes(y=mean), color="red") + labs(title="",x="", y = "") +
+      theme_tufte()
+  
+```
 
