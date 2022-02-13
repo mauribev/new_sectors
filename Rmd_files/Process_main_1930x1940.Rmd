@@ -718,8 +718,11 @@ f_split_or <- function(y,id,obs_var) {
 #1930
 a <- f_any_except(index_1930[,c("id_1930","indname_1930")],indname_1930,name="_ind")
 b <- f_any_except(index_1930[,c("id_1930","parentheses1_1930")],parentheses1_1930,name="_par1")
-index_1930.indpar_edits <- merge(a[,indname_1930:=NULL],b[,parentheses1_1930:=NULL],by="id_1930",all=TRUE)
+index_1930.indpar_edits <- 
+  merge(a[,indname_1930:=NULL],b[,parentheses1_1930:=NULL],by="id_1930",all=TRUE)
+
 index_1930.indpar_edits[,`:=`(army=pmax(army_ind, army_par1),no_army=pmax(no_army_ind, no_army_par1))][,c("army_ind","no_army_ind","army_par1","no_army_par1"):=NULL]
+
 # pmax is vectorized (parallel) max
 index_1930.indpar_edits[,any:=ifelse(!is.na(any_ind),any_ind,any_par1)][,except:=ifelse(!is.na(except_ind),except_ind,except_par1)][,c("any_ind","except_ind","any_par1","except_par1"):=NULL]
 
@@ -753,11 +756,12 @@ rm(a,b)
 
 
 ### 2.8.2. Changing some words 
+Here we change some words that imply a similar meaning
 *** TO-DO:
 - Improve the manual corrections
 #### 1930
 ```{r}
-# 0.a. Change some words based on the Index
+# 0.a. Change some words based on the Index 
 index_1930.indpar_edits <- index_1930.indpar_edits[,indname_1930_plain_with_replacements:=str_squish(gsub("\\<mill\\>|\\<works\\>|\\<factory\\>|\\<plant\\>","factory",indname_1930_plain))][,indname_1930_plain_with_replacements:=str_squish(gsub("\\<factory or shop or factory or company\\>","factory or shop or company",indname_1930_plain_with_replacements))]
 
 index_1930.indpar_edits <- index_1930.indpar_edits[,parentheses1_1930_plain_with_replacements:=str_squish(gsub("\\<mill\\>|\\<works\\>|\\<factory\\>|\\<plant\\>","factory",parentheses1_1930_plain))][,parentheses1_1930_plain_with_replacements:=str_squish(gsub("\\<factory or shop or company or factory\\>","factory or shop or company",parentheses1_1930_plain_with_replacements))]
@@ -782,6 +786,12 @@ index_1930.indpar_edits <- index_1930.indpar_edits[,parentheses1_1930_plain_with
 index_1930.indpar_edits <- index_1930.indpar_edits[,indname_1930_plain_with_replacements:= str_squish(gsub("(.*)([a-z]+) or \\2 (.+)","\\1\\2 or \\3",indname_1930_plain_with_replacements))][,indname_1930_plain_with_replacements:= str_squish(gsub("(.*)([a-z]+) or \\2$","\\1\\2",indname_1930_plain_with_replacements))][,indname_1930_plain_with_replacements:= str_squish(gsub(" or or "," or ",indname_1930_plain_with_replacements))]
 
 index_1930.indpar_edits <- index_1930.indpar_edits[,parentheses1_1930_plain_with_replacements:= str_squish(gsub("(.*)([a-z]+) or \\2 (.+)","\\1\\2 or \\3",parentheses1_1930_plain_with_replacements))][,parentheses1_1930_plain_with_replacements:= str_squish(gsub("(.*)([a-z]+) or \\2$","\\1\\2",parentheses1_1930_plain_with_replacements))][,parentheses1_1930_plain_with_replacements:= str_squish(gsub(" or or "," or ",parentheses1_1930_plain_with_replacements))]
+
+# ***********
+# In the steps below we create two different lists, that will be used in later steps
+# ind_replacement_list:     Contains lists of words that have been replaced
+# ind_simplification_list:  Only considers the unique observations in ind_replacement_list
+# ***********
 
 # 1a. Replace terms of the form [tit] or [tit]er ---> [tit]
 ## Create replacement list
@@ -862,6 +872,12 @@ index_1930.indpar_edits$parentheses1_1930_plain_with_replacements <- str_squish(
 index_1930.indpar_edits <- index_1930.indpar_edits[,parentheses1_1930_plain_with_replacements:= str_squish(gsub("([a-z]+) or \\1 ","\\1 ",parentheses1_1930_plain_with_replacements))][,parentheses1_1930_plain_with_replacements:=str_squish( gsub("([a-z]+) or \\1$","\\1",parentheses1_1930_plain_with_replacements) )]
 
 # 4. Reduce words ending in -er, -ist, -ing to their stem
+
+# ***********
+# In the steps below we create one different lists, that will be used in later steps
+# ind_simplification_list.er_ist_ing:     Contains lists of words that have been replaced
+# ***********
+
 ## Find out all the words ending in er, ing, ist
 temp <- index_1930.indpar_edits[,c("indname_1930_plain_with_replacements")][,original:=str_squish(unlist(lapply(str_extract_all(indname_1930_plain_with_replacements,"([^ ]+)er$|([^ ]+)er |([^ ]+)ers$|([^ ]+)ers |([^ ]+)ing$|([^ ]+)ing |([^ ]+)ist$|([^ ]+)ist "), function(l) l[1])))][,original1:=str_squish(unlist(lapply(str_extract_all(indname_1930_plain_with_replacements,"([^ ]+)er$|([^ ]+)er |([^ ]+)ers$|([^ ]+)ers |([^ ]+)ing$|([^ ]+)ing |([^ ]+)ist$|([^ ]+)ist "), function(l) l[2])))][,original2:=str_squish(unlist(lapply(str_extract_all(indname_1930_plain_with_replacements,"([^ ]+)er$|([^ ]+)er |([^ ]+)ers$|([^ ]+)ers |([^ ]+)ing$|([^ ]+)ing |([^ ]+)ist$|([^ ]+)ist "), function(l) l[3])))][,`:=`(original=str_squish(original),original1=str_squish(original1),original2=str_squish(original2))]
 
@@ -1002,6 +1018,8 @@ index_1940.indpar_edits$parentheses1_1940_plain_with_replacements <- str_squish(
 index_1940.indpar_edits <- index_1940.indpar_edits[,parentheses1_1940_plain_with_replacements:= str_squish(gsub("([a-z]+) or \\1 ","\\1 ",parentheses1_1940_plain_with_replacements))][,parentheses1_1940_plain_with_replacements:=str_squish( gsub("([a-z]+) or \\1$","\\1",parentheses1_1940_plain_with_replacements) )]
 
 # 4. Reduce words ending in -er, -ist, -ing to their stem
+
+
 ## Find out all the words ending in er, ing, ist
 temp <- index_1940.indpar_edits[,c("indname_1940_plain_with_replacements")][,original:=str_squish(unlist(lapply(str_extract_all(indname_1940_plain_with_replacements,"([^ ]+)er$|([^ ]+)er |([^ ]+)ers$|([^ ]+)ers |([^ ]+)ing$|([^ ]+)ing |([^ ]+)ist$|([^ ]+)ist "), function(l) l[1])))][,original1:=str_squish(unlist(lapply(str_extract_all(indname_1940_plain_with_replacements,"([^ ]+)er$|([^ ]+)er |([^ ]+)ers$|([^ ]+)ers |([^ ]+)ing$|([^ ]+)ing |([^ ]+)ist$|([^ ]+)ist "), function(l) l[2])))][,original2:=str_squish(unlist(lapply(str_extract_all(indname_1940_plain_with_replacements,"([^ ]+)er$|([^ ]+)er |([^ ]+)ers$|([^ ]+)ers |([^ ]+)ing$|([^ ]+)ing |([^ ]+)ist$|([^ ]+)ist "), function(l) l[3])))][,`:=`(original=str_squish(original),original1=str_squish(original1),original2=str_squish(original2))]
 

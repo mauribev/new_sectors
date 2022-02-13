@@ -195,12 +195,18 @@ f_graph_regional <- function(X,year,geof,New_work) {
 
 ## Function to create industry variable
 *!!!!! NOTE: This function can be used to create a table with industries (occupations) as rows and 5 main occupations (industries) as columns
+*** TO-DO: *** Fix the function so that cols_.. and sh_new_cols_... Are not repeated
 ```{r}
 # Function to construct the data.table with information at the industry level
 # This code works by using a given (unchanged) name for some variables inside the code and by changing the name of argument var (and "var"_name)
 # to those inside variables and then reverting to the original variables
 # Note: Here we are using non-standard evaluation
 f_ind_new_titles <- function(X,id_N,var=ind,sh_v,w_v=perwt,cols_v=occind,names=NULL) {
+  # @param X data.table with at least 3 variables. (1) var, (2) sh_v, (3) cols_v
+  # @param id_N Number of different cols_v to provide information about
+  # @param var Variable that we are gonna have as the rows
+  # @param cols_v Variable that we are gonna compute how var is distributed across cols_v
+  
   y <- copy(X)
 
   # Through the code we will simply use varp as the variable
@@ -644,7 +650,6 @@ f_HHI <- function(X,geof,weight,arg_ind) {
   }
   return(X)
 }
-
 
 ```
 
@@ -1112,20 +1117,51 @@ temp <- merge(temp,temp_dis,by="ind1950")
 ```{r Importing}
 # County datasets ----
 census_sample_1930_countynhg_1910_data <-
-  read_fst(here(paste0("output/Rdata/census_sample_1930_agg_countynhg_1910.fst")),as.data.table=TRUE,columns=c("countynhg_1910","perwt","sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind"))[perwt>=1000 & !is.na(countynhg_1910)]
+  read_fst(here(paste0("output/Rdata/census_sample_1930_agg_countynhg_1910.fst")),as.data.table=TRUE,columns=c("countynhg_1910","perwt","sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind"))[!is.na(countynhg_1910)]
 census_sample_1940_countynhg_1910_data <-
   read_fst(here(paste0("output/Rdata/census_sample_1940_agg_countynhg_1910.fst")),as.data.table=TRUE,columns=c("countynhg_1910","perwt","sh_new_method1_dataset1","sh_new_method1_dataset2","sh_new_method1_dataset3"))[!is.na(countynhg_1910)]
 
 # Individual level datasets ----
-census_sample_1930_individual_data <- read_fst(here(paste0("output/Rdata/census_sample_1930_individual_data.fst")),as.data.table=TRUE,columns=c("perwt_ID","countynhg_1910","occind","sh_red_tit"))
-census_sample_1940_individual_data <- read_fst(here(paste0("output/Rdata/census_sample_1940_individual_data.fst")),as.data.table=TRUE,columns=c("perwt_ID","countynhg_1910","occ1940","name_ind1940_subgroup","sh_new_method1_dataset1","sh_new_method1_dataset2","sh_new_method1_dataset3"))
+census_sample_1930_individual_data <- 
+  merge(
+    read_fst(here(paste0("output/Rdata/census_sample_1930_individual_data.fst")),as.data.table=TRUE,columns=c("perwt_ID","countynhg_1910","occind","sh_red_tit","ind1950")),
+    census_sample_1930_countynhg_1910_data[,c("countynhg_1910","perwt")],
+    by=c("countynhg_1910"),all.x=TRUE,all.y=FALSE
+  )
+census_sample_1940_individual_data <-
+  merge(
+    read_fst(here(paste0("output/Rdata/census_sample_1940_individual_data.fst")),as.data.table=TRUE,columns=c("perwt_ID","countynhg_1910","occ1940","name_ind1940_subgroup","ind1950","sh_new_method1_dataset1","sh_new_method1_dataset2","sh_new_method1_dataset3")),
+    census_sample_1940_countynhg_1910_data[,c("countynhg_1910","perwt")],
+    by=c("countynhg_1910"),all.x=TRUE,all.y=FALSE
+  )
 
 
 # New titles ----
 # Note: new_titles_1930_by_occind.fst was constructed by looking at similar titles within industry.
-new_titles.occind1930 <- read_fst(here(paste0("output/Rdata/new_titles_1930_by_occind.fst")),as.data.table=TRUE)
+new_titles.occind1930 <- 
+  merge(
+    read_fst(here(paste0("output/Rdata/new_titles_1930_by_occind.fst")),as.data.table=TRUE),
+    as.data.table( read_excel(here(paste0("input/1930 - Cleaned.xlsx")), sheet = "1930 main groups",guess_max=10000) )[,c("occind","occind1930","occind1930_name")],
+    by="occind1930",all.x=TRUE,all.y=FALSE
+  )[,occind1930:=NULL]
+setcolorder(new_titles.occind1930,c("occind","occind1930_name"))
+
 
 new_titles_1940.by_occ_subind <- read_fst(paste0(main_directory,"R - Processing data/output/Rdata/new_titles_1940_by_occ_subind.fst"),as.data.table=TRUE)[set=="within"][,set:=NULL]
+
+# Note: Create an identifier for occs that have different sh_new_method1_dataset2 within occ1940.
+# Note: Within occ1940 I want to focus on subindustries that have different occ1940
+new_titles_1940.by_occ_subind <- 
+  merge(
+    new_titles_1940.by_occ_subind,
+    new_titles_1940.by_occ_subind[,.(occ1940_subocc_method1_dataset2=name_ind1940_subgroup[1]),by=c("occ1940","sh_new_method1_dataset2")][order(occ1940,sh_new_method1_dataset2)][,occ1940_subocc_method1_dataset2:=1:.N,by=c("occ1940")],
+    by=c("occ1940","sh_new_method1_dataset2"),all=TRUE
+  )
+
+
+# Names ----
+occ1930.codes <- as.data.table( read_excel(here(paste0("input/1930 - Cleaned.xlsx")), sheet = "1930 main groups",guess_max=10000) )[,c("occind","occind1930","occind1930_name")]
+occ1940.codes <- as.data.table( read_excel(here(paste0("input/1940 - Cleaned.xlsx")), sheet = "occ1940",guess_max=10000) )[,c("occ1940","name_occ1940_unique")][,occ1940:=tolower(occ1940)][,.SD[1],by="occ1940"]
 
 ```
 
@@ -1133,9 +1169,9 @@ new_titles_1940.by_occ_subind <- read_fst(paste0(main_directory,"R - Processing 
 ## 2. Descriptive statistics
 ```{r}
 #
-census_sample_1930_grouped_occ <- census_sample_1930_individual_data[,.(perwt=sum(perwt_ID)),by=c("occind","sh_red_tit")]
-census_sample_1940_grouped_occ_dt2 <- census_sample_1940_individual_data[,.(perwt=sum(perwt_ID)),by=c("occ1940","sh_new_method1_dataset2")][!is.na(sh_new_method1_dataset2)]
-census_sample_1940_grouped_occ_dt3 <- census_sample_1940_individual_data[,.(perwt=sum(perwt_ID)),by=c("occ1940","sh_new_method1_dataset3")][!is.na(sh_new_method1_dataset3)]
+census_sample_1930_grouped_occ <- census_sample_1930_individual_data[perwt>=10000][,.(perwt=sum(perwt_ID)),by=c("occind","sh_red_tit")]
+census_sample_1940_grouped_occ_dt2 <- census_sample_1940_individual_data[perwt>=10000][,.(perwt=sum(perwt_ID)),by=c("occ1940","sh_new_method1_dataset2")][!is.na(sh_new_method1_dataset2)]
+census_sample_1940_grouped_occ_dt3 <- census_sample_1940_individual_data[perwt>=10000][,.(perwt=sum(perwt_ID)),by=c("occ1940","sh_new_method1_dataset3")][!is.na(sh_new_method1_dataset3)]
 
 
 Table_new_titles <- data.table(
@@ -1182,40 +1218,40 @@ Table_new_titles <- data.table(
 Table <- data.table(
   Variable=c("Number of People/Counties","Mean of New Work","St. Dev. New Work","Percentile 0","Percentile 25","Percentile 50","Percentile 75","Percentile 100"),
   '1930 - Individuals'=c(
-                  nrow(census_sample_1930_individual_data),
-                  format(round(mean(census_sample_1930_individual_data$sh_red_tit),4),nsmall=2),
-                  format(round(sd(census_sample_1930_individual_data$sh_red_tit),4),nsmall=2),
-                  format(round(unname(quantile(census_sample_1930_individual_data$sh_red_tit)),4),nsmall=2)
+                  nrow(census_sample_1930_individual_data[perwt>=10000]),
+                  format(round(mean(census_sample_1930_individual_data[perwt>=10000]$sh_red_tit),4),nsmall=2),
+                  format(round(sd(census_sample_1930_individual_data[perwt>=10000]$sh_red_tit),4),nsmall=2),
+                  format(round(unname(quantile(census_sample_1930_individual_data[perwt>=10000]$sh_red_tit)),4),nsmall=2)
   ),
   '1930 - Counties'=c(
-                  nrow(census_sample_1930_countynhg_1910_data),
-                  format(round(mean(census_sample_1930_countynhg_1910_data$sh_red_tit),4),nsmall=2),
-                  format(round(sd(census_sample_1930_countynhg_1910_data$sh_red_tit),4),nsmall=2),
-                  format(round(unname(quantile(census_sample_1930_countynhg_1910_data$sh_red_tit)),4),nsmall=2)
+                  nrow(census_sample_1930_countynhg_1910_data[perwt>=10000]),
+                  format(round(mean(census_sample_1930_countynhg_1910_data[perwt>=10000]$sh_red_tit),4),nsmall=2),
+                  format(round(sd(census_sample_1930_countynhg_1910_data[perwt>=10000]$sh_red_tit),4),nsmall=2),
+                  format(round(unname(quantile(census_sample_1930_countynhg_1910_data[perwt>=10000]$sh_red_tit)),4),nsmall=2)
   ),
   '1940 - Individuals - Dt2'=c(
-                  nrow(census_sample_1940_individual_data),
-                  format(round(mean(census_sample_1940_individual_data$sh_new_method1_dataset2,na.rm=TRUE),4),nsmall=2),
-                  format(round(sd(census_sample_1940_individual_data$sh_new_method1_dataset2,na.rm=TRUE),4),nsmall=2),
-                  format(round(unname(quantile(census_sample_1940_individual_data$sh_new_method1_dataset2,na.rm=TRUE)),4),nsmall=2)
+                  nrow(census_sample_1940_individual_data[perwt>=10000]),
+                  format(round(mean(census_sample_1940_individual_data[perwt>=10000]$sh_new_method1_dataset2,na.rm=TRUE),4),nsmall=2),
+                  format(round(sd(census_sample_1940_individual_data[perwt>=10000]$sh_new_method1_dataset2,na.rm=TRUE),4),nsmall=2),
+                  format(round(unname(quantile(census_sample_1940_individual_data[perwt>=10000]$sh_new_method1_dataset2,na.rm=TRUE)),4),nsmall=2)
   ),
   '1940 - Counties - Dt2'=c(
-                  nrow(census_sample_1940_countynhg_1910_data),
-                  format(round(mean(census_sample_1940_countynhg_1910_data$sh_new_method1_dataset3,na.rm=TRUE),4),nsmall=2),
-                  format(round(sd(census_sample_1940_countynhg_1910_data$sh_new_method1_dataset3,na.rm=TRUE),4),nsmall=2),
-                  format(round(unname(quantile(census_sample_1940_countynhg_1910_data$sh_new_method1_dataset3,na.rm=TRUE)),4),nsmall=2)
+                  nrow(census_sample_1940_countynhg_1910_data[perwt>=10000]),
+                  format(round(mean(census_sample_1940_countynhg_1910_data[perwt>=10000]$sh_new_method1_dataset3,na.rm=TRUE),4),nsmall=2),
+                  format(round(sd(census_sample_1940_countynhg_1910_data[perwt>=10000]$sh_new_method1_dataset3,na.rm=TRUE),4),nsmall=2),
+                  format(round(unname(quantile(census_sample_1940_countynhg_1910_data[perwt>=10000]$sh_new_method1_dataset3,na.rm=TRUE)),4),nsmall=2)
   ),
   '1940 - Individuals - Dt3'=c(
-                  nrow(census_sample_1940_individual_data),
-                  format(round(mean(census_sample_1940_individual_data$sh_new_method1_dataset3),4),nsmall=2),
-                  format(round(sd(census_sample_1940_individual_data$sh_new_method1_dataset3),4),nsmall=2),
-                  format(round(unname(quantile(census_sample_1940_individual_data$sh_new_method1_dataset3,na.rm=TRUE)),4),nsmall=2)
+                  nrow(census_sample_1940_individual_data[perwt>=10000]),
+                  format(round(mean(census_sample_1940_individual_data[perwt>=10000]$sh_new_method1_dataset3),4),nsmall=2),
+                  format(round(sd(census_sample_1940_individual_data[perwt>=10000]$sh_new_method1_dataset3),4),nsmall=2),
+                  format(round(unname(quantile(census_sample_1940_individual_data[perwt>=10000]$sh_new_method1_dataset3,na.rm=TRUE)),4),nsmall=2)
   ),
   '1940 - Counties - Dt3'=c(
-                  nrow(census_sample_1940_countynhg_1910_data),
-                  format(round(mean(census_sample_1940_countynhg_1910_data$sh_new_method1_dataset3),4),nsmall=2),
-                  format(round(sd(census_sample_1940_countynhg_1910_data$sh_new_method1_dataset3),4),nsmall=2),
-                  format(round(unname(quantile(census_sample_1940_countynhg_1910_data$sh_new_method1_dataset3,na.rm=TRUE)),4),nsmall=2)
+                  nrow(census_sample_1940_countynhg_1910_data[perwt>=10000]),
+                  format(round(mean(census_sample_1940_countynhg_1910_data[perwt>=10000]$sh_new_method1_dataset3),4),nsmall=2),
+                  format(round(sd(census_sample_1940_countynhg_1910_data[perwt>=10000]$sh_new_method1_dataset3),4),nsmall=2),
+                  format(round(unname(quantile(census_sample_1940_countynhg_1910_data[perwt>=10000]$sh_new_method1_dataset3,na.rm=TRUE)),4),nsmall=2)
   )
 )
 ```
@@ -1224,11 +1260,10 @@ Table <- data.table(
 
 ## 3. Histograms
 ```{r}
-
 # Individual plots ----
 ## Counties
 g_1930_countynhg_1910 <-
-  ggplot(census_sample_1930_countynhg_1910_data[,c("sh_red_tit")], aes(x=sh_red_tit)) +
+  ggplot(census_sample_1930_countynhg_1910_data[perwt>=10000][,c("sh_red_tit")], aes(x=sh_red_tit)) +
         geom_histogram(color="black",bins=80,  aes(y = stat(width*density)),  fill="white") +
         geom_vline(data=census_sample_1930_countynhg_1910_data[,.(sh_red_tit=mean(sh_red_tit,na.rm=TRUE))],aes(xintercept=sh_red_tit),
                    linetype="dashed") + 
@@ -1237,7 +1272,7 @@ g_1930_countynhg_1910 <-
         theme_tufte()
 
 g_1940_countynhg_1910_dt2 <-
-  ggplot(census_sample_1940_countynhg_1910_data[,c("sh_new_method1_dataset2")], aes(x=sh_new_method1_dataset2)) +
+  ggplot(census_sample_1940_countynhg_1910_data[perwt>=10000][,c("sh_new_method1_dataset2")], aes(x=sh_new_method1_dataset2)) +
         geom_histogram(color="black",bins=80,  aes(y = stat(width*density)),  fill="white") +
         geom_vline(data=census_sample_1940_countynhg_1910_data[,.(sh_new_method1_dataset2=mean(sh_new_method1_dataset2,na.rm=TRUE))],aes(xintercept=sh_new_method1_dataset2),
                    linetype="dashed") + 
@@ -1246,7 +1281,7 @@ g_1940_countynhg_1910_dt2 <-
         theme_tufte()
 
 g_1940_countynhg_1910_dt3 <-
-  ggplot(census_sample_1940_countynhg_1910_data[,c("sh_new_method1_dataset3")], aes(x=sh_new_method1_dataset3)) +
+  ggplot(census_sample_1940_countynhg_1910_data[perwt>=10000][,c("sh_new_method1_dataset3")], aes(x=sh_new_method1_dataset3)) +
         geom_histogram(color="black",bins=80,  aes(y = stat(width*density)),  fill="white") +
         geom_vline(data=census_sample_1940_countynhg_1910_data[,.(sh_new_method1_dataset3=mean(sh_new_method1_dataset3,na.rm=TRUE))],aes(xintercept=sh_new_method1_dataset3),
                    linetype="dashed") + 
@@ -1256,7 +1291,7 @@ g_1940_countynhg_1910_dt3 <-
 
 # Individuals
 g_1930_individuals <-
-  ggplot(census_sample_1930_individual_data[,c("sh_red_tit")], aes(x=sh_red_tit)) +
+  ggplot(census_sample_1930_individual_data[perwt>=10000][,c("sh_red_tit")], aes(x=sh_red_tit)) +
         geom_histogram(color="black",bins=80,  aes(y = stat(width*density)),  fill="white") +
         geom_vline(data=census_sample_1930_individual_data[,.(sh_red_tit=mean(sh_red_tit,na.rm=TRUE))],aes(xintercept=sh_red_tit),
                    linetype="dashed") + 
@@ -1265,7 +1300,7 @@ g_1930_individuals <-
         theme_tufte()
 
 g_1940_individuals_dt2 <-
-  ggplot(census_sample_1940_individual_data[,c("sh_new_method1_dataset2")], aes(x=sh_new_method1_dataset2)) +
+  ggplot(census_sample_1940_individual_data[perwt>=10000][,c("sh_new_method1_dataset2")], aes(x=sh_new_method1_dataset2)) +
         geom_histogram(color="black",bins=80,  aes(y = stat(width*density)),  fill="white") +
         geom_vline(data=census_sample_1940_individual_data[,.(sh_new_method1_dataset2=mean(sh_new_method1_dataset2,na.rm=TRUE))],aes(xintercept=sh_new_method1_dataset2),
                    linetype="dashed") + 
@@ -1274,7 +1309,7 @@ g_1940_individuals_dt2 <-
         theme_tufte()
 
 g_1940_individuals_dt3 <-
-  ggplot(census_sample_1940_individual_data[,c("sh_new_method1_dataset3")], aes(x=sh_new_method1_dataset3)) +
+  ggplot(census_sample_1940_individual_data[perwt>=10000][,c("sh_new_method1_dataset3")], aes(x=sh_new_method1_dataset3)) +
         geom_histogram(color="black",bins=80,  aes(y = stat(width*density)),  fill="white") +
         geom_vline(data=census_sample_1940_individual_data[,.(sh_new_method1_dataset3=mean(sh_new_method1_dataset3,na.rm=TRUE))],aes(xintercept=sh_new_method1_dataset3),
                    linetype="dashed") + 
@@ -1313,12 +1348,12 @@ g_1940_occ_dt3 <-
 
 
 x_min <- -0.05 +min(
-             min(census_sample_1930_individual_data[,c("sh_red_tit")]$sh_red_tit),
-             min(census_sample_1940_individual_data[,c("sh_new_method1_dataset2")]$sh_new_method1_dataset2)
+             min(census_sample_1930_individual_data[perwt>=10000][,c("sh_red_tit")]$sh_red_tit),
+             min(census_sample_1940_individual_data[perwt>=10000][,c("sh_new_method1_dataset2")]$sh_new_method1_dataset2)
            )
 x_max <- max(
-             max(census_sample_1930_individual_data[,c("sh_red_tit")]$sh_red_tit),
-             max(census_sample_1940_individual_data[,c("sh_new_method1_dataset2")]$sh_new_method1_dataset2)
+             max(census_sample_1930_individual_data[perwt>=10000][,c("sh_red_tit")]$sh_red_tit),
+             max(census_sample_1940_individual_data[perwt>=10000][,c("sh_new_method1_dataset2")]$sh_new_method1_dataset2)
            )
 ## Graph
 ggarrange(
@@ -1361,26 +1396,74 @@ ggarrange(
 
 ```
 
+
 ## 4. Intraquartile range for counties
 ```{r}
-A_1930 <- census_sample_1930_individual_data[,`:=`(mean=mean(sh_red_tit,na.rm=TRUE),q25=quantile(sh_red_tit,na.rm=TRUE)[2],q75=quantile(sh_red_tit,na.rm=TRUE)[4]),by="countynhg_1910"][,.SD[1],by="countynhg_1910",.SDcols=c("mean","q25","q75")]
+A_1930 <- census_sample_1930_individual_data[perwt>=10000][,.(perwt=sum(perwt_ID),sh_0=sum(perwt_ID*(sh_red_tit<=0.0001)),mean=mean(sh_red_tit,na.rm=TRUE),q25=quantile(sh_red_tit,na.rm=TRUE)[2],q75=quantile(sh_red_tit,na.rm=TRUE)[4],q80=quantile(sh_red_tit,probs=c(0.8),na.rm=TRUE),q90=quantile(sh_red_tit,probs=c(0.9),na.rm=TRUE),q95=quantile(sh_red_tit,probs=c(0.95),na.rm=TRUE),q99=quantile(sh_red_tit,probs=c(0.99),na.rm=TRUE)),by="countynhg_1910"][,sh_0:=sh_0/perwt]
 A_1930 <- A_1930[order(mean,q75)][,order:=1:.N]
 
-A_1940 <- census_sample_1940_individual_data[,`:=`(mean=mean(sh_new_method1_dataset2,na.rm=TRUE),q25=quantile(sh_new_method1_dataset2,na.rm=TRUE)[2],q75=quantile(sh_new_method1_dataset2,na.rm=TRUE)[4]),by="countynhg_1910"][,.SD[1],by="countynhg_1910",.SDcols=c("mean","q25","q75")]
+A_1940 <- census_sample_1940_individual_data[perwt>=10000 & !is.na(sh_new_method1_dataset2)][,.(perwt=sum(perwt_ID),sh_0=sum(perwt_ID*(sh_new_method1_dataset2<=0.0001)),mean=mean(sh_new_method1_dataset2,na.rm=TRUE),q25=quantile(sh_new_method1_dataset2,na.rm=TRUE)[2],q75=quantile(sh_new_method1_dataset2,na.rm=TRUE)[4],q80=quantile(sh_new_method1_dataset2,probs=c(0.8),na.rm=TRUE),q90=quantile(sh_new_method1_dataset2,probs=c(0.9),na.rm=TRUE),q95=quantile(sh_new_method1_dataset2,probs=c(0.95),na.rm=TRUE),q99=quantile(sh_new_method1_dataset2,probs=c(0.99),na.rm=TRUE)),by="countynhg_1910"][,sh_0:=sh_0/perwt]
 A_1940 <- A_1940[order(mean,q75)][,order:=1:.N]
 
 
 g_A_1930 <-
-  ggplot(data=A_1930[order %in% floor(seq(1,2905,length=200))], aes(x=order)) +
+  ggplot(data=A_1930[order %in% floor(seq(1,2905,length=290))], aes(x=order)) +
     geom_line(aes(y=q75), color="blue") + geom_line(aes(y=q25), color="blue") +
     geom_line(aes(y=mean), color="red") + labs(title="",x="", y = "") +
       theme_tufte()
 
 g_A_1940 <-
-  ggplot(data=A_1940[order %in% floor(seq(1,2905,length=200))], aes(x=order)) +
+  ggplot(data=A_1940[order %in% floor(seq(1,2905,length=290))], aes(x=order)) +
     geom_line(aes(y=q75), color="blue") + geom_line(aes(y=q25), color="blue") +
     geom_line(aes(y=mean), color="red") + labs(title="",x="", y = "") +
       theme_tufte()
+
+ggarrange(
+  g_A_1930,
+  g_A_1940,
+  ncol = 1, nrow = 2,
+  labels=c("1930","1940"),
+  align = "v"
+  )
+ggsave(here(paste0("output/Graphs/figure_new_titles_interquantile_range.png")),plot=last_plot())
+
+# percentiles
+g_A_1930 <-
+  ggplot(data=A_1930[order %in% floor(seq(1,2905,length=290))], aes(x=order)) +
+      geom_line(aes(y=q95), color="black") + geom_line(aes(y=q99), color="yellow") +
+      geom_line(aes(y=q80), color="gray") + geom_line(aes(y=q90), color="gray") + 
+      geom_line(aes(y=q75), color="blue") + geom_line(aes(y=q25), color="blue") +
+      geom_line(aes(y=mean), color="red") + labs(title="",x="", y = "") +
+        theme_tufte()
+g_A_1940 <-
+  ggplot(data=A_1940[order %in% floor(seq(1,2905,length=290))], aes(x=order)) +
+      geom_line(aes(y=q95), color="black") + geom_line(aes(y=q99), color="yellow") +
+      geom_line(aes(y=q80), color="gray") + geom_line(aes(y=q90), color="gray") + 
+      geom_line(aes(y=q75), color="blue") + geom_line(aes(y=q25), color="blue") +
+      geom_line(aes(y=mean), color="red") + labs(title="",x="", y = "") +
+        theme_tufte()
+
+ggarrange(
+  g_A_1930,
+  g_A_1940,
+  ncol = 1, nrow = 2,
+  labels=c("1930","1940"),
+  align = "v"
+  )
+ggsave(here(paste0("output/Graphs/figure_new_titles_percentiles.png")),plot=last_plot())
+
+g_A_1930 <-
+  ggplot(data=A_1930[order %in% floor(seq(1,2905,length=290))], aes(x=order)) +
+      geom_line(aes(y=sh_0), color="black") + 
+      geom_line(aes(y=q75), color="blue") + geom_line(aes(y=q25), color="blue") +
+      geom_line(aes(y=mean), color="red") + labs(title="",x="", y = "") +
+        theme_tufte()
+g_A_1940 <-
+  ggplot(data=A_1940[order %in% floor(seq(1,2905,length=290))], aes(x=order)) +
+      geom_line(aes(y=sh_0), color="black") + 
+      geom_line(aes(y=q75), color="blue") + geom_line(aes(y=q25), color="blue") +
+      geom_line(aes(y=mean), color="red") + labs(title="",x="", y = "") +
+        theme_tufte()
 
 ggarrange(
   g_A_1930,
@@ -1391,37 +1474,105 @@ ggarrange(
   )
 
 ```
+As we can see in the previous graphs, for 1940 the distribution of the share of new occupations is very similar for most of the counties. The 80th percentile is basically the same for the first 2600 counties. Thus, the differences in mean are mostly explained by the upper 20% of the distribution. Because of the way the share of new occupations was constructed (using 3 digit occupations), we can't be sure that this behavior reflects the true distribution of new titles across the U.S. As an additional piece of information, I computed the share of the population that works in an occupation without any new titles. The last figure plots that share across counties. In 1930 the share of people with a 0 share of new titles is very low (around 8%) compared to 1940, where the average is is somewhere around 17%. 
 
-## 4. Intraquartile range for counties
+## 5. New titles, number of titles, number of people.
+In this section I will focus on the 3 digit occupation, the share of new titles, the number of titles. I want to have a better understanding of the difference between 1930 and 1940.
 ```{r}
-A_1930 <- census_sample_1930_individual_data[,`:=`(mean=mean(sh_red_tit,na.rm=TRUE),q25=quantile(sh_red_tit,na.rm=TRUE)[2],q75=quantile(sh_red_tit,na.rm=TRUE)[4]),by="countynhg_1910"][,.SD[1],by="countynhg_1910",.SDcols=c("mean","q25","q75")]
-A_1930 <- A_1930[order(mean,q75)][,order:=1:.N]
-
-A_1940 <- census_sample_1940_individual_data[,`:=`(mean=mean(sh_new_method1_dataset2,na.rm=TRUE),q25=quantile(sh_new_method1_dataset2,na.rm=TRUE)[2],q75=quantile(sh_new_method1_dataset2,na.rm=TRUE)[4]),by="countynhg_1910"][,.SD[1],by="countynhg_1910",.SDcols=c("mean","q25","q75")]
-A_1940 <- A_1940[order(mean,q75)][,order:=1:.N]
-
-
-g_A_1930 <-
-  ggplot(data=A_1930[order %in% floor(seq(1,2905,length=200))], aes(x=order)) +
-    geom_line(aes(y=q75), color="blue") + geom_line(aes(y=q25), color="blue") +
-    geom_line(aes(y=mean), color="red") + labs(title="",x="", y = "") +
-      theme_tufte()
-
-g_A_1940 <-
-  ggplot(data=A_1940[order %in% floor(seq(1,2905,length=200))], aes(x=order)) +
-    geom_line(aes(y=q75), color="blue") + geom_line(aes(y=q25), color="blue") +
-    geom_line(aes(y=mean), color="red") + labs(title="",x="", y = "") +
-      theme_tufte()
-
-ggarrange(
-  g_A_1930,
-  g_A_1940,
-  ncol = 1, nrow = 2,
-  labels=c("1930","1940"),
-  align = "v"
+# 1930 ----
+Table_1930_occ <- 
+  merge(
+    census_sample_1930_individual_data[perwt>=10000 & !is.na(sh_red_tit)],
+    new_titles.occind1930[,c("occind","occind1930_name","n_red_tit")],
+    by=c("occind"),all.x=TRUE,all.y=FALSE
   )
 
-ggsave(here(paste0("output/Graphs/figure_new_titles_interquantile_range.png")),plot=last_plot())
+# Next steps: computing different measures.
+# Dispersion measures
+## Across Industries
+X_ind <- f_HHI(Table_1930_occ,occind,perwt_ID,ind1950)
+setnames(X_ind,c("H"),c("H_ind1950"))
+
+## Across space
+X_spa <- f_HHI(Table_1930_occ,occind,perwt_ID,countynhg_1910)
+setnames(X_spa,c("H"),c("H_countynhg_1910"))
+
+# Main industries associated with a given occupation
+table_ind <- 
+    f_ind_new_titles(Table_1930_occ,id_N=5,var=occind,w_v=perwt_ID,sh_v=sh_red_tit,cols_v=ind1950)
+col <- grep("^sh_ind1950|^emp|^sh_red_tit",names(table_ind),value=TRUE)
+table_ind <- table_ind[,!..col]
+
+table_countynhg_1910 <- 
+    f_ind_new_titles(Table_1930_occ,id_N=5,var=occind,w_v=perwt_ID,sh_v=sh_red_tit,cols_v=countynhg_1910)
+col <- grep("^sh_ind1950|^emp|^sh_red_tit",names(table_countynhg_1910),value=TRUE)
+table_countynhg_1910 <- table_countynhg_1910[,!..col]
+
+# Compiling the whole table
+Table_1930_occ <- Table_1930_occ[,.(occind1930_name=occind1930_name[1],sh_red_tit=sh_red_tit[1],perwt=sum(perwt_ID),n_red_tit=n_red_tit[1]),by=c("occind")][,sh_perwt:=sum(perwt)][,`:=`(sh_perwt=perwt/sh_perwt)]
+setcolorder(Table_1930_occ,c("occind","occind1930_name","sh_red_tit","perwt","sh_perwt"))
+
+Table_1930_occ <- 
+  Reduce(
+          function(x, y, ...) merge(x, y, by="occind", all = TRUE, allow.cartesian = TRUE, ...),
+          list(
+            Table_1930_occ,
+            X_spa,
+            X_ind,
+            table_ind,
+            table_countynhg_1910
+            )
+        )
+
+
+# 1940 ----
+Table_1940_occ_dt2 <- 
+  merge(
+    census_sample_1940_individual_data[perwt>=10000 & !is.na(sh_new_method1_dataset2)][,!c("sh_new_method1_dataset1","sh_new_method1_dataset3")],
+    new_titles_1940.by_occ_subind[,c("occ1940","name_ind1940_subgroup","occ1940_subocc_method1_dataset2","count","N_dataset2","N_red_inv_dataset2")],
+    by=c("occ1940","name_ind1940_subgroup"),all.x=TRUE,all.y=FALSE
+  )
+Table_1940_occ_dt2[,occ1940_subocc_method1_dataset2:=paste0(occ1940,"_",occ1940_subocc_method1_dataset2)]
+
+# Next steps: computing different measures.
+# Dispersion measures
+## Across Industries
+X_ind <- f_HHI(Table_1940_occ_dt2,occ1940_subocc_method1_dataset2,perwt_ID,ind1950)
+setnames(X_ind,c("H"),c("H_ind1950"))
+
+## Across space
+X_spa <- f_HHI(Table_1940_occ_dt2,occ1940_subocc_method1_dataset2,perwt_ID,countynhg_1910)
+setnames(X_spa,c("H"),c("H_countynhg_1910"))
+
+# Main industries associated with a given occupation
+table_ind <- 
+    f_ind_new_titles(Table_1940_occ_dt2,id_N=5,var=occ1940_subocc_method1_dataset2,w_v=perwt_ID,sh_v=sh_new_method1_dataset2,cols_v=ind1950)
+col <- grep("^sh_ind1950|^emp|^sh_new_method",names(table_ind),value=TRUE)
+table_ind <- table_ind[,!..col]
+
+table_countynhg_1910 <- 
+    f_ind_new_titles(Table_1940_occ_dt2,id_N=5,var=occ1940_subocc_method1_dataset2,w_v=perwt_ID,sh_v=sh_new_method1_dataset2,cols_v=countynhg_1910)
+col <- grep("^sh_ind1950|^emp|^sh_new_method",names(table_countynhg_1910),value=TRUE)
+table_countynhg_1910 <- table_countynhg_1910[,!..col]
+
+# Compiling the whole table
+Table_1940_occ_dt2 <- Table_1940_occ_dt2[,.(name_ind1940_subgroup=name_ind1940_subgroup[1],sh_new_method1_dataset2=sh_new_method1_dataset2[1],perwt=sum(perwt_ID),N_dataset2=N_dataset2[1],N_red_inv_dataset2=N_red_inv_dataset2[1],count=count[1]),by=c("occ1940","occ1940_subocc_method1_dataset2")][,sh_perwt:=sum(perwt)][,`:=`(sh_perwt=perwt/sh_perwt)][count>1,name_ind1940_subgroup:=NA]
+setcolorder(Table_1940_occ_dt2,c("occ1940","occ1940_subocc_method1_dataset2","name_ind1940_subgroup","sh_new_method1_dataset2","perwt","sh_perwt"))
+
+Table_1940_occ_dt2 <- 
+  Reduce(
+          function(x, y, ...) merge(x, y, by="occ1940_subocc_method1_dataset2", all = TRUE, allow.cartesian = TRUE, ...),
+          list(
+            Table_1940_occ_dt2,
+            X_spa,
+            X_ind,
+            table_ind,
+            table_countynhg_1910
+            )
+        )
+      
+
+
 
 ```
 

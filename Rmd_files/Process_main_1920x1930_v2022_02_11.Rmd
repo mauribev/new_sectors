@@ -347,6 +347,11 @@ All the changes that we introduce here are minor and don't affect the meaning of
 - Clean conjunctions (except or, which carries additional information)
 
 ## 2.1. Original
+Note: We don't eliminate commas here (flag=0), as they might be informative. In a later stage we will eliminate them
+Changes introduced: 
+- tolower
+- f_clean_conj, f_clean_punct(no commas eliminated, flag=0)
+- gsub(", or | or, |, or, | ,or, | or ,|, or ,"," or "
 ```{r}
 #1920
 # Note: We don't eliminate commas here (flag=0), as they might be informative. In a later stage we will eliminate them
@@ -365,6 +370,10 @@ index_1930$original_1930 <- mgsub(words_subs1$term,words_subs1$change,index_1930
 ```
 
 ## 2.2. Title
+Changes introduced on the variable "Title" 
+- tolower
+- f_clean_conj, f_clean_punct(no commas eliminated, flag=1)
+- gsub(", or | or, |, or, | ,or, | or ,|, or ,"," or "
 ```{r}
 ## 1920
 # Note: We don't care about commas here (flag=1).
@@ -419,6 +428,10 @@ if (FALSE) {
 ```
 
 ## 2.3. indname_original
+Changes introduced on the variable "indname" 
+- tolower
+- f_clean_conj, f_clean_punct(no commas eliminated, flag=0)
+- gsub(", or | or, |, or, | ,or, | or ,|, or ,"," or "
 ```{r}
 ## 1920
 # Note: We care about commas here (flag=0).
@@ -440,7 +453,9 @@ index_1930[,indname_1930_original:=str_squish(gsub(", or | or, |, or, | ,or, | o
 ```
 
 ## 2.4. Create indexes for the terms np, o, e , o w, w
-
+Changes:
+- Create variables np, o, e, w
+*** NOTE, TO-DO: *** Introduce also a variable ns, as was done in the file for 1930_1940
 ```{r} 
 # Create flags for the different terms
 index_1920[,w:=1][,c("np","e","o"):=0]

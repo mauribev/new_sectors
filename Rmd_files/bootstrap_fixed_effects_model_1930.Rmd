@@ -41,7 +41,268 @@ main_directory <- "/Volumes/GoogleDrive/My Drive/New York 2015-2020/NYU/Year 4/D
 ```
 
 # 0 . Some functions
-## Function to export things to excel
+### Function to export results
+```{r}
+f_reg_results <- function(Regresults,arg_round=4) {
+  # NOTES:
+  # Regresults: data.table with 5 columns. (1) Name of variables, (2) Regression coefficient, (3) Standard value, (4) T-Value, (5) P_value
+  # Arg_round: number of significance digits. 4 bu default
+  
+  X <- copy(Regresults)
+  setnames(X,c(2,3,4,5),c("coef","std","t_value","p_value"))
+  X[,coef_star:=ifelse(p_value>0.1,format(round(coef,arg_round),nsmall=2),ifelse(p_value>0.05,paste0(format(round(coef,arg_round),nsmall=2),"*"),ifelse(p_value>0.01,paste0(format(round(coef,arg_round),nsmall=2),"**"),paste0(format(round(coef,arg_round),nsmall=2),"***"))))]
+  #coef.J[,coef_star:=ifelse(x==1,paste0(format(round(coef,arg_round),nsmall=2),"***"),ifelse(x==5,paste0(format(round(coef,arg_round),nsmall=2),"**"),ifelse(x==10,paste0(format(round(coef,arg_round),nsmall=2),"*"),format(round(coef,arg_round),nsmall=2))))]
+  X[,std_par:=paste0("(",format(round(std,arg_round),nsmall=2),")")]
+  return(X)
+}
+```
+
+### Function to add a YES,NO vector if a given variable exists
+```{r}
+# arg_rn: name of the data.table variable containing all the names of the variables in the regression
+# var_rn: name of the Regression variable that will be used to construct the Yes, NO vector
+# name:   name of the Regression variable that will contain the Yes, NO vector
+# NOTES: var_rn and names have to have the same size and have to be vectors of strings
+f_reg_results_VAR_exist <- function(X,arg_rn,var_rn,name) {
+  setnames(X,deparse(substitute(arg_rn)),c("arg_rn"))
+  if (length(var_rn) != length(name)) stop("var_rn and name have to have the same dimension")
+  for (i in 1:length(var_rn)) {
+    X <- 
+      rbind(
+        X,
+        X[arg_rn==var_rn[i]][,lapply(.SD,function(x) {ifelse(is.na(x),"NO","YES")}),.SDcols=names(Y)][,arg_rn:=name[i]]
+      )
+    
+  } 
+  setnames(X,c("arg_rn"),deparse(substitute(arg_rn)))
+  return(X)
+}
+```
+
+### Function to perform a set of regressions
+This function works with methods lm and lm_robust
+TO-DO:
+- For lm_robust need to specify the possibility of not using clusters
+NOTE: This first function doesn't include the method felm. I use the second function, but keep this in case the second function doesn't work.
+
+```{r}
+f_regressions <- function(arg_formula,arg_data,arg_weights,method,arg_clusters,arg_fe,to_iter = 1000, by_iter = 10) {
+  # Arguments:
+  #           - arg_formula: list with the set of regressions formulas
+  #           - arg_data: dataset with the variables in arg_formula
+  #           - arg_weights: variable contianing the weights used in the regression
+  #           - method: either "lm", "lm_robust" or "felm:
+  #           - arg_clusters: Variable used to cluster standard errors.
+  #           - arg_fe: It will be a character with the name of the fe variable. This variable will only be used if you specify the "felm" method
+  #           - iter_vec: vector containing the numbers of the iteration that you want to be displayed
+  
+  # !!!!! Note 1: There is a conflict if arg_formula is not a list. E.g. if you create a list (LS) but in arg_formula you introduce LS[[i]], the function will try to subset it and that will give an error. If that is the case introduce it as a list, e.g. list(LS[[i]])
+  # !!!!! Note 2: For lm and lm_robust the arg_formula argument needs to be a list of formulas. 
+  #               For felm the arg_formula argumente can be a character or a formula. Make sure that the package formula.tools is loaded 
+  
+  # Note 3: Instead of copying arg_data I decided to change the names back to their original names at the end of the function.
+  # Note4-TO-DO: Allow for the introduction of instrumental variables! (for felm for sure, other methods???)
+  # Note5: For an unknown reason when we convert a matrix with just one row to a data.table we ran into trouble
+  #        Previous command data.table(A$coefficients[1:4],keep.rownames=TRUE): when only one row, row names are not kept and we simply get a vector of dimension for and column name V1
+  #        New command data.table(A$coefficients,keep.rownames=TRUE)[,1:5]: We first convert to data.table and then select the columns that we want
+  
+  iter_vec <- seq(from =0, to = to_iter, by = by_iter)
+  i <- 1
+  i0 <- 0 # Initialize i0 
+  
+  ## IF argument ARG_CLUSTER is specified
+  #* NOTE: I create a new variable because there is an issue if the FE variable is the same as the cluster
+  if (!missing(arg_clusters)) {
+    setnames(arg_data,c(deparse(substitute(arg_clusters))),c("temp"))
+    arg_data[,arg_cl:=temp]
+    setnames(arg_data,c("temp"),c(deparse(substitute(arg_clusters))))
+  }
+  
+  ## IF argument ARG_WEIGHTS is specified
+  if (!missing(arg_weights)) {
+    setnames(arg_data,c(deparse(substitute(arg_weights))),c("arg_w"))
+    if (i %in% iter_vec) {
+      tic(paste0("Iteration ",i," to ",min(i+by_iter-1,length(arg_formula))))
+      i0 <- i + by_iter -1
+    }
+    if (method=="lm") {
+      A <- summary(lm(arg_formula[[1]],data=arg_data,weights=arg_w,model=FALSE))
+      other <- data.table(rn=c("nobs","r2","adj.r2","fstat_value","fstat_numdf","fstat_dendf"),variable=rep("zother",6),model_1=    c(length(A$residuals),format(round(A$r.squared,4),nsmall=2),format(round(A$adj.r.squared,4),nsmall=2),unname(A$fstatistic)) )
+    } else if (method=="lm_robust") {
+      if (missing(arg_clusters)) {
+        A <- summary(lm_robust(arg_formula[[1]],weights=arg_w,se_type="stata",data=arg_data))
+      } else {
+        A <- summary(lm_robust(arg_formula[[1]],weights=arg_w,clusters=arg_cl,se_type="stata",data=arg_data))
+      }
+      other <- data.table(rn=c("nobs","r2","adj.r2","fstat_value","fstat_numdf","fstat_dendf"),variable=rep("zother",6),model_1=c(A$nobs,format(round(A$r.squared,4),nsmall=2),format(round(A$adj.r.squared,4),nsmall=2),unname(A$fstatistic)))
+    } else if (method=="felm") {
+      if (missing(arg_fe)) arg_fe <- "0"
+      
+      if (!missing(arg_clusters)) {
+        #setnames(arg_data,c(deparse(substitute(arg_clusters))),c("arg_cl"))
+        A <- summary(felm(as.formula(paste0(as.character(arg_formula[[1]])," | ",arg_fe," | 0 | arg_cl")),weights=arg_data$arg_w,data=arg_data))
+      } else {
+        A <- summary(felm(as.formula(paste0(as.character(arg_formula[[1]])," | ",arg_fe," | 0 | 0")),weights=arg_data$arg_w,data=arg_data))
+      }
+      
+      other <- data.table(rn=c("nobs","r2","adj.r2","fstat_value","fstat_numdf","fstat_dendf","fstat_proj_value","fstat_proj_numdf","fstat_proj_dendf"),variable=rep("zother",9),model_1=c(A$N,format(round(A$r.squared,4),nsmall=2),format(round(A$adj.r.squared,4)),unname(A$F.fstat[1:3]),unname(A$P.fstat[c(5,3,6)])) )
+    }
+    #*** Look at Note5
+    coef <- f_reg_results( data.table(A$coefficients,keep.rownames=TRUE)[,1:5], arg_round=4 )
+    coef <- melt(coef,id.vars = c("rn"), measure.vars = c("coef","std","t_value","p_value","coef_star","std_par"),value.name=c(paste0("model_",1)))
+    coef <- rbind(coef,other)
+    if (i == i0) toc()
+    rm(A,other)
+    
+    if (length(arg_formula)>1) {
+      for (i in 2:length(arg_formula)) {
+        if (i %in% iter_vec) {
+          tic(paste0("Iteration ",i," to ",min(i+by_iter-1,length(arg_formula))))
+          i0 <- i+by_iter -1
+        }
+        if (method=="lm") {
+          A <- summary(lm(arg_formula[[i]],data=arg_data,weights=arg_w,model=FALSE))
+          other <- data.table(rn=c("nobs","r2","adj.r2","fstat_value","fstat_numdf","fstat_dendf"),variable=rep("zother",6),model_1=    c(length(A$residuals),format(round(A$r.squared,4),nsmall=2),format(round(A$adj.r.squared,4),nsmall=2),unname(A$fstatistic)) )
+          setnames(other,c(3),c(paste0("model_",i)))
+        } else if (method=="lm_robust") {
+          if (missing(arg_clusters)) {
+            A <- summary(lm_robust(arg_formula[[i]],weights=arg_w,se_type="stata",data=arg_data))
+          } else {
+            A <- summary(lm_robust(arg_formula[[i]],weights=arg_w,clusters=arg_cl,se_type='stata',data=arg_data))
+          }
+          other <- data.table(rn=c("nobs","r2","adj.r2","fstat_value","fstat_numdf","fstat_dendf"),variable=rep("zother",6),model_1=c(A$nobs,format(round(A$r.squared,4),nsmall=2),format(round(A$adj.r.squared,4),nsmall=2),unname(A$fstatistic)))
+          setnames(other,c(3),c(paste0("model_",i)))
+        } else if (method=="felm") {
+          
+          if (!missing(arg_clusters)) {
+            A <- summary(felm(as.formula(paste0(as.character(arg_formula[[i]])," | ",arg_fe," | 0 | arg_cl")),weights=arg_data$arg_w,data=arg_data))
+          } else {
+            A <- summary(felm(as.formula(paste0(as.character(arg_formula[[i]])," | ",arg_fe," | 0 | 0")),weights=arg_data$arg_w,data=arg_data))
+          }
+          other <- data.table(rn=c("nobs","r2","adj.r2","fstat_value","fstat_numdf","fstat_dendf","fstat_proj_value","fstat_proj_numdf","fstat_proj_dendf"),variable=rep("zother",9),model_1=c(A$N,format(round(A$r.squared,4),nsmall=2),format(round(A$adj.r.squared,4)),unname(A$F.fstat[1:3]),unname(A$P.fstat[c(5,3,6)])) )
+          setnames(other,c(3),c(paste0("model_",i)))
+        }
+        #*** Look at Note5
+        t <- f_reg_results( data.table(A$coefficients,keep.rownames=TRUE)[,1:5], arg_round=4)
+        t <- melt(t,id.vars = c("rn"), measure.vars = c("coef","std","t_value","p_value","coef_star","std_par"),value.name=c(paste0("model_",i)))
+        t <- rbind(t,other)
+        coef <- merge(coef,t,by=c("rn","variable"),all=TRUE)
+        rm(A,other,t)
+        if (i0==i) toc()
+      }
+    
+    }
+    
+    
+  ## NOOO argument ARG_WEIGHTS 
+  } else {
+    if (i %in% iter_vec) {
+      tic(paste0("Iteration ",i," to ",min(i+by_iter-1,length(arg_formula))))
+      i0 <- i + by_iter -1
+    }
+    if (method=="lm") {
+      A <- summary(lm(arg_formula[[1]],data=arg_data,model=FALSE))
+      other <- data.table(rn=c("nobs","r2","adj.r2","fstat_value","fstat_numdf","fstat_dendf"),variable=rep("zother",6),model_1=    c(length(A$residuals),format(round(A$r.squared,4),nsmall=2),format(round(A$adj.r.squared,4),nsmall=2),unname(A$fstatistic)) )
+    } else if (method=="lm_robust") {
+      if (missing(arg_clusters)) {
+        A <- summary(lm_robust(arg_formula[[1]],se_type="stata",data=arg_data))
+      } else {
+        A <- summary(lm_robust(arg_formula[[1]],clusters=arg_cl,se_type='stata',data=arg_data))
+      }
+      other <- data.table(rn=c("nobs","r2","adj.r2","fstat_value","fstat_numdf","fstat_dendf"),variable=rep("zother",6),model_1=c(A$nobs,format(round(A$r.squared,4),nsmall=2),format(round(A$adj.r.squared,4),nsmall=2),unname(A$fstatistic)))
+    } else if (method=="felm") {
+      if (missing(arg_fe)) arg_fe <- "0"
+      
+      if (!missing(arg_clusters)) {
+        #setnames(arg_data,c(deparse(substitute(arg_clusters))),c("arg_cl"))
+        A <- summary(felm(as.formula(paste0(as.character(arg_formula[[1]])," | ",arg_fe," | 0 | arg_cl")),data=arg_data))
+      } else {
+        A <- summary(felm(as.formula(paste0(as.character(arg_formula[[1]])," | ",arg_fe," | 0 | 0")),data=arg_data))
+      }
+      
+      other <- data.table(rn=c("nobs","r2","adj.r2","fstat_value","fstat_numdf","fstat_dendf","fstat_proj_value","fstat_proj_numdf","fstat_proj_dendf"),variable=rep("zother",9),model_1=c(A$N,format(round(A$r.squared,4),nsmall=2),format(round(A$adj.r.squared,4)),unname(A$F.fstat[1:3]),unname(A$P.fstat[c(5,3,6)])) )
+    }
+    
+    coef <- f_reg_results( data.table(A$coefficients,keep.rownames=TRUE)[,1:5], arg_round=4 )
+    coef <- melt(coef,id.vars = c("rn"), measure.vars = c("coef","std","t_value","p_value","coef_star","std_par"),value.name=c(paste0("model_",1)))
+    coef <- rbind(coef,other)
+    if (i == i0) toc()
+    rm(A,other)
+    
+    if (length(arg_formula)>1) {
+      for (i in 2:length(arg_formula)) {
+        if (i %in% iter_vec) {
+          tic(paste0("Iteration ",i," to ",min(i+by_iter-1,length(arg_formula))))
+          i0 <- i + by_iter -1
+        }
+        if (method=="lm") {
+          A <- summary(lm(arg_formula[[i]],data=arg_data,model=FALSE))
+          other <- data.table(rn=c("nobs","r2","adj.r2","fstat_value","fstat_numdf","fstat_dendf"),variable=rep("zother",6),model_1=    c(length(A$residuals),format(round(A$r.squared,4),nsmall=2),format(round(A$adj.r.squared,4),nsmall=2),unname(A$fstatistic)) )
+          setnames(other,c(3),c(paste0("model_",i)))
+        } else if (method=="lm_robust") {
+          if (missing(arg_clusters)) {
+            A <- summary(lm_robust(arg_formula[[i]],weights=arg_w,se_type="stata",data=arg_data))
+          } else {
+            A <- summary(lm_robust(arg_formula[[i]],weights=arg_w,clusters=arg_cl,se_type='stata',data=arg_data))
+          }
+          other <- data.table(rn=c("nobs","r2","adj.r2","fstat_value","fstat_numdf","fstat_dendf"),variable=rep("zother",6),model_1=c(A$nobs,format(round(A$r.squared,4),nsmall=2),format(round(A$adj.r.squared,4),nsmall=2),unname(A$fstatistic)))
+          setnames(other,c(3),c(paste0("model_",i)))
+        } else if (method=="felm") {
+          
+          if (!missing(arg_clusters)) {
+            A <- summary(felm(as.formula(paste0(as.character(arg_formula[[i]])," | ",arg_fe," | 0 | arg_cl")),data=arg_data))
+          } else {
+            A <- summary(felm(as.formula(paste0(as.character(arg_formula[[i]])," | ",arg_fe," | 0 | 0")),data=arg_data))
+          }
+          other <- data.table(rn=c("nobs","r2","adj.r2","fstat_value","fstat_numdf","fstat_dendf","fstat_proj_value","fstat_proj_numdf","fstat_proj_dendf"),variable=rep("zother",9),model_1=c(A$N,format(round(A$r.squared,4),nsmall=2),format(round(A$adj.r.squared,4)),unname(A$F.fstat[1:3]),unname(A$P.fstat[c(5,3,6)])) )
+        }
+        
+        t <- f_reg_results( data.table(A$coefficients,keep.rownames=TRUE)[,1:5], arg_round=4)
+        t <- melt(t,id.vars = c("rn"), measure.vars = c("coef","std","t_value","p_value","coef_star","std_par"),value.name=c(paste0("model_",i)))
+        t <- rbind(t,other)
+        coef <- merge(coef,t,by=c("rn","variable"),all=TRUE)
+        rm(A,other,t)
+        if (i == i0) toc()
+      }
+    
+    }
+    
+    
+  }
+  
+  coef <- as.data.table(coef)
+  coef[,order:=ifelse(variable=="zother",1,0)]
+  setorder(coef,order,rn)
+  coef[,order:=NULL]
+  
+  if (!missing(arg_weights)) { setnames(arg_data, c("arg_w"), c(deparse(substitute(arg_weights))) )   }
+  
+  if (!missing(arg_clusters)) {
+    #setnames(arg_data,c("arg_cl"),c(deparse(substitute(arg_clusters))))
+    arg_data <- arg_data[,arg_cl:=NULL]
+  }
+  if (i==length(arg_formula)) toc()
+  return(coef)
+}
+
+```
+
+### Function to order (regressions)
+Given a dataset (X) a variable in the data_set (order_var) and a vector of names of the variables, this function orders the dataset X according to the order provided in the vector Order
+```{r}
+f_order_reg <- function(X,Order,order_var) {
+  Y <- copy(X)[,vec_order:=Inf]
+  setnames(Y,c(deparse(substitute(order_var))),c("arg_order_var"))
+  for (i in 1:length(Order)) {
+    Y <- Y[arg_order_var %in% Order[[i]],vec_order:=i]
+  }
+  Y <- Y[order(vec_order,arg_order_var)][,vec_order:=NULL]
+  setnames(Y,c("arg_order_var"),c(deparse(substitute(order_var))))
+  return (Y)
+}
+```
+
+## Functions to export tables to Excel
 ```{r}
 wrapper_Excel <- function(list_table,list_name,output) {
   t <- createWorkbook()
@@ -57,7 +318,7 @@ wrapper_Excel <- function(list_table,list_name,output) {
 # 1. Regressions following Lin (2011) - At the countynhg_1910 level
 ## 1.1. Call individual level data
 ```{r}
-DT <-read_fst(paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1930_individual_data_x_countynhg_1910.fst"),as.data.table=TRUE)[occ1950_main!=979 & ind1950_main!=0 & perwt_1930 > 10000][,c("countynhg_1910","perwt_1930","sh_red_tit","occind","statefip","urban","male","lit","marst","race","wwages","mig_us","mig_ab","age_main","ind1950","ind1950_main","famsize","ownershp","m_mig_us","f_mig_us")][!is.na(lit)][order(countynhg_1910,occind)]
+DT <-read_fst(here(paste0("output/Rdata/census_sample_1930_individual_data_x_countynhg_1910.fst")),as.data.table=TRUE)[occ1950_main!=979 & ind1950_main!=0 & perwt_1930 > 10000][,c("countynhg_1910","perwt_1930","sh_red_tit","occind","statefip","urban","male","lit","marst","race","wwages","mig_us","mig_ab","age_main","ind1950","ind1950_main","famsize","ownershp","m_mig_us","f_mig_us")][!is.na(lit)][order(countynhg_1910,occind)][!(age_main<=1)]
 ```
 
 ## 1.2. Creating dummy variables and county fixed effects
@@ -82,7 +343,7 @@ DT[,imm_parents:=ifelse(m_mig_us==1 | f_mig_us==1,1,0)]
 
 ## 1.3 Creating some variables for regressions
 ```{r}
-base_individual  <- c("male","race",grep("^age_main_[^1]",names(DT),value=TRUE),"wwages","urban")
+base_individual  <- c("male",grep("^race_[^1]",names(DT),value=TRUE),grep("^age_main_[^1]",names(DT),value=TRUE),"wwages","urban")
 extra_individual <- c(grep("^marst_[^1]",names(DT),value=TRUE),"mig_us","mig_ab")
 other_individual <- c("famsize","ownershp","imm_parents")
 educ_main_vars        <- c("lit")
