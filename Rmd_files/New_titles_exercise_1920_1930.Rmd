@@ -40,105 +40,105 @@ Here we look at correlations between the share of new titles and different geogr
 census_sample_1930_agg_countynhg_1910 <- read_fst(here(paste0("output/Rdata/census_sample_1930_agg_countynhg_1910.fst")),as.data.table=TRUE)[perwt>=10000][,statefip:=as.factor(statefip)]
 
 # Histogram
-ggplot(census_sample_1930_agg_countynhg_1910, aes(x=sh_red_tit)) +
+ggplot(census_sample_1930_agg_countynhg_1910, aes(x=sh_new_method1)) +
   geom_histogram(color="black",bins=25,fill="white") +
   labs(title="",x="Share of New Work", y = "Count")  + 
   theme_tufte() + theme(legend.position = "none")
 
-ggsave(here(paste0("output/Graphs/countynhg_1910/histogram_share_red_tit.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/histogram_sh_new_method1.jpeg")),plot=last_plot())
 
 
 # Some Scatterplots
 # Population
-ggplot(census_sample_1930_agg_countynhg_1910, aes(y=sh_red_tit, x=log(perwt))) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and population",x="Population (log)", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
+ggplot(census_sample_1930_agg_countynhg_1910, aes(y=sh_new_method1, x=log(perwt))) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and population",x="Population (log)", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
-ggsave(here(paste0("output/Graphs/countynhg_1910/corr_pop_x_sh_red_tit.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_pop_x_sh_new_method1.jpeg")),plot=last_plot())
 
 # Gender
-ggplot(census_sample_1930_agg_countynhg_1910, aes(y=sh_red_tit, x=sh_male)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and male population",x="Share of Males", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
+ggplot(census_sample_1930_agg_countynhg_1910, aes(y=sh_new_method1, x=sh_male)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and male population",x="Share of Males", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
-ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_male_x_sh_red_tit.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_male_x_sh_new_method1.jpeg")),plot=last_plot())
 
 # Black population
-ggplot(census_sample_1930_agg_countynhg_1910, aes(y=sh_red_tit, x=sh_race_2)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and black population",x="Share of Black population", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
+ggplot(census_sample_1930_agg_countynhg_1910, aes(y=sh_new_method1, x=sh_race_2)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and black population",x="Share of Black population", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
-ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_race_2_x_sh_red_tit.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_race_2_x_sh_new_method1.jpeg")),plot=last_plot())
 
 
 # Literate
-ggplot(census_sample_1930_agg_countynhg_1910, aes(y=sh_red_tit, x=sh_lit)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of literate population",x="Share of literate population", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
+ggplot(census_sample_1930_agg_countynhg_1910, aes(y=sh_new_method1, x=sh_lit)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of literate population",x="Share of literate population", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
-ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_lit_x_sh_red_tit.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_lit_x_sh_new_method1.jpeg")),plot=last_plot())
 
 # Labor force
-ggplot(census_sample_1930_agg_countynhg_1910, aes(y=sh_red_tit, x=sh_labforce_emp)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of labor force",x="Share of labor force", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
+ggplot(census_sample_1930_agg_countynhg_1910, aes(y=sh_new_method1, x=sh_labforce_emp)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of labor force",x="Share of labor force", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
-ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_labforce_emp_x_sh_red_tit.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_labforce_emp_x_sh_new_method1.jpeg")),plot=last_plot())
 
 # Working for wages
-ggplot(census_sample_1930_agg_countynhg_1910, aes(y=sh_red_tit, x=sh_wrkwage)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of population working for wages",x="Share of population working for wages", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
+ggplot(census_sample_1930_agg_countynhg_1910, aes(y=sh_new_method1, x=sh_wrkwage)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of population working for wages",x="Share of population working for wages", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
-ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_wrkwage_x_sh_red_tit.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_wrkwage_x_sh_new_method1.jpeg")),plot=last_plot())
 
 # Urban
-ggplot(census_sample_1930_agg_countynhg_1910, aes(y=sh_red_tit, x=sh_urban)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of urban population",x="Share of urban population", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
+ggplot(census_sample_1930_agg_countynhg_1910, aes(y=sh_new_method1, x=sh_urban)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of urban population",x="Share of urban population", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
-ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_urban_x_sh_red_tit.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_urban_x_sh_new_method1.jpeg")),plot=last_plot())
 
 # Farm
-ggplot(census_sample_1930_agg_countynhg_1910, aes(y=sh_red_tit, x=sh_farm)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of farm population",x="Share of farm population", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
+ggplot(census_sample_1930_agg_countynhg_1910, aes(y=sh_new_method1, x=sh_farm)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of farm population",x="Share of farm population", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
-ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_farm_x_sh_red_tit.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_farm_x_sh_new_method1.jpeg")),plot=last_plot())
 
 # Migration within the US
-ggplot(census_sample_1930_agg_countynhg_1910, aes(y=sh_red_tit, x=sh_mig_us)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of internal migrants",x="Share of internal migrants", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
+ggplot(census_sample_1930_agg_countynhg_1910, aes(y=sh_new_method1, x=sh_mig_us)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of internal migrants",x="Share of internal migrants", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
-ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_mig_us_x_sh_red_tit.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_mig_us_x_sh_new_method1.jpeg")),plot=last_plot())
 
 # Goreign migrants
-ggplot(census_sample_1930_agg_countynhg_1910, aes(y=sh_red_tit, x=sh_mig_ab)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of foreign migrants",x="Share of foreign migrants", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
+ggplot(census_sample_1930_agg_countynhg_1910, aes(y=sh_new_method1, x=sh_mig_ab)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of foreign migrants",x="Share of foreign migrants", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
-ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_mig_ab_x_sh_red_tit.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_mig_ab_x_sh_new_method1.jpeg")),plot=last_plot())
 
 
 # Industry
 x <- c("sh_ind1950_main_1","sh_ind1950_main_2","sh_ind1950_main_3","sh_ind1950_main_4","sh_ind1950_main_5","sh_ind1950_main_6","sh_ind1950_main_7")
 p <- vector(mode = "list", length = length(x))
 for (i in 1:7) {
-  p[[i]] <- ggplot(census_sample_1930_agg_countynhg_1910, aes_string(y="sh_red_tit", x= x[i])) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="",x="Share of workers", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"), legend.position = "top")
+  p[[i]] <- ggplot(census_sample_1930_agg_countynhg_1910, aes_string(y="sh_new_method1", x= x[i])) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="",x="Share of workers", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"), legend.position = "top")
 }
 ggarrange(p[[1]],p[[2]],p[[3]],p[[4]],labels=c("Agriculture","Mining-Construction","Manufacturing","Tr-Comm-Util"),
           ncol=2,nrow=2)
-ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_ind1950_main_x_sh_red_tit_1.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_ind1950_main_x_sh_new_method1_1.jpeg")),plot=last_plot())
 ggarrange(p[[5]],p[[6]],p[[7]],labels=c("Trade","Services","Public Admin."),
           ncol=2,nrow=2)
-ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_ind1950_main_x_sh_red_tit_2.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_ind1950_main_x_sh_new_method1_2.jpeg")),plot=last_plot())
 
 
 # Occupation
 x <- c("sh_occ1950_main_0","sh_occ1950_main_100","sh_occ1950_main_200","sh_occ1950_main_300","sh_occ1950_main_400","sh_occ1950_main_500","sh_occ1950_main_600","sh_occ1950_main_700","sh_occ1950_main_730","sh_occ1950_main_800","sh_occ1950_main_900")
 p <- vector(mode = "list", length = length(x))
 for (i in 1:length(x)) {
-  p[[i]] <- ggplot(census_sample_1930_agg_countynhg_1910, aes_string(y="sh_red_tit", x= x[i])) +
+  p[[i]] <- ggplot(census_sample_1930_agg_countynhg_1910, aes_string(y="sh_new_method1", x= x[i])) +
             geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) +
             labs(title="",x="Share of workers", y = "Share of New Work") + theme(axis.line=element_line(color="black"), legend.position = "top") + theme_tufte() 
 }
 ggarrange(p[[1]],p[[2]],p[[3]],p[[4]],labels=c("Professional, Technical","Farmers","Managers, Officials and Proprietors","Clerical and Kindred"),font.label = list(size = 10),
           ncol = 2, nrow =2)
-ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_occ1950_main_x_sh_red_tit_1.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_occ1950_main_x_sh_new_method1_1.jpeg")),plot=last_plot())
 ggarrange(p[[5]],p[[6]],p[[7]],p[[8]],labels=c("Sales workers","Craftsmen","Operatives","Service Workers (private household)"),font.label = list(size = 10), ncol = 2, nrow =2)
-ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_occ1950_main_x_sh_red_tit_2.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_occ1950_main_x_sh_new_method1_2.jpeg")),plot=last_plot())
 ggarrange(p[[9]],p[[10]],p[[11]],labels=c("Service Workers (not household)","Farm laborers","Laborers"),font.label = list(size = 10),
           ncol = 2, nrow =2)
-ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_occ1950_main_x_sh_red_tit_3.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_occ1950_main_x_sh_new_method1_3.jpeg")),plot=last_plot())
 ```
 
 ### Basic regressions
 ```{r}
 # Basic
-m1 <- lm(sh_red_tit ~ log(perwt) + sh_race_1 + sh_race_2 + sh_lit + sh_urban + sh_farm + sh_mig_us + sh_mig_ab, data=census_sample_1930_agg_countynhg_1910)
-m2 <- lm(sh_red_tit ~ log(perwt) + sh_race_1 + sh_race_2 + sh_lit + sh_urban + sh_farm + sh_mig_us + sh_mig_ab + statefip , data=census_sample_1930_agg_countynhg_1910)
-m3 <- plm(sh_red_tit ~ log(perwt) + sh_race_1 + sh_race_2 + sh_lit + sh_urban + sh_farm + sh_mig_us + sh_mig_ab, 
+m1 <- lm(sh_new_method1 ~ log(perwt) + sh_race_1 + sh_race_2 + sh_lit + sh_urban + sh_farm + sh_mig_us + sh_mig_ab, data=census_sample_1930_agg_countynhg_1910)
+m2 <- lm(sh_new_method1 ~ log(perwt) + sh_race_1 + sh_race_2 + sh_lit + sh_urban + sh_farm + sh_mig_us + sh_mig_ab + statefip , data=census_sample_1930_agg_countynhg_1910)
+m3 <- plm(sh_new_method1 ~ log(perwt) + sh_race_1 + sh_race_2 + sh_lit + sh_urban + sh_farm + sh_mig_us + sh_mig_ab, 
                     data = census_sample_1930_agg_countynhg_1910,
                     index = c("statefip"), 
                     model = "within")
@@ -150,8 +150,8 @@ ggsave(here(paste0("output/Graphs/countynhg_1910/reg_basic.jpeg")),plot=last_plo
 # Industry variables
 (indvar <- grep("^sh_ind1950_main_[^1]",names(census_sample_1930_agg_countynhg_1910),value=TRUE))
 
-form <- as.formula(paste("sh_red_tit ~ log(perwt) + sh_race_1 + sh_race_2 + sh_lit + sh_urban + sh_farm + sh_mig_us + sh_mig_ab +",paste0(indvar,collapse=" + ")))
-form1 <- as.formula(paste("sh_red_tit ~ log(perwt) + sh_race_1 + sh_race_2 + sh_lit + sh_urban + sh_farm + sh_mig_us + sh_mig_ab + statefip +",paste0(indvar,collapse=" + ")))
+form <- as.formula(paste("sh_new_method1 ~ log(perwt) + sh_race_1 + sh_race_2 + sh_lit + sh_urban + sh_farm + sh_mig_us + sh_mig_ab +",paste0(indvar,collapse=" + ")))
+form1 <- as.formula(paste("sh_new_method1 ~ log(perwt) + sh_race_1 + sh_race_2 + sh_lit + sh_urban + sh_farm + sh_mig_us + sh_mig_ab + statefip +",paste0(indvar,collapse=" + ")))
 
 m4 <- lm(form,data=census_sample_1930_agg_countynhg_1910)
 m5 <- lm(form1, data=census_sample_1930_agg_countynhg_1910)
@@ -168,8 +168,8 @@ ggsave(here(paste0("output/Graphs/countynhg_1910/reg_industry.jpeg")),plot=last_
 # Occupation variables
 (occvar <- grep("^sh_occ1950_main_[^0]",names(census_sample_1930_agg_countynhg_1910),value=TRUE))
 
-form <- as.formula(paste("sh_red_tit ~ log(perwt) + sh_race_1 + sh_race_2 + sh_lit + sh_urban + sh_farm + sh_mig_us + sh_mig_ab +",paste0(occvar,collapse=" + ")))
-form1 <- as.formula(paste("sh_red_tit ~ log(perwt) + sh_race_1 + sh_race_2 + sh_lit + sh_urban + sh_farm + sh_mig_us + sh_mig_ab + statefip +",paste0(occvar,collapse=" + ")))
+form <- as.formula(paste("sh_new_method1 ~ log(perwt) + sh_race_1 + sh_race_2 + sh_lit + sh_urban + sh_farm + sh_mig_us + sh_mig_ab +",paste0(occvar,collapse=" + ")))
+form1 <- as.formula(paste("sh_new_method1 ~ log(perwt) + sh_race_1 + sh_race_2 + sh_lit + sh_urban + sh_farm + sh_mig_us + sh_mig_ab + statefip +",paste0(occvar,collapse=" + ")))
 
 m7 <- lm(form,data=census_sample_1930_agg_countynhg_1910)
 m8 <- lm(form1, data=census_sample_1930_agg_countynhg_1910)
@@ -184,8 +184,8 @@ ggsave(here(paste0("output/Graphs/countynhg_1910/reg_occupation.jpeg")),plot=las
 
 
 # Industry and occupation variables
-form <- as.formula(paste("sh_red_tit ~ log(perwt) + sh_race_1 + sh_race_2 + sh_lit + sh_urban + sh_farm + sh_mig_us + sh_mig_ab +",paste0(indvar,collapse=" + ")," + ",paste0(occvar,collapse=" + ")))
-form1 <- as.formula(paste("sh_red_tit ~ log(perwt) + sh_race_1 + sh_race_2 + sh_lit + sh_urban + sh_farm + sh_mig_us + sh_mig_ab + statefip +",paste0(indvar,collapse=" + ")," + ",paste0(occvar,collapse=" + ")))
+form <- as.formula(paste("sh_new_method1 ~ log(perwt) + sh_race_1 + sh_race_2 + sh_lit + sh_urban + sh_farm + sh_mig_us + sh_mig_ab +",paste0(indvar,collapse=" + ")," + ",paste0(occvar,collapse=" + ")))
+form1 <- as.formula(paste("sh_new_method1 ~ log(perwt) + sh_race_1 + sh_race_2 + sh_lit + sh_urban + sh_farm + sh_mig_us + sh_mig_ab + statefip +",paste0(indvar,collapse=" + ")," + ",paste0(occvar,collapse=" + ")))
 
 m10 <- lm(form,data=census_sample_1930_agg_countynhg_1910)
 m11 <- lm(form1, data=census_sample_1930_agg_countynhg_1910)
@@ -220,11 +220,11 @@ Notes:
 census_sample_1930_agg_metarea_1940 <- read_fst(here(paste0("output/Rdata/census_sample_1930_agg_metarea_1940.fst")),as.data.table=TRUE)[,MSA:=factor(ifelse(metarea_1940<1000,1,0), levels = c(0,1),labels = c("Non MSAs","MSAs"))]
 
 # Histogram
-ggplot(census_sample_1930_agg_metarea_1940, aes(x=sh_red_tit)) +
+ggplot(census_sample_1930_agg_metarea_1940, aes(x=sh_new_method1)) +
   geom_histogram(color="black",bins=25,fill="white") +
   facet_grid(MSA ~ .) +
   labs(title="",x="Share of New Work", y = "Count") +
-  geom_vline(data=census_sample_1930_agg_metarea_1940[,.(sh_red_tit=mean(sh_red_tit)),by="MSA"],aes(xintercept=sh_red_tit, color=MSA),
+  geom_vline(data=census_sample_1930_agg_metarea_1940[,.(sh_new_method1=mean(sh_new_method1)),by="MSA"],aes(xintercept=sh_new_method1, color=MSA),
            linetype="dashed") + 
   theme_tufte() + theme(legend.position = "none")
 
@@ -233,94 +233,94 @@ ggsave(here(paste0("output/Graphs/metarea_1940/histogram_share_red_tit.jpeg")),p
 
 # Some Scatterplots
 # Population
-ggplot(census_sample_1930_agg_metarea_1940, aes(y=sh_red_tit, x=log(perwt),color=MSA)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and population",x="Population (log)", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
+ggplot(census_sample_1930_agg_metarea_1940, aes(y=sh_new_method1, x=log(perwt),color=MSA)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and population",x="Population (log)", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
-ggsave(here(paste0("output/Graphs/metarea_1940/corr_pop_x_sh_red_tit.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_pop_x_sh_new_method1.jpeg")),plot=last_plot())
 
 # Gender
-ggplot(census_sample_1930_agg_metarea_1940, aes(y=sh_red_tit, x=sh_male,color=MSA)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and male population",x="Share of Males", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
+ggplot(census_sample_1930_agg_metarea_1940, aes(y=sh_new_method1, x=sh_male,color=MSA)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and male population",x="Share of Males", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
-ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_male_x_sh_red_tit.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_male_x_sh_new_method1.jpeg")),plot=last_plot())
 
 # Black population
-ggplot(census_sample_1930_agg_metarea_1940, aes(y=sh_red_tit, x=sh_race_2,color=MSA)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and black population",x="Share of Black population", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
+ggplot(census_sample_1930_agg_metarea_1940, aes(y=sh_new_method1, x=sh_race_2,color=MSA)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and black population",x="Share of Black population", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
-ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_race_2_x_sh_red_tit.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_race_2_x_sh_new_method1.jpeg")),plot=last_plot())
 
 
 # Literate
-ggplot(census_sample_1930_agg_metarea_1940, aes(y=sh_red_tit, x=sh_lit,color=MSA)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of literate population",x="Share of literate population", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
+ggplot(census_sample_1930_agg_metarea_1940, aes(y=sh_new_method1, x=sh_lit,color=MSA)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of literate population",x="Share of literate population", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
-ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_lit_x_sh_red_tit.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_lit_x_sh_new_method1.jpeg")),plot=last_plot())
 
 # Labor force
-ggplot(census_sample_1930_agg_metarea_1940, aes(y=sh_red_tit, x=sh_labforce_emp,color=MSA)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of labor force",x="Share of labor force", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
+ggplot(census_sample_1930_agg_metarea_1940, aes(y=sh_new_method1, x=sh_labforce_emp,color=MSA)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of labor force",x="Share of labor force", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
-ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_labforce_emp_x_sh_red_tit.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_labforce_emp_x_sh_new_method1.jpeg")),plot=last_plot())
 
 # Working for wages
-ggplot(census_sample_1930_agg_metarea_1940, aes(y=sh_red_tit, x=sh_wrkwage,color=MSA)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of population working for wages",x="Share of population working for wages", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
+ggplot(census_sample_1930_agg_metarea_1940, aes(y=sh_new_method1, x=sh_wrkwage,color=MSA)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of population working for wages",x="Share of population working for wages", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
-ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_wrkwage_x_sh_red_tit.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_wrkwage_x_sh_new_method1.jpeg")),plot=last_plot())
 
 # Urban
-ggplot(census_sample_1930_agg_metarea_1940, aes(y=sh_red_tit, x=sh_urban,color=MSA)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of urban population",x="Share of urban population", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
+ggplot(census_sample_1930_agg_metarea_1940, aes(y=sh_new_method1, x=sh_urban,color=MSA)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of urban population",x="Share of urban population", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
-ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_urban_x_sh_red_tit.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_urban_x_sh_new_method1.jpeg")),plot=last_plot())
 
 # Farm
-ggplot(census_sample_1930_agg_metarea_1940, aes(y=sh_red_tit, x=sh_farm,color=MSA)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of farm population",x="Share of farm population", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
+ggplot(census_sample_1930_agg_metarea_1940, aes(y=sh_new_method1, x=sh_farm,color=MSA)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of farm population",x="Share of farm population", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
-ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_farm_x_sh_red_tit.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_farm_x_sh_new_method1.jpeg")),plot=last_plot())
 
 # Migration within the US
-ggplot(census_sample_1930_agg_metarea_1940, aes(y=sh_red_tit, x=sh_mig_us,color=MSA)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of internal migrants",x="Share of internal migrants", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
+ggplot(census_sample_1930_agg_metarea_1940, aes(y=sh_new_method1, x=sh_mig_us,color=MSA)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of internal migrants",x="Share of internal migrants", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
-ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_mig_us_x_sh_red_tit.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_mig_us_x_sh_new_method1.jpeg")),plot=last_plot())
 
 # Goreign migrants
-ggplot(census_sample_1930_agg_metarea_1940, aes(y=sh_red_tit, x=sh_mig_ab,color=MSA)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of foreign migrants",x="Share of foreign migrants", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
+ggplot(census_sample_1930_agg_metarea_1940, aes(y=sh_new_method1, x=sh_mig_ab,color=MSA)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="Correlation between share of New Work and share of foreign migrants",x="Share of foreign migrants", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
-ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_mig_ab_x_sh_red_tit.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_mig_ab_x_sh_new_method1.jpeg")),plot=last_plot())
 
 
 # Industry
 x <- c("sh_ind1950_main_1","sh_ind1950_main_2","sh_ind1950_main_3","sh_ind1950_main_4","sh_ind1950_main_5","sh_ind1950_main_6","sh_ind1950_main_7")
 p <- vector(mode = "list", length = length(x))
 for (i in 1:7) {
-  p[[i]] <- ggplot(census_sample_1930_agg_metarea_1940, aes_string(y="sh_red_tit", x= x[i]),color=MSA) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="",x="Share of workers", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"), legend.position = "top")
+  p[[i]] <- ggplot(census_sample_1930_agg_metarea_1940, aes_string(y="sh_new_method1", x= x[i]),color=MSA) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="",x="Share of workers", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"), legend.position = "top")
 }
 ggarrange(p[[1]],p[[2]],p[[3]],p[[4]],labels=c("Agriculture","Mining-Construction","Manufacturing","Tr-Comm-Util"),
           ncol=2,nrow=2)
-ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_ind1950_main_x_sh_red_tit_1.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_ind1950_main_x_sh_new_method1_1.jpeg")),plot=last_plot())
 ggarrange(p[[5]],p[[6]],p[[7]],labels=c("Trade","Services","Public Admin."),
           ncol=2,nrow=2)
-ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_ind1950_main_x_sh_red_tit_2.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_ind1950_main_x_sh_new_method1_2.jpeg")),plot=last_plot())
 
 
 # Occupation
 x <- c("sh_occ1950_main_0","sh_occ1950_main_100","sh_occ1950_main_200","sh_occ1950_main_300","sh_occ1950_main_400","sh_occ1950_main_500","sh_occ1950_main_600","sh_occ1950_main_700","sh_occ1950_main_730","sh_occ1950_main_800","sh_occ1950_main_900")
 p <- vector(mode = "list", length = length(x))
 for (i in 1:length(x)) {
-  p[[i]] <- ggplot(census_sample_1930_agg_metarea_1940, aes_string(y="sh_red_tit", x= x[i]),color=MSA) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="",x="Share of workers", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"), legend.position = "top")
+  p[[i]] <- ggplot(census_sample_1930_agg_metarea_1940, aes_string(y="sh_new_method1", x= x[i]),color=MSA) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="",x="Share of workers", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"), legend.position = "top")
 }
 ggarrange(p[[1]],p[[2]],p[[3]],p[[4]],labels=c("Farmers","Managers, Officials/n and Proprietors","Clerical and Kindred","Sales workers"),
           ncol = 2, nrow =2)
-ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_occ1950_main_x_sh_red_tit_1.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_occ1950_main_x_sh_new_method1_1.jpeg")),plot=last_plot())
 ggarrange(p[[5]],p[[6]],p[[7]],p[[8]],labels=c("Craftsmen","Operatives","Public Admin.","Service Workers (priv. hs.)"),
           ncol = 2, nrow =2)
-ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_occ1950_main_x_sh_red_tit_2.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_occ1950_main_x_sh_new_method1_2.jpeg")),plot=last_plot())
 ggarrange(p[[9]],p[[10]],p[[11]],labels=c("Service Workers","Farm laborers","Laborers"),
           ncol = 2, nrow =2)
-ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_occ1950_main_x_sh_red_tit_3.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_occ1950_main_x_sh_new_method1_3.jpeg")),plot=last_plot())
 ```
 
 ### Basic regressions
 ```{r}
 # Basic
-m1 <- lm(sh_red_tit ~ log(perwt) + sh_race_1 + sh_race_2 + sh_lit + sh_urban + sh_farm + sh_mig_us + sh_mig_ab, data=census_sample_1930_agg_metarea_1940)
-m2 <- lm(sh_red_tit ~ log(perwt) + sh_race_1 + sh_race_2 + sh_lit + sh_urban + sh_farm + sh_mig_us + sh_mig_ab, data=census_sample_1930_agg_metarea_1940[MSA=="Non MSAs"])
-m3 <- lm(sh_red_tit ~ log(perwt) + sh_race_1 + sh_race_2 + sh_lit + sh_urban + sh_farm + sh_mig_us + sh_mig_ab, data=census_sample_1930_agg_metarea_1940[MSA=="MSAs"])
+m1 <- lm(sh_new_method1 ~ log(perwt) + sh_race_1 + sh_race_2 + sh_lit + sh_urban + sh_farm + sh_mig_us + sh_mig_ab, data=census_sample_1930_agg_metarea_1940)
+m2 <- lm(sh_new_method1 ~ log(perwt) + sh_race_1 + sh_race_2 + sh_lit + sh_urban + sh_farm + sh_mig_us + sh_mig_ab, data=census_sample_1930_agg_metarea_1940[MSA=="Non MSAs"])
+m3 <- lm(sh_new_method1 ~ log(perwt) + sh_race_1 + sh_race_2 + sh_lit + sh_urban + sh_farm + sh_mig_us + sh_mig_ab, data=census_sample_1930_agg_metarea_1940[MSA=="MSAs"])
 
 tab_model(m1,m2,m3,show.ci=FALSE,show.se=TRUE,use.viewer=FALSE)
 plot_summs(m1,m2,m3, scale = TRUE) + theme_tufte()
@@ -328,9 +328,9 @@ ggsave(here(paste0("output/Graphs/metarea_1940/reg_basic.jpeg")),plot=last_plot(
 
 # Industry variables
 (indvar <- grep("^sh_ind1950_main_[^1]",names(census_sample_1930_agg_metarea_1940),value=TRUE))
-#form <- reformulate(c("perwt","sh_race_1","sh_race_2","sh_lit","sh_urban","sh_farm","sh_mig_us","sh_mig_ab",indvar),response="sh_red_tit")
+#form <- reformulate(c("perwt","sh_race_1","sh_race_2","sh_lit","sh_urban","sh_farm","sh_mig_us","sh_mig_ab",indvar),response="sh_new_method1")
 
-form <- as.formula(paste("sh_red_tit ~ log(perwt) + sh_race_1 + sh_race_2 + sh_lit + sh_urban + sh_farm + sh_mig_us + sh_mig_ab +",paste0(indvar,collapse=" + ")))
+form <- as.formula(paste("sh_new_method1 ~ log(perwt) + sh_race_1 + sh_race_2 + sh_lit + sh_urban + sh_farm + sh_mig_us + sh_mig_ab +",paste0(indvar,collapse=" + ")))
 
 m4 <- lm(form,data=census_sample_1930_agg_metarea_1940)
 m5 <- lm(form, data=census_sample_1930_agg_metarea_1940[MSA=="Non MSAs"])
@@ -344,7 +344,7 @@ ggsave(here(paste0("output/Graphs/metarea_1940/reg_industry.jpeg")),plot=last_pl
 # Occupation variables
 (occvar <- grep("^sh_occ1950_main_[^0]",names(census_sample_1930_agg_metarea_1940),value=TRUE))
 
-form <- as.formula(paste("sh_red_tit ~ log(perwt) + sh_race_1 + sh_race_2 + sh_lit + sh_urban + sh_farm + sh_mig_us + sh_mig_ab +",paste0(occvar,collapse=" + ")))
+form <- as.formula(paste("sh_new_method1 ~ log(perwt) + sh_race_1 + sh_race_2 + sh_lit + sh_urban + sh_farm + sh_mig_us + sh_mig_ab +",paste0(occvar,collapse=" + ")))
 
 m7 <- lm(form,data=census_sample_1930_agg_metarea_1940)
 m8 <- lm(form, data=census_sample_1930_agg_metarea_1940[MSA=="Non MSAs"])
@@ -356,7 +356,7 @@ ggsave(here(paste0("output/Graphs/metarea_1940/reg_occupation.jpeg")),plot=last_
 
 
 # Industry + Occupation variables
-form <- as.formula(paste("sh_red_tit ~ log(perwt) + sh_race_1 + sh_race_2 + sh_lit + sh_urban + sh_farm + sh_mig_us + sh_mig_ab +",paste0(occvar,collapse=" + ")," + ",paste0(indvar,collapse=" + ")))
+form <- as.formula(paste("sh_new_method1 ~ log(perwt) + sh_race_1 + sh_race_2 + sh_lit + sh_urban + sh_farm + sh_mig_us + sh_mig_ab +",paste0(occvar,collapse=" + ")," + ",paste0(indvar,collapse=" + ")))
 
 m10 <- lm(form,data=census_sample_1930_agg_metarea_1940)
 m11 <- lm(form, data=census_sample_1930_agg_metarea_1940[MSA=="Non MSAs"])
@@ -490,7 +490,7 @@ new_titles.occind1930[[2]] <- merge(new_titles.occind1930[[2]],occ1930.codes[,c(
 ```{r}
 census_sample_1930_ind_occ_table <- read_fst(here(paste0("input/census_sample/census_sample_1930.fst")),as.data.table=TRUE,columns=c("perwt","occ1950","occ","occind","ind","ind1950"))[!(occ %in% c(998,999)) & (ind1950 >=1 & ind1950<=990)]
 
-census_sample_1930_ind_occ_table <-  merge(census_sample_1930_ind_occ_table,new_titles.occind1930[[1]][,c("occind","sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind")],by="occind",all=FALSE)[,perwt_sum:=sum(perwt),by=c("occ1950","occ","occind","ind","ind1950")][,lapply(.SD,weighted.mean,w=perwt),by=c("occ1950","occ","occind","ind","ind1950"),.SDcols=c("perwt_sum","sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind")]
+census_sample_1930_ind_occ_table <-  merge(census_sample_1930_ind_occ_table,new_titles.occind1930[[1]][,c("occind","sh_base","sh_base_tit","sh_base_titind","sh_red","sh_new_method1","sh_new_method1ind")],by="occind",all=FALSE)[,perwt_sum:=sum(perwt),by=c("occ1950","occ","occind","ind","ind1950")][,lapply(.SD,weighted.mean,w=perwt),by=c("occ1950","occ","occind","ind","ind1950"),.SDcols=c("perwt_sum","sh_base","sh_base_tit","sh_base_titind","sh_red","sh_new_method1","sh_new_method1ind")]
 setnames(census_sample_1930_ind_occ_table,"perwt_sum","perwt")
 ```
 
@@ -569,9 +569,9 @@ f_location_new_titles <- function(X,sh_v,w_v=perwt,geof1_v,geof2_v,merge_geof,ge
 #### Data at the county level (county 1910)
 We can simply use the aggregated county level data created in Part 1.
 ```{r}
-new_title_location.countynhg_1910_more1000 <- read_fst(here(paste0("output/Rdata/census_sample_1930_agg_countynhg_1910.fst")),as.data.table=TRUE,columns=c("countynhg_1910","perwt","sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind"))[perwt>=1000 & !is.na(countynhg_1910)]
+new_title_location.countynhg_1910_more1000 <- read_fst(here(paste0("output/Rdata/census_sample_1930_agg_countynhg_1910.fst")),as.data.table=TRUE,columns=c("countynhg_1910","perwt","sh_base","sh_base_tit","sh_base_titind","sh_red","sh_new_method1","sh_new_method1ind"))[perwt>=1000 & !is.na(countynhg_1910)]
 
-new_title_location.countynhg_1910_more10000 <- read_fst(here(paste0("output/Rdata/census_sample_1930_agg_countynhg_1910.fst")),as.data.table=TRUE,columns=c("countynhg_1910","perwt","sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind"))[perwt>=10000 & !is.na(countynhg_1910)]
+new_title_location.countynhg_1910_more10000 <- read_fst(here(paste0("output/Rdata/census_sample_1930_agg_countynhg_1910.fst")),as.data.table=TRUE,columns=c("countynhg_1910","perwt","sh_base","sh_base_tit","sh_base_titind","sh_red","sh_new_method1","sh_new_method1ind"))[perwt>=10000 & !is.na(countynhg_1910)]
 
 ```
 
@@ -582,14 +582,14 @@ We use a dataset previously created that contains the share of new titles by occ
 ```{r}
 new_titles_agg <- read_fst(here(paste0("output/Rdata/new_titles_agg.fst")),as.data.table=TRUE)
 
-new_title_location.metarea_1940 <- new_titles_agg[!is.na(metarea_1940) & !is.na(countynhg_1910),!c("occind")][,perwt_sum:=sum(perwt),by=c("countynhg_1910","metarea_1940")][,lapply(.SD,weighted.mean,w=perwt),by=c("countynhg_1910","metarea_1940"),.SDcols=c("perwt_sum","sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind")]
+new_title_location.metarea_1940 <- new_titles_agg[!is.na(metarea_1940) & !is.na(countynhg_1910),!c("occind")][,perwt_sum:=sum(perwt),by=c("countynhg_1910","metarea_1940")][,lapply(.SD,weighted.mean,w=perwt),by=c("countynhg_1910","metarea_1940"),.SDcols=c("perwt_sum","sh_base","sh_base_tit","sh_base_titind","sh_red","sh_new_method1","sh_new_method1ind")]
 
 # If a county is repeated ( e.g. because one part belongs to an MSA and another to another), keep the county with the largest population
 setorderv(new_title_location.metarea_1940,c("countynhg_1910","perwt_sum"),c(1,-1))
-new_title_location.metarea_1940 <- new_title_location.metarea_1940[,.SD[1],by=c("countynhg_1910"),.SDcols=c("metarea_1940","perwt_sum","sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind")]
+new_title_location.metarea_1940 <- new_title_location.metarea_1940[,.SD[1],by=c("countynhg_1910"),.SDcols=c("metarea_1940","perwt_sum","sh_base","sh_base_tit","sh_base_titind","sh_red","sh_new_method1","sh_new_method1ind")]
 
 # Counties within the same MSA have the same value for the variables
-new_title_location.metarea_1940 <- new_title_location.metarea_1940[,perwt:=sum(perwt_sum),by=c("metarea_1940")][,c("perwt","sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind"):=lapply(.SD,weighted.mean,w=perwt_sum),by=c("metarea_1940"),.SDcols=c("perwt_sum","sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind")]
+new_title_location.metarea_1940 <- new_title_location.metarea_1940[,perwt:=sum(perwt_sum),by=c("metarea_1940")][,c("perwt","sh_base","sh_base_tit","sh_base_titind","sh_red","sh_new_method1","sh_new_method1ind"):=lapply(.SD,weighted.mean,w=perwt_sum),by=c("metarea_1940"),.SDcols=c("perwt_sum","sh_base","sh_base_tit","sh_base_titind","sh_red","sh_new_method1","sh_new_method1ind")]
 
 ```
 
@@ -640,17 +640,17 @@ setnames(new_title_location.countynhg_1910_more10000,c("countynhg_1910"),c("GISJ
 map.countynhg_1910_more10000 <-
   merge(map.cty,new_title_location.countynhg_1910_more10000,by="GISJOIN2",all.x=TRUE,all.y=FALSE)
 
-png(here("output/Maps/1930/sh_red_tit_1930_countynhg_1910_p10000.png"),900,900*2/3)  
-tm_shape(map.countynhg_1910_more10000) + tm_fill("sh_red_tit",title="Share of New Work",palette="viridis",n=7,style="quantile",colorNA=NULL) +
+png(here("output/Maps/1930/sh_new_method1_1930_countynhg_1910_p10000.png"),900,900*2/3)  
+tm_shape(map.countynhg_1910_more10000) + tm_fill("sh_new_method1",title="Share of New Work",palette="viridis",n=7,style="quantile",colorNA=NULL) +
 tm_shape(map.state) + tm_borders(alpha=0.1,lwd=0.5) 
 dev.off()  
 
-png(here("output/Maps/1930/sh_red_tit_1930_countynhg_1910_p1000.png"),900,900*2/3)  
-tm_shape(map.countynhg_1910_more1000) + tm_fill("sh_red_tit",title="Share of New Work",palette="viridis",n=7,style="quantile",colorNA=NULL) +
+png(here("output/Maps/1930/sh_new_method1_1930_countynhg_1910_p1000.png"),900,900*2/3)  
+tm_shape(map.countynhg_1910_more1000) + tm_fill("sh_new_method1",title="Share of New Work",palette="viridis",n=7,style="quantile",colorNA=NULL) +
 tm_shape(map.state) + tm_borders(alpha=0.1,lwd=0.5) 
 dev.off()  
 
-t <- tm_shape(map.countynhg_1910_more10000) + tm_fill("sh_red_tit",title="Share of New Work",palette="viridis",n=7,style="quantile",colorNA=NULL)
+t <- tm_shape(map.countynhg_1910_more10000) + tm_fill("sh_new_method1",title="Share of New Work",palette="viridis",n=7,style="quantile",colorNA=NULL)
 tmap_save(t,filename=here("output/Maps/paper.png"),height=4,width=6,units="in",dpi=100)
 
 #*** NOTE *** The more straightforward way to export a map created with tm is to use tmap_save(). Nonetheless with this option it takes a very long time to create the map (e.g. the county map without the state lines took 848 secs vs. less than 100 using png()). For now I use a faster way, eventhough the maps don't look as good as with tmap_save
@@ -1155,77 +1155,77 @@ a <- vector(mode = "list", length = 45)
 
 # 1. base_individual + ind1950_main + sh_lit + log(perwt) + sh_new sectors (consider different new_sectors)
 ## Geof variables Previous year (coef_1 - coef_3)
-a[[1]] <- as.formula(paste("sh_red_tit ~ new_sec_all_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main"))
-a[[2]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main"))
-a[[3]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1920 + new_sec_serv_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main"))
+a[[1]] <- as.formula(paste("sh_new_method1 ~ new_sec_all_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main"))
+a[[2]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main"))
+a[[3]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1920 + new_sec_serv_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main"))
 
 ## Geof variables Current year (coef_4 - coef_6)
-a[[4]] <- as.formula(paste("sh_red_tit ~ new_sec_all_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main"))
-a[[5]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main"))
-a[[6]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main"))
+a[[4]] <- as.formula(paste("sh_new_method1 ~ new_sec_all_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main"))
+a[[5]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main"))
+a[[6]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main"))
 
 ## Mix (coef_7 - coef_9)
-a[[7]] <- as.formula(paste("sh_red_tit ~ new_sec_all_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main"))
-a[[8]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," +age_main + ind1950_main"))
-a[[9]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," +age_main + ind1950_main"))
+a[[7]] <- as.formula(paste("sh_new_method1 ~ new_sec_all_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main"))
+a[[8]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," +age_main + ind1950_main"))
+a[[9]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," +age_main + ind1950_main"))
   
 # 2. base_individual + ind1950_main + sh_lit + log(perwt) + sh_new sectors (3 different cases) + sh_ind1950_main
 ## Geof variables Previous year (coef_10 - coef_12)
-a[[10]] <- as.formula(paste("sh_red_tit ~ new_sec_all_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main  +",paste0(indsh_var_1920,collapse=" + ")))
-a[[11]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main +",paste0(indsh_var_1920,collapse=" + ")))
-a[[12]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1920 + new_sec_serv_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main+",paste0(indsh_var_1920,collapse=" + ")))
+a[[10]] <- as.formula(paste("sh_new_method1 ~ new_sec_all_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main  +",paste0(indsh_var_1920,collapse=" + ")))
+a[[11]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main +",paste0(indsh_var_1920,collapse=" + ")))
+a[[12]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1920 + new_sec_serv_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main+",paste0(indsh_var_1920,collapse=" + ")))
 
 ## Current year (coef_13 - coef_15)
-a[[13]] <- as.formula(paste("sh_red_tit ~ new_sec_all_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main+",paste0(indsh_var_1930,collapse=" + ")))
-a[[14]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + ",paste0(indsh_var_1930,collapse=" + ")))
-a[[15]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + ",paste0(indsh_var_1930,collapse=" + ")))
+a[[13]] <- as.formula(paste("sh_new_method1 ~ new_sec_all_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main+",paste0(indsh_var_1930,collapse=" + ")))
+a[[14]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + ",paste0(indsh_var_1930,collapse=" + ")))
+a[[15]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + ",paste0(indsh_var_1930,collapse=" + ")))
   
 ## Mix (coef_16 - coef_18)
-a[[16]] <- as.formula(paste("sh_red_tit ~ new_sec_all_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + ",paste0(indsh_var_1920,collapse=" + ")))
-a[[17]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," +age_main + ind1950_main + ",paste0(indsh_var_1920,collapse=" + ")))
-a[[18]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," +age_main + ind1950_main + ",paste0(indsh_var_1920,collapse=" + ")))
+a[[16]] <- as.formula(paste("sh_new_method1 ~ new_sec_all_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + ",paste0(indsh_var_1920,collapse=" + ")))
+a[[17]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," +age_main + ind1950_main + ",paste0(indsh_var_1920,collapse=" + ")))
+a[[18]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," +age_main + ind1950_main + ",paste0(indsh_var_1920,collapse=" + ")))
 
 
 # 3. base_individual + ind1950_main + sh_lit + log(perwt) + sh_new sectors (3 different cases) + sh_ind1950_main + sh_occ1950_main
 ## Geof variables Previous year (coef_19 - coef_21)
-a[[19]] <- as.formula( paste("sh_red_tit ~ new_sec_all_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main  +",paste0(indsh_var_1920,collapse=" + ")," + ",paste0(occsh_var_1920,collapse=" + "))   )
-a[[20]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main +",paste0(indsh_var_1920,collapse=" + ")," + ",paste0(occsh_var_1920,collapse=" + ")))
-a[[21]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1920 + new_sec_serv_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main+",paste0(indsh_var_1920,collapse=" + ")," + ",paste0(occsh_var_1920,collapse=" + ")))
+a[[19]] <- as.formula( paste("sh_new_method1 ~ new_sec_all_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main  +",paste0(indsh_var_1920,collapse=" + ")," + ",paste0(occsh_var_1920,collapse=" + "))   )
+a[[20]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main +",paste0(indsh_var_1920,collapse=" + ")," + ",paste0(occsh_var_1920,collapse=" + ")))
+a[[21]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1920 + new_sec_serv_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main+",paste0(indsh_var_1920,collapse=" + ")," + ",paste0(occsh_var_1920,collapse=" + ")))
 
 ## Current year (coef_22 - coef_24)
-a[[22]] <- as.formula(paste("sh_red_tit ~ new_sec_all_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main+",paste0(indsh_var_1930,collapse=" + ")," + ",paste0(occsh_var_1930,collapse=" + ")))
-a[[23]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + ",paste0(indsh_var_1930,collapse=" + ")," + ",paste0(occsh_var_1930,collapse=" + ")))
-a[[24]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + ",paste0(indsh_var_1930,collapse=" + ")," + ",paste0(occsh_var_1930,collapse=" + ")))
+a[[22]] <- as.formula(paste("sh_new_method1 ~ new_sec_all_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main+",paste0(indsh_var_1930,collapse=" + ")," + ",paste0(occsh_var_1930,collapse=" + ")))
+a[[23]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + ",paste0(indsh_var_1930,collapse=" + ")," + ",paste0(occsh_var_1930,collapse=" + ")))
+a[[24]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + ",paste0(indsh_var_1930,collapse=" + ")," + ",paste0(occsh_var_1930,collapse=" + ")))
   
 ## Mix (coef_25 - coef_27)
-a[[25]] <- as.formula(paste("sh_red_tit ~ new_sec_all_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + ",paste0(indsh_var_1920,collapse=" + ")," + ",paste0(occsh_var_1920,collapse=" + ")))
-a[[26]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," +age_main + ind1950_main + ",paste0(indsh_var_1920,collapse=" + ")," + ",paste0(occsh_var_1920,collapse=" + ")))
-a[[27]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," +age_main + ind1950_main + ",paste0(indsh_var_1920,collapse=" + ")," + ",paste0(occsh_var_1920,collapse=" + ")))
+a[[25]] <- as.formula(paste("sh_new_method1 ~ new_sec_all_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + ",paste0(indsh_var_1920,collapse=" + ")," + ",paste0(occsh_var_1920,collapse=" + ")))
+a[[26]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," +age_main + ind1950_main + ",paste0(indsh_var_1920,collapse=" + ")," + ",paste0(occsh_var_1920,collapse=" + ")))
+a[[27]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," +age_main + ind1950_main + ",paste0(indsh_var_1920,collapse=" + ")," + ",paste0(occsh_var_1920,collapse=" + ")))
 
 ## Regressions with occ1950_main
 ### 1920 regressors
-a[[28]] <- as.formula(paste("sh_red_tit ~ new_sec_all_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main"))
-a[[29]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1920 + new_sec_serv_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main"))
-a[[30]] <- as.formula(paste("sh_red_tit ~ new_sec_all_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1920,collapse=" + ")))
-a[[31]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1920 + new_sec_serv_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1920,collapse=" + ")))
-a[[32]] <- as.formula( paste("sh_red_tit ~ new_sec_all_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1920,collapse=" + ")," + ",paste0(occsh_var_1920,collapse=" + "))   )
-a[[33]] <- as.formula( paste("sh_red_tit ~ new_sec_main_1920 + new_sec_serv_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1920,collapse=" + ")," + ",paste0(occsh_var_1920,collapse=" + "))   )
+a[[28]] <- as.formula(paste("sh_new_method1 ~ new_sec_all_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main"))
+a[[29]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1920 + new_sec_serv_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main"))
+a[[30]] <- as.formula(paste("sh_new_method1 ~ new_sec_all_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1920,collapse=" + ")))
+a[[31]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1920 + new_sec_serv_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1920,collapse=" + ")))
+a[[32]] <- as.formula( paste("sh_new_method1 ~ new_sec_all_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1920,collapse=" + ")," + ",paste0(occsh_var_1920,collapse=" + "))   )
+a[[33]] <- as.formula( paste("sh_new_method1 ~ new_sec_main_1920 + new_sec_serv_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1920,collapse=" + ")," + ",paste0(occsh_var_1920,collapse=" + "))   )
 
 ### 1930 regressors
-a[[34]] <- as.formula(paste("sh_red_tit ~ new_sec_all_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main"))
-a[[35]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main"))
-a[[36]] <- as.formula(paste("sh_red_tit ~ new_sec_all_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1930,collapse=" + ")))
-a[[37]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1930,collapse=" + ")))
-a[[38]] <- as.formula( paste("sh_red_tit ~ new_sec_all_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1930,collapse=" + ")," + ",paste0(occsh_var_1930,collapse=" + "))   )
-a[[39]] <- as.formula( paste("sh_red_tit ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1930,collapse=" + ")," + ",paste0(occsh_var_1930,collapse=" + "))   )
+a[[34]] <- as.formula(paste("sh_new_method1 ~ new_sec_all_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main"))
+a[[35]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main"))
+a[[36]] <- as.formula(paste("sh_new_method1 ~ new_sec_all_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1930,collapse=" + ")))
+a[[37]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1930,collapse=" + ")))
+a[[38]] <- as.formula( paste("sh_new_method1 ~ new_sec_all_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1930,collapse=" + ")," + ",paste0(occsh_var_1930,collapse=" + "))   )
+a[[39]] <- as.formula( paste("sh_new_method1 ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1930,collapse=" + ")," + ",paste0(occsh_var_1930,collapse=" + "))   )
 
 ### 1930 new sector, 1920 region variables
-a[[40]] <- as.formula(paste("sh_red_tit ~ new_sec_all_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main"))
-a[[41]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main"))
-a[[42]] <- as.formula(paste("sh_red_tit ~ new_sec_all_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1920,collapse=" + ")))
-a[[43]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1920,collapse=" + ")))
-a[[44]] <- as.formula( paste("sh_red_tit ~ new_sec_all_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1920,collapse=" + ")," + ",paste0(occsh_var_1920,collapse=" + "))   )
-a[[45]] <- as.formula( paste("sh_red_tit ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1920,collapse=" + ")," + ",paste0(occsh_var_1920,collapse=" + "))   )
+a[[40]] <- as.formula(paste("sh_new_method1 ~ new_sec_all_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main"))
+a[[41]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main"))
+a[[42]] <- as.formula(paste("sh_new_method1 ~ new_sec_all_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1920,collapse=" + ")))
+a[[43]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1920,collapse=" + ")))
+a[[44]] <- as.formula( paste("sh_new_method1 ~ new_sec_all_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1920,collapse=" + ")," + ",paste0(occsh_var_1920,collapse=" + "))   )
+a[[45]] <- as.formula( paste("sh_new_method1 ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1920,collapse=" + ")," + ",paste0(occsh_var_1920,collapse=" + "))   )
 
 
 ```
@@ -1425,10 +1425,10 @@ other.FS.cluster <- vector(mode = "list", length = 8)
 
 # 1. Basic + No industry dummies
 base_individual <- paste0(c("male","lit","marst","race","wwages","mig_us","mig_ab"),collapse=" + ")
-a <- as.formula(paste("sh_red_tit ~ age_main +",paste0(base_individual,collapse=" + ")," + factor(metarea_1940)"))
+a <- as.formula(paste("sh_new_method1 ~ age_main +",paste0(base_individual,collapse=" + ")," + factor(metarea_1940)"))
 
 ## Not cluster
-A <- summary(lm(a,data=census_sample_1930_individual_data[occ1950_main!=979 & ind1950_main!=0 & metarea_1940<1000,c("occ1950_main","ind1950_main","occind","sh_red_tit","age_main","metarea_1940","male","lit","marst","race","wwages","mig_us","mig_ab")],model=FALSE))
+A <- summary(lm(a,data=census_sample_1930_individual_data[occ1950_main!=979 & ind1950_main!=0 & metarea_1940<1000,c("occ1950_main","ind1950_main","occind","sh_new_method1","age_main","metarea_1940","male","lit","marst","race","wwages","mig_us","mig_ab")],model=FALSE))
 coef.FS[[1]] <- data.table(A$coefficients[,1:3],keep.rownames=TRUE)
 setnames(coef.FS[[1]],c(2,3,4),c("coef_1","std_1","t-value_1"))
 other.FS[[1]] <- list(observations = A$nobs,adj.r.squared = A$adj.r.squared,fstatistic = A$fstatistic)
@@ -1436,17 +1436,17 @@ rm(A)
 
 ## Cluster
 # ***NOTE: We still need to perform the hypothesis testing of the metarea dummies. One possible way is using linear_hypothesis. lh_robust is a wrapper for this one
-A <- summary(lm_robust(a,clusters = occind, se_type = 'stata',data=census_sample_1930_individual_data[occ1950_main!=979 & ind1950_main!=0 & metarea_1940<1000,c("occ1950_main","ind1950_main","occind","sh_red_tit","age_main","metarea_1940","male","lit","marst","race","wwages","mig_us","mig_ab")]))
+A <- summary(lm_robust(a,clusters = occind, se_type = 'stata',data=census_sample_1930_individual_data[occ1950_main!=979 & ind1950_main!=0 & metarea_1940<1000,c("occ1950_main","ind1950_main","occind","sh_new_method1","age_main","metarea_1940","male","lit","marst","race","wwages","mig_us","mig_ab")]))
 coef.FS.cluster[[1]] <- data.table(A$coefficients[,1:3],keep.rownames=TRUE)
 setnames(coef.FS.cluster[[1]],c(2,3,4),c("coef_1","std_1","t-value_1"))
 (other.FS.cluster[[1]] <- list(observations = A$nobs, adj.r.squared = A$adj.r.squared, fstatistic = A$fstatistic))
 rm(A)
 
 # 2. Basic + Industry dummies
-a <- as.formula(paste("sh_red_tit ~ age_main +",paste0(base_individual,collapse=" + "),"+ ind1950_main + factor(metarea_1940)"))
+a <- as.formula(paste("sh_new_method1 ~ age_main +",paste0(base_individual,collapse=" + "),"+ ind1950_main + factor(metarea_1940)"))
 
 ## Not cluster
-A <- summary(lm(a,data=census_sample_1930_individual_data[occ1950_main!=979 & ind1950_main!=0 & metarea_1940<1000,c("occ1950_main","ind1950_main","occind","sh_red_tit","age_main","metarea_1940","male","lit","marst","race","wwages","mig_us","mig_ab")],model=FALSE))
+A <- summary(lm(a,data=census_sample_1930_individual_data[occ1950_main!=979 & ind1950_main!=0 & metarea_1940<1000,c("occ1950_main","ind1950_main","occind","sh_new_method1","age_main","metarea_1940","male","lit","marst","race","wwages","mig_us","mig_ab")],model=FALSE))
 #(coef.FS[[2]] <- A$coefficients)
 #(other.FS[[2]] <- list(observations = A$nobs,adj.r.squared = A$adj.r.squared,fstatistic = A$fstatistic))
 t <- data.table(A$coefficients[,1:3],keep.rownames=TRUE)
@@ -1457,7 +1457,7 @@ rm(A,t)
 
 ## Cluster
 # ***NOTE: We still need to perform the hypothesis testing of the metarea dummies. One possible way is using linear_hypothesis. lh_robust is a wrapper for this one
-A <- summary(lm_robust(a,clusters = occind, se_type = 'stata',data=census_sample_1930_individual_data[occ1950_main!=979 & ind1950_main!=0 & metarea_1940<1000,c("occ1950_main","ind1950_main","occind","sh_red_tit","age_main","metarea_1940","male","lit","marst","race","wwages","mig_us","mig_ab")]))
+A <- summary(lm_robust(a,clusters = occind, se_type = 'stata',data=census_sample_1930_individual_data[occ1950_main!=979 & ind1950_main!=0 & metarea_1940<1000,c("occ1950_main","ind1950_main","occind","sh_new_method1","age_main","metarea_1940","male","lit","marst","race","wwages","mig_us","mig_ab")]))
 t <- data.table(A$coefficients[,1:3],keep.rownames=TRUE)
 setnames(t,c(2,3,4),c("coef_2","std_2","t-value_2"))
 coef.FS.cluster[[1]] <- merge(coef.FS.cluster[[1]],t,by="rn",all=TRUE)
@@ -1466,10 +1466,10 @@ rm(A,t)
 
 # 3. Basic + Industry dummies + additional individual level variable
 other_individual <- paste0(c("urban","famsize","ownershp"),collapse=" + ")
-a <- as.formula(paste("sh_red_tit ~ age_main +",paste0(base_individual,collapse=" + ")," + ",paste0(other_individual,collapse=" + "),"+ ind1950_main + factor(metarea_1940)"))
+a <- as.formula(paste("sh_new_method1 ~ age_main +",paste0(base_individual,collapse=" + ")," + ",paste0(other_individual,collapse=" + "),"+ ind1950_main + factor(metarea_1940)"))
 
 ## Not cluster
-A <- summary(lm(a,data=census_sample_1930_individual_data[occ1950_main!=979 & ind1950_main!=0 & metarea_1940<1000,c("occ1950_main","ind1950_main","occind","sh_red_tit","age_main","metarea_1940","male","lit","marst","race","wwages","mig_us","mig_ab","urban","famsize","ownershp")],model=FALSE))
+A <- summary(lm(a,data=census_sample_1930_individual_data[occ1950_main!=979 & ind1950_main!=0 & metarea_1940<1000,c("occ1950_main","ind1950_main","occind","sh_new_method1","age_main","metarea_1940","male","lit","marst","race","wwages","mig_us","mig_ab","urban","famsize","ownershp")],model=FALSE))
 t <- data.table(A$coefficients[,1:3],keep.rownames=TRUE)
 setnames(t,c(2,3,4),c("coef_3","std_3","t-value_3"))
 coef.FS[[1]] <- merge(coef.FS[[1]],t,by="rn",all=TRUE)
@@ -1477,7 +1477,7 @@ coef.FS[[1]] <- merge(coef.FS[[1]],t,by="rn",all=TRUE)
 
 ## Cluster
 # ***NOTE: We still need to perform the hypothesis testing of the metarea dummies. One possible way is using linear_hypothesis. lh_robust is a wrapper for this one
-A <- summary(lm_robust(a,clusters = occind, se_type = 'stata',data=census_sample_1930_individual_data[occ1950_main!=979 & ind1950_main!=0 & metarea_1940<1000,c("occ1950_main","ind1950_main","occind","sh_red_tit","age_main","metarea_1940","male","lit","marst","race","wwages","mig_us","mig_ab","urban","famsize","ownershp")]))
+A <- summary(lm_robust(a,clusters = occind, se_type = 'stata',data=census_sample_1930_individual_data[occ1950_main!=979 & ind1950_main!=0 & metarea_1940<1000,c("occ1950_main","ind1950_main","occind","sh_new_method1","age_main","metarea_1940","male","lit","marst","race","wwages","mig_us","mig_ab","urban","famsize","ownershp")]))
 t <- data.table(A$coefficients[,1:3],keep.rownames=TRUE)
 setnames(t,c(2,3,4),c("coef_3","std_3","t-value_3"))
 coef.FS.cluster[[1]] <- merge(coef.FS.cluster[[1]],t,by="rn",all=TRUE)
@@ -1485,10 +1485,10 @@ other.FS.cluster[[3]] <- list(observations = A$nobs, adj.r.squared = A$adj.r.squ
 
 # 4. Basic + Industry dummies + additional individual level variable + father/mother migration
 migration_individual <- paste0(c("m_mig_us","m_mig_ab","f_mig_us","f_mig_ab"),collapse=" + ")
-a <- as.formula(paste("sh_red_tit ~ age_main +",paste0(base_individual,collapse=" + ")," + ",paste0(other_individual,collapse=" + ")," + ",paste0(migration_individual,collapse=" + "),"+ ind1950_main + factor(metarea_1940)"))
+a <- as.formula(paste("sh_new_method1 ~ age_main +",paste0(base_individual,collapse=" + ")," + ",paste0(other_individual,collapse=" + ")," + ",paste0(migration_individual,collapse=" + "),"+ ind1950_main + factor(metarea_1940)"))
 
 ## Not cluster
-A <- summary(lm(a,data=census_sample_1930_individual_data[occ1950_main!=979 & ind1950_main!=0 & metarea_1940<1000,c("occ1950_main","ind1950_main","occind","sh_red_tit","age_main","metarea_1940","male","lit","marst","race","wwages","mig_us","mig_ab","urban","famsize","ownershp","m_mig_us","m_mig_ab","f_mig_us","f_mig_ab")],model=FALSE))
+A <- summary(lm(a,data=census_sample_1930_individual_data[occ1950_main!=979 & ind1950_main!=0 & metarea_1940<1000,c("occ1950_main","ind1950_main","occind","sh_new_method1","age_main","metarea_1940","male","lit","marst","race","wwages","mig_us","mig_ab","urban","famsize","ownershp","m_mig_us","m_mig_ab","f_mig_us","f_mig_ab")],model=FALSE))
 t <- data.table(A$coefficients[,1:3],keep.rownames=TRUE)
 setnames(t,c(2,3,4),c("coef_4","std_4","t-value_4"))
 coef.FS[[1]] <- merge(coef.FS[[1]],t,by="rn",all=TRUE)
@@ -1496,7 +1496,7 @@ coef.FS[[1]] <- merge(coef.FS[[1]],t,by="rn",all=TRUE)
 
 ## Cluster
 # ***NOTE: We still need to perform the hypothesis testing of the metarea dummies. One possible way is using linear_hypothesis. lh_robust is a wrapper for this one
-A <- summary(lm_robust(a,clusters = occind, se_type = 'stata',data=census_sample_1930_individual_data[occ1950_main!=979 & ind1950_main!=0 & metarea_1940<1000,c("occ1950_main","ind1950_main","occind","sh_red_tit","age_main","metarea_1940","male","lit","marst","race","wwages","mig_us","mig_ab","urban","famsize","ownershp","m_mig_us","m_mig_ab","f_mig_us","f_mig_ab")]))
+A <- summary(lm_robust(a,clusters = occind, se_type = 'stata',data=census_sample_1930_individual_data[occ1950_main!=979 & ind1950_main!=0 & metarea_1940<1000,c("occ1950_main","ind1950_main","occind","sh_new_method1","age_main","metarea_1940","male","lit","marst","race","wwages","mig_us","mig_ab","urban","famsize","ownershp","m_mig_us","m_mig_ab","f_mig_us","f_mig_ab")]))
 t <- data.table(A$coefficients[,1:3],keep.rownames=TRUE)
 setnames(t,c(2,3,4),c("coef_4","std_4","t-value_4"))
 coef.FS.cluster[[1]] <- merge(coef.FS.cluster[[1]],t,by="rn",all=TRUE)
@@ -1519,77 +1519,77 @@ a <- vector(mode = "list", length = 45)
 
 # 1. base_individual + ind1950_main + sh_lit + log(perwt) + sh_new sectors (consider different new_sectors)
 ## Geof variables Previous year (coef_1 - coef_3)
-a[[1]] <- as.formula(paste("sh_red_tit ~ new_sec_all_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main"))
-a[[2]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main"))
-a[[3]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1920 + new_sec_serv_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main"))
+a[[1]] <- as.formula(paste("sh_new_method1 ~ new_sec_all_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main"))
+a[[2]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main"))
+a[[3]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1920 + new_sec_serv_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main"))
 
 ## Geof variables Current year (coef_4 - coef_6)
-a[[4]] <- as.formula(paste("sh_red_tit ~ new_sec_all_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main"))
-a[[5]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main"))
-a[[6]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main"))
+a[[4]] <- as.formula(paste("sh_new_method1 ~ new_sec_all_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main"))
+a[[5]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main"))
+a[[6]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main"))
 
 ## Mix (coef_7 - coef_9)
-a[[7]] <- as.formula(paste("sh_red_tit ~ new_sec_all_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main"))
-a[[8]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," +age_main + ind1950_main"))
-a[[9]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," +age_main + ind1950_main"))
+a[[7]] <- as.formula(paste("sh_new_method1 ~ new_sec_all_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main"))
+a[[8]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," +age_main + ind1950_main"))
+a[[9]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," +age_main + ind1950_main"))
   
 # 2. base_individual + ind1950_main + sh_lit + log(perwt) + sh_new sectors (3 different cases) + sh_ind1950_main
 ## Geof variables Previous year (coef_10 - coef_12)
-a[[10]] <- as.formula(paste("sh_red_tit ~ new_sec_all_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main  +",paste0(indsh_var_1920,collapse=" + ")))
-a[[11]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main +",paste0(indsh_var_1920,collapse=" + ")))
-a[[12]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1920 + new_sec_serv_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main+",paste0(indsh_var_1920,collapse=" + ")))
+a[[10]] <- as.formula(paste("sh_new_method1 ~ new_sec_all_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main  +",paste0(indsh_var_1920,collapse=" + ")))
+a[[11]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main +",paste0(indsh_var_1920,collapse=" + ")))
+a[[12]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1920 + new_sec_serv_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main+",paste0(indsh_var_1920,collapse=" + ")))
 
 ## Current year (coef_13 - coef_15)
-a[[13]] <- as.formula(paste("sh_red_tit ~ new_sec_all_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main+",paste0(indsh_var_1930,collapse=" + ")))
-a[[14]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + ",paste0(indsh_var_1930,collapse=" + ")))
-a[[15]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + ",paste0(indsh_var_1930,collapse=" + ")))
+a[[13]] <- as.formula(paste("sh_new_method1 ~ new_sec_all_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main+",paste0(indsh_var_1930,collapse=" + ")))
+a[[14]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + ",paste0(indsh_var_1930,collapse=" + ")))
+a[[15]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + ",paste0(indsh_var_1930,collapse=" + ")))
   
 ## Mix (coef_16 - coef_18)
-a[[16]] <- as.formula(paste("sh_red_tit ~ new_sec_all_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + ",paste0(indsh_var_1920,collapse=" + ")))
-a[[17]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," +age_main + ind1950_main + ",paste0(indsh_var_1920,collapse=" + ")))
-a[[18]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," +age_main + ind1950_main + ",paste0(indsh_var_1920,collapse=" + ")))
+a[[16]] <- as.formula(paste("sh_new_method1 ~ new_sec_all_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + ",paste0(indsh_var_1920,collapse=" + ")))
+a[[17]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," +age_main + ind1950_main + ",paste0(indsh_var_1920,collapse=" + ")))
+a[[18]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," +age_main + ind1950_main + ",paste0(indsh_var_1920,collapse=" + ")))
 
 
 # 3. base_individual + ind1950_main + sh_lit + log(perwt) + sh_new sectors (3 different cases) + sh_ind1950_main + sh_occ1950_main
 ## Geof variables Previous year (coef_19 - coef_21)
-a[[19]] <- as.formula( paste("sh_red_tit ~ new_sec_all_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main  +",paste0(indsh_var_1920,collapse=" + ")," + ",paste0(occsh_var_1920,collapse=" + "))   )
-a[[20]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main +",paste0(indsh_var_1920,collapse=" + ")," + ",paste0(occsh_var_1920,collapse=" + ")))
-a[[21]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1920 + new_sec_serv_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main+",paste0(indsh_var_1920,collapse=" + ")," + ",paste0(occsh_var_1920,collapse=" + ")))
+a[[19]] <- as.formula( paste("sh_new_method1 ~ new_sec_all_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main  +",paste0(indsh_var_1920,collapse=" + ")," + ",paste0(occsh_var_1920,collapse=" + "))   )
+a[[20]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main +",paste0(indsh_var_1920,collapse=" + ")," + ",paste0(occsh_var_1920,collapse=" + ")))
+a[[21]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1920 + new_sec_serv_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main+",paste0(indsh_var_1920,collapse=" + ")," + ",paste0(occsh_var_1920,collapse=" + ")))
 
 ## Current year (coef_22 - coef_24)
-a[[22]] <- as.formula(paste("sh_red_tit ~ new_sec_all_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main+",paste0(indsh_var_1930,collapse=" + ")," + ",paste0(occsh_var_1930,collapse=" + ")))
-a[[23]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + ",paste0(indsh_var_1930,collapse=" + ")," + ",paste0(occsh_var_1930,collapse=" + ")))
-a[[24]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + ",paste0(indsh_var_1930,collapse=" + ")," + ",paste0(occsh_var_1930,collapse=" + ")))
+a[[22]] <- as.formula(paste("sh_new_method1 ~ new_sec_all_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main+",paste0(indsh_var_1930,collapse=" + ")," + ",paste0(occsh_var_1930,collapse=" + ")))
+a[[23]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + ",paste0(indsh_var_1930,collapse=" + ")," + ",paste0(occsh_var_1930,collapse=" + ")))
+a[[24]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + ",paste0(indsh_var_1930,collapse=" + ")," + ",paste0(occsh_var_1930,collapse=" + ")))
   
 ## Mix (coef_25 - coef_27)
-a[[25]] <- as.formula(paste("sh_red_tit ~ new_sec_all_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + ",paste0(indsh_var_1920,collapse=" + ")," + ",paste0(occsh_var_1920,collapse=" + ")))
-a[[26]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," +age_main + ind1950_main + ",paste0(indsh_var_1920,collapse=" + ")," + ",paste0(occsh_var_1920,collapse=" + ")))
-a[[27]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," +age_main + ind1950_main + ",paste0(indsh_var_1920,collapse=" + ")," + ",paste0(occsh_var_1920,collapse=" + ")))
+a[[25]] <- as.formula(paste("sh_new_method1 ~ new_sec_all_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + ",paste0(indsh_var_1920,collapse=" + ")," + ",paste0(occsh_var_1920,collapse=" + ")))
+a[[26]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," +age_main + ind1950_main + ",paste0(indsh_var_1920,collapse=" + ")," + ",paste0(occsh_var_1920,collapse=" + ")))
+a[[27]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," +age_main + ind1950_main + ",paste0(indsh_var_1920,collapse=" + ")," + ",paste0(occsh_var_1920,collapse=" + ")))
 
 ## Regressions with occ1950_main
 ### 1920 regressors
-a[[28]] <- as.formula(paste("sh_red_tit ~ new_sec_all_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main"))
-a[[29]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1920 + new_sec_serv_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main"))
-a[[30]] <- as.formula(paste("sh_red_tit ~ new_sec_all_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1920,collapse=" + ")))
-a[[31]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1920 + new_sec_serv_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1920,collapse=" + ")))
-a[[32]] <- as.formula( paste("sh_red_tit ~ new_sec_all_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1920,collapse=" + ")," + ",paste0(occsh_var_1920,collapse=" + "))   )
-a[[33]] <- as.formula( paste("sh_red_tit ~ new_sec_main_1920 + new_sec_serv_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1920,collapse=" + ")," + ",paste0(occsh_var_1920,collapse=" + "))   )
+a[[28]] <- as.formula(paste("sh_new_method1 ~ new_sec_all_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main"))
+a[[29]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1920 + new_sec_serv_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main"))
+a[[30]] <- as.formula(paste("sh_new_method1 ~ new_sec_all_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1920,collapse=" + ")))
+a[[31]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1920 + new_sec_serv_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1920,collapse=" + ")))
+a[[32]] <- as.formula( paste("sh_new_method1 ~ new_sec_all_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1920,collapse=" + ")," + ",paste0(occsh_var_1920,collapse=" + "))   )
+a[[33]] <- as.formula( paste("sh_new_method1 ~ new_sec_main_1920 + new_sec_serv_1920 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1920,collapse=" + ")," + ",paste0(occsh_var_1920,collapse=" + "))   )
 
 ### 1930 regressors
-a[[34]] <- as.formula(paste("sh_red_tit ~ new_sec_all_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main"))
-a[[35]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main"))
-a[[36]] <- as.formula(paste("sh_red_tit ~ new_sec_all_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1930,collapse=" + ")))
-a[[37]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1930,collapse=" + ")))
-a[[38]] <- as.formula( paste("sh_red_tit ~ new_sec_all_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1930,collapse=" + ")," + ",paste0(occsh_var_1930,collapse=" + "))   )
-a[[39]] <- as.formula( paste("sh_red_tit ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1930,collapse=" + ")," + ",paste0(occsh_var_1930,collapse=" + "))   )
+a[[34]] <- as.formula(paste("sh_new_method1 ~ new_sec_all_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main"))
+a[[35]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main"))
+a[[36]] <- as.formula(paste("sh_new_method1 ~ new_sec_all_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1930,collapse=" + ")))
+a[[37]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1930,collapse=" + ")))
+a[[38]] <- as.formula( paste("sh_new_method1 ~ new_sec_all_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1930,collapse=" + ")," + ",paste0(occsh_var_1930,collapse=" + "))   )
+a[[39]] <- as.formula( paste("sh_new_method1 ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1930 + log(perwt_1930) + H_1930 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1930,collapse=" + ")," + ",paste0(occsh_var_1930,collapse=" + "))   )
 
 ### 1930 new sector, 1920 region variables
-a[[40]] <- as.formula(paste("sh_red_tit ~ new_sec_all_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main"))
-a[[41]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main"))
-a[[42]] <- as.formula(paste("sh_red_tit ~ new_sec_all_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1920,collapse=" + ")))
-a[[43]] <- as.formula(paste("sh_red_tit ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1920,collapse=" + ")))
-a[[44]] <- as.formula( paste("sh_red_tit ~ new_sec_all_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1920,collapse=" + ")," + ",paste0(occsh_var_1920,collapse=" + "))   )
-a[[45]] <- as.formula( paste("sh_red_tit ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1920,collapse=" + ")," + ",paste0(occsh_var_1920,collapse=" + "))   )
+a[[40]] <- as.formula(paste("sh_new_method1 ~ new_sec_all_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main"))
+a[[41]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main"))
+a[[42]] <- as.formula(paste("sh_new_method1 ~ new_sec_all_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1920,collapse=" + ")))
+a[[43]] <- as.formula(paste("sh_new_method1 ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1920,collapse=" + ")))
+a[[44]] <- as.formula( paste("sh_new_method1 ~ new_sec_all_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1920,collapse=" + ")," + ",paste0(occsh_var_1920,collapse=" + "))   )
+a[[45]] <- as.formula( paste("sh_new_method1 ~ new_sec_main_1930 + new_sec_serv_1930 + sh_lit_1920 + log(perwt_1920) + H_1920 + ",paste0(base_individual,collapse=" + ")," + age_main + ind1950_main + occ1950_main +",paste0(indsh_var_1920,collapse=" + ")," + ",paste0(occsh_var_1920,collapse=" + "))   )
 
 
 ```
@@ -1768,7 +1768,7 @@ wrapper_Excel(list(
 ### 3.1. Looking at correlation between occ_1950 dummies and share of new work
 #### 3.1.1. Call individual level data
 ```{r}
-census_sample_1930_individual_data <-read_fst(here(paste0("output/Rdata/census_sample_1930_individual_data.fst")),as.data.table=TRUE)[occ1950_main!=979 & ind1950_main!=0,c("perwt_ID","ind1950_main","occ1950","occ1950_main","sh_base_tit","sh_red_tit")]
+census_sample_1930_individual_data <-read_fst(here(paste0("output/Rdata/census_sample_1930_individual_data.fst")),as.data.table=TRUE)[occ1950_main!=979 & ind1950_main!=0,c("perwt_ID","ind1950_main","occ1950","occ1950_main","sh_base_tit","sh_new_method1")]
 
 cols <- c("occ1950_main","occ1950")
 census_sample_1930_individual_data[,(cols):=lapply(.SD,as.factor),.SDcols=cols]
@@ -1781,16 +1781,16 @@ census_sample_1930_individual_data[,(cols):=lapply(.SD,as.factor),.SDcols=cols]
 census_sample_1930_individual_data[,perwt_occ1950_main:=sum(perwt_ID),by=c("occ1950_main")][,occ1950_main_with_sample_size:=paste0(occ1950_main, "\n", "n=", perwt_occ1950_main)]
 
 ## Box plots
-ggplot(census_sample_1930_individual_data, aes(x=occ1950_main, y=sh_red_tit)) +
+ggplot(census_sample_1930_individual_data, aes(x=occ1950_main, y=sh_new_method1)) +
   geom_boxplot(width=0.6, outlier.size=0.5) + geom_violin(width=3) + scale_fill_viridis(discrete = TRUE) +
   theme_tufte() +
   xlab("Main Occupational Groups") + ylab("Share of new work") +
   ggtitle("Share of New Work by New Occupation")
 
-ggsave(here(paste0("output/Graphs/boxplot_sh_red_tit_by_occ1950_main.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/boxplot_sh_new_method1_by_occ1950_main.jpeg")),plot=last_plot())
 
 ## Histograms (y-axis displayed in percentages)
-ggplot(data=census_sample_1930_individual_data, aes(x=sh_red_tit)) +
+ggplot(data=census_sample_1930_individual_data, aes(x=sh_new_method1)) +
   geom_histogram(bins = 15,
                  aes(y = stat(width*density))) + 
   facet_wrap(~occ1950_main_with_sample_size) +
@@ -1798,54 +1798,54 @@ ggplot(data=census_sample_1930_individual_data, aes(x=sh_red_tit)) +
   xlab("Share of New Work") + ylab("") +
   theme_tufte()
 
-ggsave(here(paste0("output/Graphs/histogram_sh_red_tit_by_occ1950_main.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/histogram_sh_new_method1_by_occ1950_main.jpeg")),plot=last_plot())
 
 # Grouping by occ1950
 ## Aggregating the Data
 census_sample_1930_individual_data <- census_sample_1930_individual_data[,perwt_occ1950:=sum(perwt_ID),by=c("occ1950")]
-census_sample_1930_individual_data <- census_sample_1930_individual_data[,lapply(.SD, weighted.mean,w=perwt_ID),by=c("occ1950","occ1950_main"),.SDcols=c("perwt_occ1950","sh_base_tit","sh_red_tit")]
+census_sample_1930_individual_data <- census_sample_1930_individual_data[,lapply(.SD, weighted.mean,w=perwt_ID),by=c("occ1950","occ1950_main"),.SDcols=c("perwt_occ1950","sh_base_tit","sh_new_method1")]
 
 ## Box Plot
-ggplot(census_sample_1930_individual_data, aes(x=occ1950_main, y=sh_red_tit)) + geom_boxplot() +
+ggplot(census_sample_1930_individual_data, aes(x=occ1950_main, y=sh_new_method1)) + geom_boxplot() +
   theme_tufte() +
   xlab("Main Occupational Groups") + ylab("Share of new work") +
   ggtitle("Share of New Work by New Occupation")
 
-ggplot(census_sample_1930_individual_data, aes(x=occ1950_main, y=sh_red_tit)) +
+ggplot(census_sample_1930_individual_data, aes(x=occ1950_main, y=sh_new_method1)) +
     geom_violin(width=2,alpha=0.2) + geom_boxplot(width=0.6, outlier.size=0.5,alpha=0.2) +
  scale_fill_viridis(discrete = TRUE) +
   theme_tufte() +
   xlab("Main Occupational Groups") + ylab("Share of new work") +
   ggtitle("Share of New Work by New Occupation")
 
-ggsave(here(paste0("output/Graphs/boxplot_sh_red_tit_by_occ1950_main_groupedinfo.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/boxplot_sh_new_method1_by_occ1950_main_groupedinfo.jpeg")),plot=last_plot())
 
 
 ```
 From the different graphs we notice a couple of things:
 - In the boxplot using all the individual points we observe a lot of outliers. Additionally, many of them appear to have the same exact value across main occupational groups. Leaving aside the fortuitous cases where the share of new variable is effectively the same for different occind detailed occupations, this might be because IPUMS assigns a different occ1950 to individuals having the same occind.
-- If we look at the coefficients for the occ1950_main dummies in the different regressions run, they more or less reflects what we can see in the boxplot (e.g. occ1950_main=0 has a more individuals with a higher sh_red_tit than occ1950_main=100, but slightly less than occ1950_main=400)
+- If we look at the coefficients for the occ1950_main dummies in the different regressions run, they more or less reflects what we can see in the boxplot (e.g. occ1950_main=0 has a more individuals with a higher sh_new_method1 than occ1950_main=100, but slightly less than occ1950_main=400)
 
 
 #### 3.1.3. Table with shares at the occ1950_main level
 ```{r}
 census_sample_1930_individual_data <- census_sample_1930_individual_data[,perwt_occ1950_main:=sum(perwt_occ1950),by=c("occ1950_main")]
-census_sample_1930_individual_data <- census_sample_1930_individual_data[,lapply(.SD, weighted.mean,w=perwt_occ1950),by=c("occ1950_main"),.SDcols=c("perwt_occ1950_main","sh_base_tit","sh_red_tit")]
+census_sample_1930_individual_data <- census_sample_1930_individual_data[,lapply(.SD, weighted.mean,w=perwt_occ1950),by=c("occ1950_main"),.SDcols=c("perwt_occ1950_main","sh_base_tit","sh_new_method1")]
 
-write.xlsx(new_titles.occind1930[[1]],here(paste0("output/Tables/Table_sh_red_tit_by_occ1950_main.xlsx")),row.names = TRUE)
+write.xlsx(new_titles.occind1930[[1]],here(paste0("output/Tables/Table_sh_new_method1_by_occ1950_main.xlsx")),row.names = TRUE)
 
 ```
 
 #### 3.1.4. Regression of likelihood of new work only with occupation dummies
 ```{r}
-census_sample_1930_individual_data <-read_fst(here(paste0("output/Rdata/census_sample_1930_individual_data.fst")),as.data.table=TRUE)[,c("perwt_ID","ind1950_main","occind","occ1950_main","sh_base_tit","sh_red_tit")]
+census_sample_1930_individual_data <-read_fst(here(paste0("output/Rdata/census_sample_1930_individual_data.fst")),as.data.table=TRUE)[,c("perwt_ID","ind1950_main","occind","occ1950_main","sh_base_tit","sh_new_method1")]
 census_sample_1930_individual_data[,occ1950_main:=as.factor(occ1950_main)]
 
-a <- list(as.formula(paste0("sh_red_tit ~ occ1950_main")))
+a <- list(as.formula(paste0("sh_new_method1 ~ occ1950_main")))
 coef <- f_regressions(arg_formula=a,arg_data=census_sample_1930_individual_data,arg_weights=perwt_ID,method="lm",arg_clusters=occind)
 
 write.xlsx(coef[(variable=="coef_star" | variable =="std_par" | variable=="zother"),c("rn",c(paste0("model_",c(1))))],
-           here(paste0("output/Tables/ind_reg_1930_sh_red_tit_by_occ1950_main.xlsx")),row.names = TRUE)
+           here(paste0("output/Tables/ind_reg_1930_sh_new_method1_by_occ1950_main.xlsx")),row.names = TRUE)
 
 ```
 Note that the explanatory value of the occupational dummies is very high (adj R^2=0.23). In the regressions without occ1950_main, the explanatory value is of the order of 0.16.
@@ -1944,7 +1944,7 @@ for (i1 in c(" + "," + ind1950_main +")) {
         )
       ) {
     # Different industry variable
-      a[[j]] <- as.formula(paste("sh_red_tit ",i2,paste0(base_individual,collapse=" + "),i1," sh_lit_1920 + log(perwt_1920) + H_1920",i3))
+      a[[j]] <- as.formula(paste("sh_new_method1 ",i2,paste0(base_individual,collapse=" + "),i1," sh_lit_1920 + log(perwt_1920) + H_1920",i3))
       j <- j + 1
     }
   }
@@ -1960,10 +1960,10 @@ for (i1 in c(" + "," + ind1950_main +")) {
     # With/without industry variable
       for (i4 in c(0,100,200,300,400,500,600,700,730,800,900) ) {
       # different occ share variables
-        b[[j]] <- as.formula(paste("sh_red_tit ",i2,paste0(base_individual,collapse=" + "),i1," sh_lit_1920 + log(perwt_1920) + H_1920 ",i3,paste0(" + sh_occ1950_main_",i4,"_1920")))
+        b[[j]] <- as.formula(paste("sh_new_method1 ",i2,paste0(base_individual,collapse=" + "),i1," sh_lit_1920 + log(perwt_1920) + H_1920 ",i3,paste0(" + sh_occ1950_main_",i4,"_1920")))
         j <- j + 1
       }
-      b[[j]] <- as.formula(paste("sh_red_tit ",i2,paste0(base_individual,collapse=" + "),i1," sh_lit_1920 + log(perwt_1920) + H_1920 ",i3,paste0(" + sh_occ1950_main_500_1920 + sh_occ1950_main_600_1920")))
+      b[[j]] <- as.formula(paste("sh_new_method1 ",i2,paste0(base_individual,collapse=" + "),i1," sh_lit_1920 + log(perwt_1920) + H_1920 ",i3,paste0(" + sh_occ1950_main_500_1920 + sh_occ1950_main_600_1920")))
       j <- j + 1
     }
   }
@@ -2008,7 +2008,7 @@ coef.positive_sh_new_sec_1930 <- f_regressions(arg_formula=a,arg_data=census_sam
 
 
 ## Exporting Regressions
-#write.xlsx(coef[(variable=="coef_star" | variable =="std_par" | variable=="zother"),c("rn",c(paste0("model_",c(1:4))))],here(paste0("output/Tables/ind_reg_1930_sh_red_tit_by_sh_occ1950_main_countynhg_1910.xlsx")),row.names = FALSE)
+#write.xlsx(coef[(variable=="coef_star" | variable =="std_par" | variable=="zother"),c("rn",c(paste0("model_",c(1:4))))],here(paste0("output/Tables/ind_reg_1930_sh_new_method1_by_sh_occ1950_main_countynhg_1910.xlsx")),row.names = FALSE)
 wrapper_Excel(list( coef.all, coef.no_new_all,coef.no_new_serv,coef.no_new_all_different_occsh,coef.new_sector_x_sh_occ,coef.positive_sh_new_sec_1920,coef.positive_sh_new_sec_1930
                   ),
               list("Cluster_No_Drop","Cluster_Drop_All_New","Cluster_Drop_New_Main","Cl_drop_All_Different_occsh","New_sec_x_sh_occ","Original_pos_all_new_1920","Original_pos_all_new_1930"),
@@ -2071,16 +2071,16 @@ for (i in grep("^sh_occ1950_.+_1920",names(census_sample_new_work_x_new_sectors)
   corr_2[j] <- cor(census_sample_1930_individual_data$new_sec_all_1920,
                   census_sample_1930_individual_data[,c(eval(parse(text=paste0(i))))],
                   use="complete.obs", method = c("pearson"))
-  corr_3[j] <- cor(census_sample_new_work_x_new_sectors$sh_red_tit_1930, 
+  corr_3[j] <- cor(census_sample_new_work_x_new_sectors$sh_new_method1_1930, 
                    census_sample_new_work_x_new_sectors[,c(eval(parse(text=paste0(i))))], 
                    use="complete.obs", method = c("pearson"))
-  corr_4[j] <- cor(census_sample_1930_individual_data$sh_red_tit,
+  corr_4[j] <- cor(census_sample_1930_individual_data$sh_new_method1,
                   census_sample_1930_individual_data[,c(eval(parse(text=paste0(i))))],
                   use="complete.obs", method = c("pearson"))
   corr_p1[j] <- wtd.cors(census_sample_new_work_x_new_sectors$new_sec_all_1920, 
                    census_sample_new_work_x_new_sectors[,c(eval(parse(text=paste0(i))))],
                    weight=census_sample_new_work_x_new_sectors$perwt_1930)
-  corr_p2[j] <- wtd.cors(census_sample_new_work_x_new_sectors$sh_red_tit_1930, 
+  corr_p2[j] <- wtd.cors(census_sample_new_work_x_new_sectors$sh_new_method1_1930, 
                    census_sample_new_work_x_new_sectors[,c(eval(parse(text=paste0(i))))],
                    weight=census_sample_new_work_x_new_sectors$perwt_1930)
   j <- j+1
@@ -2163,24 +2163,24 @@ census_sample_new_work_x_new_sectors[,rank_new_sec_1930:=1:.N]
 # Correlations
 ## New Work, New Sectors
 p <- vector(mode = "list")
-p[[1]] <- ggplot(census_sample_new_work_x_new_sectors[perwt_1930>=10000], aes(y=sh_red_tit_1930, x=new_sec_all_1920)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="",x="Share of New Sector", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
-ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_new_sectors_1930_x_sh_red_tit_1920.jpeg")),plot=last_plot())
+p[[1]] <- ggplot(census_sample_new_work_x_new_sectors[perwt_1930>=10000], aes(y=sh_new_method1_1930, x=new_sec_all_1920)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="",x="Share of New Sector", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_new_sectors_1930_x_sh_new_method1_1920.jpeg")),plot=last_plot())
 
 
 ### Excluding counties with the highest share of new sectors
 for (i in c(3,5,10,20,50)) {
       if (i==3) {j <- 2}
-      p[[j]] <- ggplot(census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=i], aes(y=sh_red_tit_1930, x=new_sec_all_1920)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="",x="Share of New Sector", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
+      p[[j]] <- ggplot(census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=i], aes(y=sh_new_method1_1930, x=new_sec_all_1920)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="",x="Share of New Sector", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
       j <- j+1
 }
 ggarrange(p[[1]],p[[2]],p[[3]],p[[4]],
           labels = c("All", "Excl. 2", "Excl. 4", "Excl. 9"),
           ncol = 2, nrow = 2)
-ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_new_sectors_1930_x_sh_red_tit_1920_excl_reg_1.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_new_sectors_1930_x_sh_new_method1_1920_excl_reg_1.jpeg")),plot=last_plot())
 ggarrange(p[[5]],p[[6]],
           labels = c("Excl. 19", "Excl. 49"),
           ncol = 2, nrow = 2)
-ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_new_sectors_1930_x_sh_red_tit_1920_excl_reg_2.jpeg")),plot=last_plot())  
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_new_sectors_1930_x_sh_new_method1_1920_excl_reg_2.jpeg")),plot=last_plot())  
 rm(p)
 
 ## New Sectors, Share of occupations
@@ -2229,24 +2229,24 @@ census_sample_new_work_x_new_sectors[,rank_new_sec_1930:=1:.N]
 # Correlations
 ## New Work, New Sectors
 p <- vector(mode = "list")
-p[[1]] <- ggplot(census_sample_new_work_x_new_sectors[perwt_1930>=10000], aes(y=sh_red_tit_1930, x=new_sec_all_1920)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="",x="Share of New Sector", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
-ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_new_sectors_1930_x_sh_red_tit_1920.jpeg")),plot=last_plot())
+p[[1]] <- ggplot(census_sample_new_work_x_new_sectors[perwt_1930>=10000], aes(y=sh_new_method1_1930, x=new_sec_all_1920)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="",x="Share of New Sector", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_new_sectors_1930_x_sh_new_method1_1920.jpeg")),plot=last_plot())
 
 
 ### Excluding counties with the highest share of new sectors
 for (i in c(3,5,10,15,20)) {
       if (i==3) {j <- 2}
-      p[[j]] <- ggplot(census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=i], aes(y=sh_red_tit_1930, x=new_sec_all_1920)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="",x="Share of New Sector", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
+      p[[j]] <- ggplot(census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=i], aes(y=sh_new_method1_1930, x=new_sec_all_1920)) + geom_point() + geom_rangeframe()  +  stat_smooth(method="lm", se=TRUE) + labs(title="",x="Share of New Sector", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
       j <- j+1
 }
 ggarrange(p[[1]],p[[2]],p[[3]],p[[4]],
           labels = c("All", "Excl. 2", "Excl. 4", "Excl. 9"),
           ncol = 2, nrow = 2)
-ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_new_sectors_1930_x_sh_red_tit_1920_excl_reg_1.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_new_sectors_1930_x_sh_new_method1_1920_excl_reg_1.jpeg")),plot=last_plot())
 ggarrange(p[[5]],p[[6]],
           labels = c("Excl. 14", "Excl. 19"),
           ncol = 2, nrow = 2)
-ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_new_sectors_1930_x_sh_red_tit_1920_excl_reg_2.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_new_sectors_1930_x_sh_new_method1_1920_excl_reg_2.jpeg")),plot=last_plot())
 
 rm(p)
 ## New Sectors, Share of occupations
@@ -2298,11 +2298,11 @@ setorder(census_sample_new_work_x_new_sectors,-new_sec_all_1930)
 census_sample_new_work_x_new_sectors[,rank_new_sec_1930:=1:.N]
 
 ## Calling the aggregate data to constructs information without workers in new sectors
-temp <- read_fst(here(paste0("output/Rdata/census_sample_1930_individual_data.fst")),as.data.table=TRUE)[occ1950_main!=979 & ind1950_main!=0 & !(ind1950 %in% c(376,377,466,556,606,667,668,816,856)),c("countynhg_1910","perwt_ID","ind1950","ind1950_main","occ1950_main","sh_red_tit","sh_base_tit")]
+temp <- read_fst(here(paste0("output/Rdata/census_sample_1930_individual_data.fst")),as.data.table=TRUE)[occ1950_main!=979 & ind1950_main!=0 & !(ind1950 %in% c(376,377,466,556,606,667,668,816,856)),c("countynhg_1910","perwt_ID","ind1950","ind1950_main","occ1950_main","sh_new_method1","sh_base_tit")]
 
 ### Aggregating by countynhg_1910 keeping info on share of new work
-temp <- temp[,lapply(.SD, weighted.mean,w=perwt_ID),by="countynhg_1910",.SDcols=c("sh_red_tit","sh_base_tit")] 
-setnames(temp,c("sh_red_tit","sh_base_tit"),c("sh_red_tit_1930_no_new_sec","sh_base_tit_no_new_sec"))
+temp <- temp[,lapply(.SD, weighted.mean,w=perwt_ID),by="countynhg_1910",.SDcols=c("sh_new_method1","sh_base_tit")] 
+setnames(temp,c("sh_new_method1","sh_base_tit"),c("sh_new_method1_1930_no_new_sec","sh_base_tit_no_new_sec"))
 
 ### Combining with census_sample_new_work_x_new_sectors
 census_sample_new_work_x_new_sectors <- merge(census_sample_new_work_x_new_sectors,temp,by="countynhg_1910",all=FALSE)
@@ -2313,8 +2313,8 @@ rm(temp)
 p <- vector(mode = "list")
 p[[1]] <- 
   ggplot(census_sample_new_work_x_new_sectors[perwt_1930>=10000], aes(x=new_sec_all_1920)) +
-  geom_point(aes(y=sh_red_tit_1930, colour="All Sec"), size=0.1) + geom_point(aes(y=sh_red_tit_1930_no_new_sec, colour="No New Sec"), size=0.1 ) +
-  stat_smooth(aes(y=sh_red_tit_1930, colour="All Sec"), method="lm", se=TRUE) +  stat_smooth(aes(y=sh_red_tit_1930_no_new_sec, colour="No New Sec"), method="lm", se=TRUE) +
+  geom_point(aes(y=sh_new_method1_1930, colour="All Sec"), size=0.1) + geom_point(aes(y=sh_new_method1_1930_no_new_sec, colour="No New Sec"), size=0.1 ) +
+  stat_smooth(aes(y=sh_new_method1_1930, colour="All Sec"), method="lm", se=TRUE) +  stat_smooth(aes(y=sh_new_method1_1930_no_new_sec, colour="No New Sec"), method="lm", se=TRUE) +
   geom_rangeframe()  +  
   labs(title="",x="Share of New Sector", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
@@ -2323,8 +2323,8 @@ p[[1]] <-
 for (i in c(3,5,10,20,50,100,200)) {
       if (i==3) {j <- 2}
       p[[j]] <- ggplot(census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=i], aes(x=new_sec_all_1920)) +
-                  geom_point(aes(y=sh_red_tit_1930, colour="All Sec"), size=0.1) + geom_point(aes(y=sh_red_tit_1930_no_new_sec, colour="No New Sec"), size=0.1 ) +
-                  stat_smooth(aes(y=sh_red_tit_1930, colour="All Sec"), method="lm", se=TRUE) +  stat_smooth(aes(y=sh_red_tit_1930_no_new_sec, colour="No New Sec"), method="lm", se=TRUE) +
+                  geom_point(aes(y=sh_new_method1_1930, colour="All Sec"), size=0.1) + geom_point(aes(y=sh_new_method1_1930_no_new_sec, colour="No New Sec"), size=0.1 ) +
+                  stat_smooth(aes(y=sh_new_method1_1930, colour="All Sec"), method="lm", se=TRUE) +  stat_smooth(aes(y=sh_new_method1_1930_no_new_sec, colour="No New Sec"), method="lm", se=TRUE) +
                   geom_rangeframe()  +  
                   labs(title="",x="Share of New Sector", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
       j <- j+1
@@ -2332,47 +2332,47 @@ for (i in c(3,5,10,20,50,100,200)) {
 ggarrange(p[[1]],p[[2]],p[[3]],p[[4]],
           labels = c("All Regions", "Excl. 2 Reg.", "Excl. 4 Reg.", "Excl. 9 Reg."),
           ncol = 2, nrow = 2,common.legend = TRUE)
-ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_new_sectors_1930_x_sh_red_tit_1920_no_new_sec_1.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_new_sectors_1930_x_sh_new_method1_1920_no_new_sec_1.jpeg")),plot=last_plot())
 ggarrange(p[[5]],p[[6]],p[[7]],p[[8]],
           labels = c("Excl. 19 Reg", "Excl. 49 Reg.","Excl. 99 Reg", "Excl. 199 Reg."),
           ncol = 2, nrow = 2)
-ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_new_sectors_1930_x_sh_red_tit_1920_no_new_sec_2.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_new_sectors_1930_x_sh_new_method1_1920_no_new_sec_2.jpeg")),plot=last_plot())
 rm(p)
 
 ### Graph excluding regions in the Same plot
 p <- vector(mode = "list")
 p[[1]] <- ggplot() +
-  geom_point(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000],aes(x=new_sec_all_1920,y=sh_red_tit_1930), size=0.2) +
-  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000],aes(x=new_sec_all_1920,y=sh_red_tit_1930, colour="All"), method="lm", se=TRUE) + 
-  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=3],aes(x=new_sec_all_1920,y=sh_red_tit_1930, colour="Excl. 3 Reg."), method="lm", se=TRUE) +  
-                  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000& rank_new_sec_1920>=5],aes(x=new_sec_all_1920,y=sh_red_tit_1930, colour="Excl. 5 Reg."), method="lm", se=TRUE) + 
-  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=10],aes(x=new_sec_all_1920,y=sh_red_tit_1930, colour="Excl. 9 Reg."), method="lm", se=TRUE) +  
-  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=20],aes(x=new_sec_all_1920,y=sh_red_tit_1930, colour="Excl. 19 Reg."), method="lm", se=TRUE) + 
-  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=50],aes(x=new_sec_all_1920,y=sh_red_tit_1930, colour="Excl. 49 Reg."), method="lm", se=TRUE) +
-  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=100],aes(x=new_sec_all_1920,y=sh_red_tit_1930, colour="Excl. 99 Reg."), method="lm", se=TRUE) +
-  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=200],aes(x=new_sec_all_1920,y=sh_red_tit_1930, colour="Excl. 199 Reg."), method="lm", se=TRUE) +
+  geom_point(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000],aes(x=new_sec_all_1920,y=sh_new_method1_1930), size=0.2) +
+  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000],aes(x=new_sec_all_1920,y=sh_new_method1_1930, colour="All"), method="lm", se=TRUE) + 
+  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=3],aes(x=new_sec_all_1920,y=sh_new_method1_1930, colour="Excl. 3 Reg."), method="lm", se=TRUE) +  
+                  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000& rank_new_sec_1920>=5],aes(x=new_sec_all_1920,y=sh_new_method1_1930, colour="Excl. 5 Reg."), method="lm", se=TRUE) + 
+  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=10],aes(x=new_sec_all_1920,y=sh_new_method1_1930, colour="Excl. 9 Reg."), method="lm", se=TRUE) +  
+  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=20],aes(x=new_sec_all_1920,y=sh_new_method1_1930, colour="Excl. 19 Reg."), method="lm", se=TRUE) + 
+  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=50],aes(x=new_sec_all_1920,y=sh_new_method1_1930, colour="Excl. 49 Reg."), method="lm", se=TRUE) +
+  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=100],aes(x=new_sec_all_1920,y=sh_new_method1_1930, colour="Excl. 99 Reg."), method="lm", se=TRUE) +
+  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=200],aes(x=new_sec_all_1920,y=sh_new_method1_1930, colour="Excl. 199 Reg."), method="lm", se=TRUE) +
   geom_rangeframe()  +  
-  ylim(min(census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_red_tit_1930,census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_red_tit_1930_no_new_sec), max(census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_red_tit_1930,census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_red_tit_1930_no_new_sec)) +
+  ylim(min(census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_new_method1_1930,census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_new_method1_1930_no_new_sec), max(census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_new_method1_1930,census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_new_method1_1930_no_new_sec)) +
   labs(title="",x="Share of New Sector", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
 p[[2]] <- ggplot() +
-  geom_point(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000],aes(x=new_sec_all_1920,y=sh_red_tit_1930_no_new_sec), size=0.2) +
-  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000],aes(x=new_sec_all_1920,y=sh_red_tit_1930_no_new_sec, colour="All"), method="lm", se=TRUE) + 
-  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=3],aes(x=new_sec_all_1920,y=sh_red_tit_1930_no_new_sec, colour="Excl. 3 Reg."), method="lm", se=TRUE) +  
-                  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000& rank_new_sec_1920>=5],aes(x=new_sec_all_1920,y=sh_red_tit_1930_no_new_sec, colour="Excl. 5 Reg."), method="lm", se=TRUE) + 
-  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=10],aes(x=new_sec_all_1920,y=sh_red_tit_1930_no_new_sec, colour="Excl. 9 Reg."), method="lm", se=TRUE) +  
-  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=20],aes(x=new_sec_all_1920,y=sh_red_tit_1930_no_new_sec, colour="Excl. 19 Reg."), method="lm", se=TRUE) + 
-  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=50],aes(x=new_sec_all_1920,y=sh_red_tit_1930_no_new_sec, colour="Excl. 49 Reg."), method="lm", se=TRUE) + 
-  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=100],aes(x=new_sec_all_1920,y=sh_red_tit_1930_no_new_sec, colour="Excl. 99 Reg."), method="lm", se=TRUE) +
-  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=200],aes(x=new_sec_all_1920,y=sh_red_tit_1930_no_new_sec, colour="Excl. 199 Reg."), method="lm", se=TRUE) + 
+  geom_point(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000],aes(x=new_sec_all_1920,y=sh_new_method1_1930_no_new_sec), size=0.2) +
+  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000],aes(x=new_sec_all_1920,y=sh_new_method1_1930_no_new_sec, colour="All"), method="lm", se=TRUE) + 
+  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=3],aes(x=new_sec_all_1920,y=sh_new_method1_1930_no_new_sec, colour="Excl. 3 Reg."), method="lm", se=TRUE) +  
+                  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000& rank_new_sec_1920>=5],aes(x=new_sec_all_1920,y=sh_new_method1_1930_no_new_sec, colour="Excl. 5 Reg."), method="lm", se=TRUE) + 
+  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=10],aes(x=new_sec_all_1920,y=sh_new_method1_1930_no_new_sec, colour="Excl. 9 Reg."), method="lm", se=TRUE) +  
+  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=20],aes(x=new_sec_all_1920,y=sh_new_method1_1930_no_new_sec, colour="Excl. 19 Reg."), method="lm", se=TRUE) + 
+  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=50],aes(x=new_sec_all_1920,y=sh_new_method1_1930_no_new_sec, colour="Excl. 49 Reg."), method="lm", se=TRUE) + 
+  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=100],aes(x=new_sec_all_1920,y=sh_new_method1_1930_no_new_sec, colour="Excl. 99 Reg."), method="lm", se=TRUE) +
+  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=200],aes(x=new_sec_all_1920,y=sh_new_method1_1930_no_new_sec, colour="Excl. 199 Reg."), method="lm", se=TRUE) + 
   geom_rangeframe()  +  
-  ylim(min(census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_red_tit_1930,census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_red_tit_1930_no_new_sec), max(census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_red_tit_1930,census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_red_tit_1930_no_new_sec)) +
+  ylim(min(census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_new_method1_1930,census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_new_method1_1930_no_new_sec), max(census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_new_method1_1930,census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_new_method1_1930_no_new_sec)) +
   labs(title="",x="Share of New Sector", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
 ggarrange(p[[1]],p[[2]],
           labels = c("All Sectors","No New Sectors"),
           ncol = 2, nrow = 1,common.legend = TRUE)
-ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_new_sectors_1930_x_sh_red_tit_1920_different_reg_secs.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_new_sectors_1930_x_sh_new_method1_1920_different_reg_secs.jpeg")),plot=last_plot())
 
 
 
@@ -2381,8 +2381,8 @@ ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_new_sectors_1930_x_sh_r
 p <- vector(mode = "list")
 p[[1]] <- 
   ggplot(census_sample_new_work_x_new_sectors[perwt_1930>=10000], aes(x=new_sec_all_1920)) +
-  geom_point(aes(y=sh_red_tit_1930, colour="All Sec"), size=0.1) + geom_point(aes(y=sh_red_tit_1930_no_new_sec, colour="No New Sec"), size=0.1 ) +
-  stat_smooth(aes(y=sh_red_tit_1930, colour="All Sec"), method="lm", se=TRUE) +  stat_smooth(aes(y=sh_red_tit_1930_no_new_sec, colour="No New Sec"), method="lm", se=TRUE) +
+  geom_point(aes(y=sh_new_method1_1930, colour="All Sec"), size=0.1) + geom_point(aes(y=sh_new_method1_1930_no_new_sec, colour="No New Sec"), size=0.1 ) +
+  stat_smooth(aes(y=sh_new_method1_1930, colour="All Sec"), method="lm", se=TRUE) +  stat_smooth(aes(y=sh_new_method1_1930_no_new_sec, colour="No New Sec"), method="lm", se=TRUE) +
   geom_rangeframe()  +  
   labs(title="",x="Share of New Sector", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
@@ -2391,8 +2391,8 @@ p[[1]] <-
 for (i in c(3,5,10,20,50,100,200)) {
       if (i==3) {j <- 2}
       p[[j]] <- ggplot(census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=i], aes(x=new_sec_all_1920)) +
-                  geom_point(aes(y=sh_red_tit_1930, colour="All Sec"), size=0.1) + geom_point(aes(y=sh_red_tit_1930_no_new_sec, colour="No New Sec"), size=0.1 ) +
-                  stat_smooth(aes(y=sh_red_tit_1930, colour="All Sec"), method="lm", se=TRUE) +  stat_smooth(aes(y=sh_red_tit_1930_no_new_sec, colour="No New Sec"), method="lm", se=TRUE) +
+                  geom_point(aes(y=sh_new_method1_1930, colour="All Sec"), size=0.1) + geom_point(aes(y=sh_new_method1_1930_no_new_sec, colour="No New Sec"), size=0.1 ) +
+                  stat_smooth(aes(y=sh_new_method1_1930, colour="All Sec"), method="lm", se=TRUE) +  stat_smooth(aes(y=sh_new_method1_1930_no_new_sec, colour="No New Sec"), method="lm", se=TRUE) +
                   geom_rangeframe()  +  
                   labs(title="",x="Share of New Sector", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
       j <- j+1
@@ -2401,7 +2401,7 @@ for (i in c(3,5,10,20,50,100,200)) {
 ggarrange(p[[1]],p[[3]],p[[7]],p[[8]],
           labels = c("All Regions", "Excl. 4 Reg.", "Excl. 49 Reg.", "Excl. 99 Reg."),
           ncol = 2, nrow = 2,common.legend = TRUE)
-ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_new_sectors_1930_x_sh_red_tit_1920_no_new_sec_FOR_PRESENTATION_DELEEEETE.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_new_sectors_1930_x_sh_new_method1_1920_no_new_sec_FOR_PRESENTATION_DELEEEETE.jpeg")),plot=last_plot())
 rm(p)
 
 
@@ -2409,31 +2409,31 @@ rm(p)
 ### Graph excluding regions in the Same plot
 p <- vector(mode = "list")
 p[[1]] <- ggplot() +
-  geom_point(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000],aes(x=new_sec_all_1920,y=sh_red_tit_1930), size=0.2) +
-  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000],aes(x=new_sec_all_1920,y=sh_red_tit_1930, colour="All"), method="lm", se=TRUE) + 
-  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000& rank_new_sec_1920>=5],aes(x=new_sec_all_1920,y=sh_red_tit_1930, colour="Excl. 4 Reg."), method="lm", se=TRUE) + 
-  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000& rank_new_sec_1920>=19],aes(x=new_sec_all_1920,y=sh_red_tit_1930, colour="Excl. 19 Reg."), method="lm", se=TRUE) +
-  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=50],aes(x=new_sec_all_1920,y=sh_red_tit_1930, colour="Excl. 49 Reg."), method="lm", se=TRUE) +
-  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=100],aes(x=new_sec_all_1920,y=sh_red_tit_1930, colour="Excl. 99 Reg."), method="lm", se=TRUE) +
+  geom_point(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000],aes(x=new_sec_all_1920,y=sh_new_method1_1930), size=0.2) +
+  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000],aes(x=new_sec_all_1920,y=sh_new_method1_1930, colour="All"), method="lm", se=TRUE) + 
+  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000& rank_new_sec_1920>=5],aes(x=new_sec_all_1920,y=sh_new_method1_1930, colour="Excl. 4 Reg."), method="lm", se=TRUE) + 
+  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000& rank_new_sec_1920>=19],aes(x=new_sec_all_1920,y=sh_new_method1_1930, colour="Excl. 19 Reg."), method="lm", se=TRUE) +
+  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=50],aes(x=new_sec_all_1920,y=sh_new_method1_1930, colour="Excl. 49 Reg."), method="lm", se=TRUE) +
+  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=100],aes(x=new_sec_all_1920,y=sh_new_method1_1930, colour="Excl. 99 Reg."), method="lm", se=TRUE) +
   geom_rangeframe()  +  
-  ylim(min(census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_red_tit_1930,census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_red_tit_1930_no_new_sec), max(census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_red_tit_1930,census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_red_tit_1930_no_new_sec)) +
+  ylim(min(census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_new_method1_1930,census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_new_method1_1930_no_new_sec), max(census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_new_method1_1930,census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_new_method1_1930_no_new_sec)) +
   labs(title="",x="Share of New Sector", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
 p[[2]] <- ggplot() +
-  geom_point(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000],aes(x=new_sec_all_1920,y=sh_red_tit_1930_no_new_sec), size=0.2) +
-  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000],aes(x=new_sec_all_1920,y=sh_red_tit_1930_no_new_sec, colour="All"), method="lm", se=TRUE) + 
-  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000& rank_new_sec_1920>=5],aes(x=new_sec_all_1920,y=sh_red_tit_1930_no_new_sec, colour="Excl. 4 Reg."), method="lm", se=TRUE) + 
-  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000& rank_new_sec_1920>=20],aes(x=new_sec_all_1920,y=sh_red_tit_1930_no_new_sec, colour="Excl. 19 Reg."), method="lm", se=TRUE) + 
-  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=50],aes(x=new_sec_all_1920,y=sh_red_tit_1930_no_new_sec, colour="Excl. 49 Reg."), method="lm", se=TRUE) + 
-  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=100],aes(x=new_sec_all_1920,y=sh_red_tit_1930_no_new_sec, colour="Excl. 99 Reg."), method="lm", se=TRUE) +
+  geom_point(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000],aes(x=new_sec_all_1920,y=sh_new_method1_1930_no_new_sec), size=0.2) +
+  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000],aes(x=new_sec_all_1920,y=sh_new_method1_1930_no_new_sec, colour="All"), method="lm", se=TRUE) + 
+  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000& rank_new_sec_1920>=5],aes(x=new_sec_all_1920,y=sh_new_method1_1930_no_new_sec, colour="Excl. 4 Reg."), method="lm", se=TRUE) + 
+  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000& rank_new_sec_1920>=20],aes(x=new_sec_all_1920,y=sh_new_method1_1930_no_new_sec, colour="Excl. 19 Reg."), method="lm", se=TRUE) + 
+  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=50],aes(x=new_sec_all_1920,y=sh_new_method1_1930_no_new_sec, colour="Excl. 49 Reg."), method="lm", se=TRUE) + 
+  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=100],aes(x=new_sec_all_1920,y=sh_new_method1_1930_no_new_sec, colour="Excl. 99 Reg."), method="lm", se=TRUE) +
   geom_rangeframe()  +  
-  ylim(min(census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_red_tit_1930,census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_red_tit_1930_no_new_sec), max(census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_red_tit_1930,census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_red_tit_1930_no_new_sec)) +
+  ylim(min(census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_new_method1_1930,census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_new_method1_1930_no_new_sec), max(census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_new_method1_1930,census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_new_method1_1930_no_new_sec)) +
   labs(title="",x="Share of New Sector", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
 ggarrange(p[[1]],p[[2]],
           labels = c("All Sectors","No New Sectors"),
           ncol = 2, nrow = 1,common.legend = TRUE)
-ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_new_sectors_1930_x_sh_red_tit_1920_different_reg_secs_FOR_PRESENTATION.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/countynhg_1910/corr_sh_new_sectors_1930_x_sh_new_method1_1920_different_reg_secs_FOR_PRESENTATION.jpeg")),plot=last_plot())
 
 
 
@@ -2466,11 +2466,11 @@ setorder(census_sample_new_work_x_new_sectors,-new_sec_all_1930)
 census_sample_new_work_x_new_sectors[,rank_new_sec_1930:=1:.N]
 
 ## Calling the aggregate data to constructs information without workers in new sectors
-temp <- read_fst(here(paste0("output/Rdata/census_sample_1930_individual_data.fst")),as.data.table=TRUE)[occ1950_main!=979 & ind1950_main!=0 & !(ind1950 %in% c(376,377,466,556,606,667,668,816,856)),c("metarea_1940","perwt_ID","ind1950","ind1950_main","occ1950_main","sh_red_tit","sh_base_tit")]
+temp <- read_fst(here(paste0("output/Rdata/census_sample_1930_individual_data.fst")),as.data.table=TRUE)[occ1950_main!=979 & ind1950_main!=0 & !(ind1950 %in% c(376,377,466,556,606,667,668,816,856)),c("metarea_1940","perwt_ID","ind1950","ind1950_main","occ1950_main","sh_new_method1","sh_base_tit")]
 
 ### Aggregating by metarea_1940 keeping info on share of new work
-temp <- temp[,lapply(.SD, weighted.mean,w=perwt_ID),by="metarea_1940",.SDcols=c("sh_red_tit","sh_base_tit")] 
-setnames(temp,c("sh_red_tit","sh_base_tit"),c("sh_red_tit_1930_no_new_sec","sh_base_tit_no_new_sec"))
+temp <- temp[,lapply(.SD, weighted.mean,w=perwt_ID),by="metarea_1940",.SDcols=c("sh_new_method1","sh_base_tit")] 
+setnames(temp,c("sh_new_method1","sh_base_tit"),c("sh_new_method1_1930_no_new_sec","sh_base_tit_no_new_sec"))
 
 ### Combining with census_sample_new_work_x_new_sectors
 census_sample_new_work_x_new_sectors <- merge(census_sample_new_work_x_new_sectors,temp,by="metarea_1940",all=FALSE)
@@ -2481,8 +2481,8 @@ rm(temp)
 p <- vector(mode = "list")
 p[[1]] <- 
   ggplot(census_sample_new_work_x_new_sectors[perwt_1930>=10000], aes(x=new_sec_all_1920)) +
-  geom_point(aes(y=sh_red_tit_1930, colour="All Sec"), size=0.3) + geom_point(aes(y=sh_red_tit_1930_no_new_sec, colour="No New Sec"), size=0.3 ) +
-  stat_smooth(aes(y=sh_red_tit_1930, colour="All Sec"), method="lm", se=TRUE) +  stat_smooth(aes(y=sh_red_tit_1930_no_new_sec, colour="No New Sec"), method="lm", se=TRUE) +
+  geom_point(aes(y=sh_new_method1_1930, colour="All Sec"), size=0.3) + geom_point(aes(y=sh_new_method1_1930_no_new_sec, colour="No New Sec"), size=0.3 ) +
+  stat_smooth(aes(y=sh_new_method1_1930, colour="All Sec"), method="lm", se=TRUE) +  stat_smooth(aes(y=sh_new_method1_1930_no_new_sec, colour="No New Sec"), method="lm", se=TRUE) +
   geom_rangeframe()  +  
   labs(title="",x="Share of New Sector", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
@@ -2491,8 +2491,8 @@ p[[1]] <-
 for (i in c(3,5,10,15,20,30,50)) {
       if (i==3) {j <- 2}
       p[[j]] <- ggplot(census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1930>=i], aes(x=new_sec_all_1920)) +
-                  geom_point(aes(y=sh_red_tit_1930, colour="All Sec"), size=0.3) + geom_point(aes(y=sh_red_tit_1930_no_new_sec, colour="No New Sec"), size=0.3 ) +
-                  stat_smooth(aes(y=sh_red_tit_1930, colour="All Sec"), method="lm", se=TRUE) +  stat_smooth(aes(y=sh_red_tit_1930_no_new_sec, colour="No New Sec"), method="lm", se=TRUE) +
+                  geom_point(aes(y=sh_new_method1_1930, colour="All Sec"), size=0.3) + geom_point(aes(y=sh_new_method1_1930_no_new_sec, colour="No New Sec"), size=0.3 ) +
+                  stat_smooth(aes(y=sh_new_method1_1930, colour="All Sec"), method="lm", se=TRUE) +  stat_smooth(aes(y=sh_new_method1_1930_no_new_sec, colour="No New Sec"), method="lm", se=TRUE) +
                   geom_rangeframe()  +  
                   labs(title="",x="Share of New Sector", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
       j <- j+1
@@ -2500,48 +2500,48 @@ for (i in c(3,5,10,15,20,30,50)) {
 ggarrange(p[[1]],p[[2]],p[[3]],p[[4]],
           labels = c("All Regions", "Excl. 2 Reg.", "Excl. 4 Reg.", "Excl. 9 Reg."),
           ncol = 2, nrow = 2,common.legend = TRUE)
-ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_new_sectors_1930_x_sh_red_tit_1920_no_new_sec_1.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_new_sectors_1930_x_sh_new_method1_1920_no_new_sec_1.jpeg")),plot=last_plot())
 ggarrange(p[[5]],p[[6]],p[[7]],p[[8]],
           labels = c("Excl. 15 Reg", "Excl. 19 Reg.","Excl. 29 Reg", "Excl. 49 Reg."),
           ncol = 2, nrow = 2)
-ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_new_sectors_1930_x_sh_red_tit_1920_no_new_sec_2.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_new_sectors_1930_x_sh_new_method1_1920_no_new_sec_2.jpeg")),plot=last_plot())
 
 rm(p,i,j)
 
 ### Graph excluding regions in the Same plot
 p <- vector(mode = "list")
 p[[1]] <- ggplot() +
-  geom_point(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000],aes(x=new_sec_all_1920,y=sh_red_tit_1930), size=0.5) +
-  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000],aes(x=new_sec_all_1920,y=sh_red_tit_1930, colour="All"), method="lm", se=TRUE) + 
-  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=3],aes(x=new_sec_all_1920,y=sh_red_tit_1930, colour="Excl. 3 Reg."), method="lm", se=TRUE) +  
-                  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000& rank_new_sec_1920>=5],aes(x=new_sec_all_1920,y=sh_red_tit_1930, colour="Excl. 5 Reg."), method="lm", se=TRUE) + 
-  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=10],aes(x=new_sec_all_1920,y=sh_red_tit_1930, colour="Excl. 9 Reg."), method="lm", se=TRUE) +  
-  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=15],aes(x=new_sec_all_1920,y=sh_red_tit_1930, colour="Excl. 14 Reg."), method="lm", se=TRUE) + 
-  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=20],aes(x=new_sec_all_1920,y=sh_red_tit_1930, colour="Excl. 19 Reg."), method="lm", se=TRUE) + 
-  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=30],aes(x=new_sec_all_1920,y=sh_red_tit_1930, colour="Excl. 29 Reg."), method="lm", se=TRUE) + 
-  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=50],aes(x=new_sec_all_1920,y=sh_red_tit_1930, colour="Excl. 49 Reg."), method="lm", se=TRUE) + 
+  geom_point(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000],aes(x=new_sec_all_1920,y=sh_new_method1_1930), size=0.5) +
+  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000],aes(x=new_sec_all_1920,y=sh_new_method1_1930, colour="All"), method="lm", se=TRUE) + 
+  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=3],aes(x=new_sec_all_1920,y=sh_new_method1_1930, colour="Excl. 3 Reg."), method="lm", se=TRUE) +  
+                  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000& rank_new_sec_1920>=5],aes(x=new_sec_all_1920,y=sh_new_method1_1930, colour="Excl. 5 Reg."), method="lm", se=TRUE) + 
+  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=10],aes(x=new_sec_all_1920,y=sh_new_method1_1930, colour="Excl. 9 Reg."), method="lm", se=TRUE) +  
+  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=15],aes(x=new_sec_all_1920,y=sh_new_method1_1930, colour="Excl. 14 Reg."), method="lm", se=TRUE) + 
+  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=20],aes(x=new_sec_all_1920,y=sh_new_method1_1930, colour="Excl. 19 Reg."), method="lm", se=TRUE) + 
+  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=30],aes(x=new_sec_all_1920,y=sh_new_method1_1930, colour="Excl. 29 Reg."), method="lm", se=TRUE) + 
+  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=50],aes(x=new_sec_all_1920,y=sh_new_method1_1930, colour="Excl. 49 Reg."), method="lm", se=TRUE) + 
   geom_rangeframe()  +  
-  ylim(min(census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_red_tit_1930,census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_red_tit_1930_no_new_sec), max(census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_red_tit_1930,census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_red_tit_1930_no_new_sec)) +
+  ylim(min(census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_new_method1_1930,census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_new_method1_1930_no_new_sec), max(census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_new_method1_1930,census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_new_method1_1930_no_new_sec)) +
   labs(title="",x="Share of New Sector", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
 p[[2]] <- ggplot() +
-  geom_point(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000],aes(x=new_sec_all_1920,y=sh_red_tit_1930_no_new_sec), size=0.5) +
-  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000],aes(x=new_sec_all_1920,y=sh_red_tit_1930_no_new_sec, colour="All"), method="lm", se=TRUE) + 
-  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=3],aes(x=new_sec_all_1920,y=sh_red_tit_1930_no_new_sec, colour="Excl. 3 Reg."), method="lm", se=TRUE) +  
-                  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000& rank_new_sec_1920>=5],aes(x=new_sec_all_1920,y=sh_red_tit_1930_no_new_sec, colour="Excl. 5 Reg."), method="lm", se=TRUE) + 
-  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=10],aes(x=new_sec_all_1920,y=sh_red_tit_1930_no_new_sec, colour="Excl. 9 Reg."), method="lm", se=TRUE) +  
-  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=15],aes(x=new_sec_all_1920,y=sh_red_tit_1930_no_new_sec, colour="Excl. 14 Reg."), method="lm", se=TRUE) + 
-  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=20],aes(x=new_sec_all_1920,y=sh_red_tit_1930_no_new_sec, colour="Excl. 19 Reg."), method="lm", se=TRUE) + 
-  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=30],aes(x=new_sec_all_1920,y=sh_red_tit_1930_no_new_sec, colour="Excl. 29 Reg."), method="lm", se=TRUE) + 
-  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=50],aes(x=new_sec_all_1920,y=sh_red_tit_1930_no_new_sec, colour="Excl. 49 Reg."), method="lm", se=TRUE) + 
+  geom_point(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000],aes(x=new_sec_all_1920,y=sh_new_method1_1930_no_new_sec), size=0.5) +
+  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000],aes(x=new_sec_all_1920,y=sh_new_method1_1930_no_new_sec, colour="All"), method="lm", se=TRUE) + 
+  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=3],aes(x=new_sec_all_1920,y=sh_new_method1_1930_no_new_sec, colour="Excl. 3 Reg."), method="lm", se=TRUE) +  
+                  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000& rank_new_sec_1920>=5],aes(x=new_sec_all_1920,y=sh_new_method1_1930_no_new_sec, colour="Excl. 5 Reg."), method="lm", se=TRUE) + 
+  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=10],aes(x=new_sec_all_1920,y=sh_new_method1_1930_no_new_sec, colour="Excl. 9 Reg."), method="lm", se=TRUE) +  
+  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=15],aes(x=new_sec_all_1920,y=sh_new_method1_1930_no_new_sec, colour="Excl. 14 Reg."), method="lm", se=TRUE) + 
+  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=20],aes(x=new_sec_all_1920,y=sh_new_method1_1930_no_new_sec, colour="Excl. 19 Reg."), method="lm", se=TRUE) + 
+  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=30],aes(x=new_sec_all_1920,y=sh_new_method1_1930_no_new_sec, colour="Excl. 29 Reg."), method="lm", se=TRUE) + 
+  stat_smooth(data=census_sample_new_work_x_new_sectors[perwt_1930>=10000 & rank_new_sec_1920>=50],aes(x=new_sec_all_1920,y=sh_new_method1_1930_no_new_sec, colour="Excl. 49 Reg."), method="lm", se=TRUE) + 
   geom_rangeframe()  +  
-  ylim(min(census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_red_tit_1930,census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_red_tit_1930_no_new_sec), max(census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_red_tit_1930,census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_red_tit_1930_no_new_sec)) +
+  ylim(min(census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_new_method1_1930,census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_new_method1_1930_no_new_sec), max(census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_new_method1_1930,census_sample_new_work_x_new_sectors[perwt_1930>=10000]$sh_new_method1_1930_no_new_sec)) +
   labs(title="",x="Share of New Sector", y = "Share of New Work") + theme_tufte() + theme(axis.line=element_line(color="black"))
 
 ggarrange(p[[1]],p[[2]],
           labels = c("All Sectors","No New Sectors"),
           ncol = 2, nrow = 1,common.legend = TRUE)
-ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_new_sectors_1930_x_sh_red_tit_1920_different_reg_secs.jpeg")),plot=last_plot())
+ggsave(here(paste0("output/Graphs/metarea_1940/corr_sh_new_sectors_1930_x_sh_new_method1_1920_different_reg_secs.jpeg")),plot=last_plot())
 
 rm(p)
 
@@ -2555,33 +2555,33 @@ rm(list=setdiff(ls(all.names = TRUE), "f_load_pk"))
 f_load_pk()
 
 # Calling the data
-census_sample_1930_individual_data <-read_fst(here(paste0("output/Rdata/census_sample_1930_individual_data.fst")),as.data.table=TRUE)[occ1950_main!=979 & ind1950_main!=0,c("perwt_ID","ind1950","ind1950_main","occind","occ1950","occ1950_main","sh_base_tit","sh_red_tit")]
+census_sample_1930_individual_data <-read_fst(here(paste0("output/Rdata/census_sample_1930_individual_data.fst")),as.data.table=TRUE)[occ1950_main!=979 & ind1950_main!=0,c("perwt_ID","ind1950","ind1950_main","occind","occ1950","occ1950_main","sh_base_tit","sh_new_method1")]
 
 # Combining New Sectors
 
 
 # Aggregating
 census_sample_1930_individual_data <- census_sample_1930_individual_data[,perwt_occind_x_ind1950:=sum(perwt_ID),by=c("occind","ind1950")][,perwt_occ1950_x_ind1950:=sum(perwt_ID),by=c("occ1950","perwt_ID")][,perwt_occind:=sum(perwt_ID),by=c("occind")][,perwt_occ1950:=sum(perwt_ID),by=c("occind")][,perwt_ind1950:=sum(perwt_ID),by=c("ind1950")]
-census_sample_1930_individual_data[,sh_red_tit_x_occ1950:=lapply(.SD,weighted.mean,w=perwt_ID),by=c("occ1950"),.SDcols=c("sh_red_tit")][,sh_red_tit_x_ind1950:=lapply(.SD,weighted.mean,w=perwt_ID),by=c("ind1950"),.SDcols=c("sh_red_tit")]
+census_sample_1930_individual_data[,sh_new_method1_x_occ1950:=lapply(.SD,weighted.mean,w=perwt_ID),by=c("occ1950"),.SDcols=c("sh_new_method1")][,sh_new_method1_x_ind1950:=lapply(.SD,weighted.mean,w=perwt_ID),by=c("ind1950"),.SDcols=c("sh_new_method1")]
 
-census_sample_1930_individual_data <- census_sample_1930_individual_data[,.SD[1],by=c("occind","occ1950","ind1950"),,.SDcols=c("perwt_occind_x_ind1950","perwt_occ1950_x_ind1950","perwt_occind","perwt_occ1950","perwt_ind1950","sh_red_tit","sh_red_tit_x_occ1950","sh_red_tit_x_ind1950")]
+census_sample_1930_individual_data <- census_sample_1930_individual_data[,.SD[1],by=c("occind","occ1950","ind1950"),,.SDcols=c("perwt_occind_x_ind1950","perwt_occ1950_x_ind1950","perwt_occind","perwt_occ1950","perwt_ind1950","sh_new_method1","sh_new_method1_x_occ1950","sh_new_method1_x_ind1950")]
 ```
 
 #### 3.6.2. Analyzing the data
 ##### 3.6.2.1. occind
 ```{r}
 # Selecting the set of interest
-census_sample_1930_occind_x_ind1950 <- census_sample_1930_individual_data[,.SD[1],by=c("occind","ind1950"),.SDcols=c("perwt_ind1950","perwt_occind","perwt_occind_x_ind1950","sh_red_tit","sh_red_tit_x_ind1950")]
+census_sample_1930_occind_x_ind1950 <- census_sample_1930_individual_data[,.SD[1],by=c("occind","ind1950"),.SDcols=c("perwt_ind1950","perwt_occind","perwt_occind_x_ind1950","sh_new_method1","sh_new_method1_x_ind1950")]
 
 # Creating shares
-setorder(census_sample_1930_occind_x_ind1950,ind1950,-sh_red_tit)
-census_sample_1930_occind_x_ind1950[,sh_occind_in_ind1950:=perwt_occind_x_ind1950/perwt_ind1950][,w_x_sh_new:=sh_occind_in_ind1950*sh_red_tit][,cumsum_sh_occind_in_ind1950:=cumsum(sh_occind_in_ind1950),by=c("ind1950")]
+setorder(census_sample_1930_occind_x_ind1950,ind1950,-sh_new_method1)
+census_sample_1930_occind_x_ind1950[,sh_occind_in_ind1950:=perwt_occind_x_ind1950/perwt_ind1950][,w_x_sh_new:=sh_occind_in_ind1950*sh_new_method1][,cumsum_sh_occind_in_ind1950:=cumsum(sh_occind_in_ind1950),by=c("ind1950")]
 
 # Creating vector with the number of all the ind1950
 ind_1950 <- unique(census_sample_1930_occind_x_ind1950$ind1950)
 
 # Reorganizing data
-census_sample_1930_occind_x_ind1950 <- data.table::dcast(census_sample_1930_occind_x_ind1950, occind + sh_red_tit + perwt_occind  ~ ind1950, value.var = c("sh_occind_in_ind1950","cumsum_sh_occind_in_ind1950","w_x_sh_new") )
+census_sample_1930_occind_x_ind1950 <- data.table::dcast(census_sample_1930_occind_x_ind1950, occind + sh_new_method1 + perwt_occind  ~ ind1950, value.var = c("sh_occind_in_ind1950","cumsum_sh_occind_in_ind1950","w_x_sh_new") )
 
 # Convert all cells with NA values to 0
 census_sample_1930_occind_x_ind1950 <- census_sample_1930_occind_x_ind1950[,lapply(.SD,function(x) {x[is.na(x)] <- 0; x}),.SDcols=names(census_sample_1930_occind_x_ind1950)]
@@ -2594,7 +2594,7 @@ occ1930.codes <- as.data.table( read_excel(here(paste0("input/1930 - Cleaned.xls
 census_sample_1930_occind_x_ind1950 <- merge(census_sample_1930_occind_x_ind1950,occ1930.codes,by=c("occind"),all.x=TRUE,all.y=FALSE)
 
 # Reorganize information
-organize <- c("occind","occ","occind1930_name","sh_red_tit")
+organize <- c("occind","occ","occind1930_name","sh_new_method1")
 for (i in c(c(376,377,606,668,816,856),ind_1950[!ind_1950 %in% c(376,377,606,668,816,856)])) {
   organize <- c(organize,
                 grep(paste0(i,"$"),names(census_sample_1930_occind_x_ind1950),value=TRUE))
@@ -2923,7 +2923,7 @@ Fixed effects:- statefip
 
 New Sector:   - new_sec_all, new_sec_main, new_sec_serv
 
-New Work:     - sh_red_tit, sh_base_tit
+New Work:     - sh_new_method1, sh_base_tit
 
 It is not very clear what year should we use for the different variables. For the new sector variables the year should be 1920 and probably also for the regional variables. For the base variables I'm not entirely sure.
 Regarding the variables excluding workers in new sectors, for sure we should do that for the New Work variables. We could also try to do that for the regional variables.
@@ -2934,7 +2934,7 @@ Regarding the variables excluding workers in new sectors, for sure we should do 
 a1 <- a2 <- b1 <- b2 <- b1_no_new_sec_all <- b2_no_new_sec_all <- c <- c_no_new_sec_main <- vector(mode = "list")
 
 j <- 1
-for (i1 in c("sh_red_tit_1930")) {
+for (i1 in c("sh_new_method1_1930")) {
   for (i2 in c(
     paste0(""),
     paste0(" + statefip_1930"),
@@ -2964,7 +2964,7 @@ for (i1 in c("sh_red_tit_1930")) {
 }
 
 
-for (i1 in c("sh_red_tit_1930_no_new_sec_all","sh_red_tit_1930_no_new_sec_main")) {
+for (i1 in c("sh_new_method1_1930_no_new_sec_all","sh_new_method1_1930_no_new_sec_main")) {
   for (i2 in c(1,2,3)) {
     j <- 1
     for (i3 in c(
@@ -2987,15 +2987,15 @@ for (i1 in c("sh_red_tit_1930_no_new_sec_all","sh_red_tit_1930_no_new_sec_main")
         paste0(" + ",occsh_var_1920[[i2]]),
         paste0(" + ",indsh_var_1920[[i2]]," + ",occsh_var_1920[[i2]])
         )  ) {
-        if (i1=="sh_red_tit_1930_no_new_sec_all" & (i2==1)) {
+        if (i1=="sh_new_method1_1930_no_new_sec_all" & (i2==1)) {
           b1[[j]] <- as.formula(paste(i1," ~ new_sec_all_1920",i3,i4))
           b2[[j]] <- as.formula(paste(i1," ~ new_sec_main_1920 + new_sec_serv_1920",i3,i4))
-        } else if (i1=="sh_red_tit_1930_no_new_sec_all" & (i2==2)) {
+        } else if (i1=="sh_new_method1_1930_no_new_sec_all" & (i2==2)) {
           b1_no_new_sec_all[[j]] <- as.formula(paste(i1," ~ new_sec_all_1920",i3,i4))
           b2_no_new_sec_all[[j]] <- as.formula(paste(i1," ~ new_sec_main_1920 + new_sec_serv_1920",i3,i4))
-        } else if (i1=="sh_red_tit_1930_no_new_sec_main" & (i2==1)) {
+        } else if (i1=="sh_new_method1_1930_no_new_sec_main" & (i2==1)) {
           c[[j]] <- as.formula(paste(i1," ~ new_sec_main_1920",i3,i4))
-        } else if (i1=="sh_red_tit_1930_no_new_sec_main" & (i2==3)) {
+        } else if (i1=="sh_new_method1_1930_no_new_sec_main" & (i2==3)) {
           c_no_new_sec_main[[j]] <- as.formula(paste(i1," ~ new_sec_main_1920",i3,i4)) 
         }
         j <- j + 1
@@ -3008,21 +3008,21 @@ for (i1 in c("sh_red_tit_1930_no_new_sec_all","sh_red_tit_1930_no_new_sec_main")
 
 #### 1.3.1.2. Main Regressions
 ```{r}
-# sh_red_tit using all workers
+# sh_new_method1 using all workers
 coef.all <- f_regressions (arg_formula=a1,arg_data=census_sample_1930_countynhg_1910[perwt_1930 > 10000],method="lm")
 coef.all_main_serv <- f_regressions (arg_formula=a2,arg_data=census_sample_1930_countynhg_1910[perwt_1930 > 10000],method="lm")
 
-# sh_red_tit using only no new sector workers
+# sh_new_method1 using only no new sector workers
 coef.excl_new_sec <- f_regressions (arg_formula=b1,arg_data=census_sample_1930_countynhg_1910[perwt_1930 > 10000],method="lm")
 coef.excl_new_sec.main_serv <- f_regressions (arg_formula=b2,arg_data=census_sample_1930_countynhg_1910[perwt_1930 > 10000],method="lm")
 coef.excl_new_sec._no_new_sec_all <- f_regressions (arg_formula=b1_no_new_sec_all,arg_data=census_sample_1930_countynhg_1910[perwt_1930 > 10000],method="lm")
 coef.excl_new_sec.main_serv_no_new_sec_all <- f_regressions (arg_formula=b2_no_new_sec_all,arg_data=census_sample_1930_countynhg_1910[perwt_1930 > 10000],method="lm")
 
-# sh_red_tit using only no new sector main workers
+# sh_new_method1 using only no new sector main workers
 coef.excl_new_sec_main <- f_regressions (arg_formula=c,arg_data=census_sample_1930_countynhg_1910[perwt_1930 > 10000],method="lm")
 coef.excl_new_sec_main._no_new_sec_main <- f_regressions (arg_formula=c_no_new_sec_main,arg_data=census_sample_1930_countynhg_1910[perwt_1930 > 10000],method="lm")
 
-# sh_red_tit using only no new sector workers + WEIGHTS
+# sh_new_method1 using only no new sector workers + WEIGHTS
 coef.excl_new_sec.wt <- f_regressions (arg_formula=b1,arg_weights=perwt_1930,arg_data=census_sample_1930_countynhg_1910[perwt_1930 > 10000],method="lm")
 coef.excl_new_sec._no_new_sec_all.wt <- f_regressions (arg_formula=b1_no_new_sec_all,arg_weights=perwt_1930,arg_data=census_sample_1930_countynhg_1910[perwt_1930 > 10000],method="lm")
 
@@ -3102,7 +3102,7 @@ t %>% setdiff(., grep(paste0("_500_|_",i,"_"),t,value=TRUE) )
 
 
 b1 <- b2 <- b1_no_new_sec_all <- b2_no_new_sec_all <- c <- c_no_new_sec_main <- vector(mode = "list")
-for (i1 in c("sh_red_tit_1930_no_new_sec_all","sh_red_tit_1930_no_new_sec_main")) {
+for (i1 in c("sh_new_method1_1930_no_new_sec_all","sh_new_method1_1930_no_new_sec_main")) {
   for (i2 in c(1,2,3)) {
     j <- 1
     for (i3 in c(
@@ -3119,15 +3119,15 @@ for (i1 in c("sh_red_tit_1930_no_new_sec_all","sh_red_tit_1930_no_new_sec_main")
                      occsh_except_2_var_1920[[i2]],
                      occsh_except_3_var_1920[[i2]]
                      )  ) {
-          if (i1=="sh_red_tit_1930_no_new_sec_all" & (i2==1)) {
+          if (i1=="sh_new_method1_1930_no_new_sec_all" & (i2==1)) {
             b1[[j]] <- as.formula(paste(i1," ~ new_sec_all_1920",i3,i4," + ",i5))
             b2[[j]] <- as.formula(paste(i1," ~ new_sec_main_1920 + new_sec_serv_1920",i3,i4," + ",i5))
-          } else if (i1=="sh_red_tit_1930_no_new_sec_all" & (i2==2)) {
+          } else if (i1=="sh_new_method1_1930_no_new_sec_all" & (i2==2)) {
             b1_no_new_sec_all[[j]] <- as.formula(paste(i1," ~ new_sec_all_1920",i3,i4," + ",i5))
             b2_no_new_sec_all[[j]] <- as.formula(paste(i1," ~ new_sec_main_1920 + new_sec_serv_1920",i3,i4," + ",i5))
-          } else if (i1=="sh_red_tit_1930_no_new_sec_main" & (i2==1)) {
+          } else if (i1=="sh_new_method1_1930_no_new_sec_main" & (i2==1)) {
             c[[j]] <- as.formula(paste(i1," ~ new_sec_main_1920",i3,i4," + ",i5))
-          } else if (i1=="sh_red_tit_1930_no_new_sec_main" & (i2==3)) {
+          } else if (i1=="sh_new_method1_1930_no_new_sec_main" & (i2==3)) {
             c_no_new_sec_main[[j]] <- as.formula(paste(i1," ~ new_sec_main_1920",i3,i4," + ",i5)) 
           }
           j <- j + 1
@@ -3141,13 +3141,13 @@ for (i1 in c("sh_red_tit_1930_no_new_sec_all","sh_red_tit_1930_no_new_sec_main")
 
 #### 1.3.2.2. Regressions
 ```{r}
-# sh_red_tit using only no new sector workers
+# sh_new_method1 using only no new sector workers
 coef.excl_new_sec <- f_regressions (arg_formula=b1,arg_data=census_sample_1930_countynhg_1910[perwt_1930 > 10000],method="lm")
 coef.excl_new_sec.main_serv <- f_regressions (arg_formula=b2,arg_data=census_sample_1930_countynhg_1910[perwt_1930 > 10000],method="lm")
 coef.excl_new_sec._no_new_sec_all <- f_regressions (arg_formula=b1_no_new_sec_all,arg_data=census_sample_1930_countynhg_1910[perwt_1930 > 10000],method="lm")
 coef.excl_new_sec.main_serv_no_new_sec_all <- f_regressions (arg_formula=b2_no_new_sec_all,arg_data=census_sample_1930_countynhg_1910[perwt_1930 > 10000],method="lm")
 
-# sh_red_tit using only no new sector main workers
+# sh_new_method1 using only no new sector main workers
 coef.excl_new_sec_main <- f_regressions (arg_formula=c,arg_data=census_sample_1930_countynhg_1910[perwt_1930 > 10000],method="lm")
 coef.excl_new_sec_main._no_new_sec_main <- f_regressions (arg_formula=c_no_new_sec_main,arg_data=census_sample_1930_countynhg_1910[perwt_1930 > 10000],method="lm")
 ```
@@ -3529,7 +3529,7 @@ Fixed effects:- statefip
 
 New Sector:   - new_sec_all, new_sec_main, new_sec_serv
 
-New Work:     - sh_red_tit, sh_base_tit
+New Work:     - sh_new_method1, sh_base_tit
 
 It is not very clear what year should we use for the different variables. For the new sector variables the year should be 1920 and probably also for the regional variables. For the base variables I'm not entirely sure.
 Regarding the variables excluding workers in new sectors, for sure we should do that for the New Work variables. We could also try to do that for the regional variables.
@@ -4191,9 +4191,9 @@ for (var_y in c(1930,1920,1910)) {
 
 
 
-## Appendix
+# Appendix
 
-# Initial code chunks that were changed (I keep the original in case there are mistakes. Usually the original is a longer code, but that appears to be more robust)
+## Initial code chunks that were changed (I keep the original in case there are mistakes. Usually the original is a longer code, but that appears to be more robust)
 
 
 ## Industries and new titles

@@ -958,15 +958,15 @@ We want to construct a set of variables that characterize geographic locations. 
 ## 3.1 1930 
 ### 3.1.1. Import the database with information about new titles
 ```{r}
-occ1930.codes <- as.data.table( read_excel(paste0(main_directory,"R - Processing data/input/1930 - Cleaned.xlsx"), sheet = "1930 main groups",guess_max=10000) )[,!c("occ_ini_1930","occ1930","occ_name")]
+occ1930.codes <- as.data.table( read_excel(paste0(main_directory,"R - Processing data/input/1930 - Cleaned.xlsx"), sheet = "1930 main groups",guess_max=10000) )[,!c("occ_ini_1930","occ1930","occ_name")][,c("ind1930","occind1930","occind1930_name"):=lapply(.SD,tolower),.SDcols=c("ind1930","occind1930","occind1930_name")]
 
 new_titles.occind1930 <- list(
                                 read_fst(paste0(main_directory,"R - Processing data/output/Rdata/new_titles_1930_by_occind.fst"),as.data.table=TRUE),
                                 read_fst(paste0(main_directory,"R - Processing data/output/Rdata/new_titles_1930_by_occind.all.fst"),as.data.table=TRUE)
 )
 
-new_titles.occind1930[[1]] <- merge(new_titles.occind1930[[1]],occ1930.codes[,c("occind1930","occind1930_name","occ","ind","occind","flag")],by="occind1930",all=TRUE)
-new_titles.occind1930[[2]] <- merge(new_titles.occind1930[[2]],occ1930.codes[,c("occind1930","occind1930_name","occ","ind","occind","flag")],by="occind1930",all=TRUE)
+new_titles.occind1930[[1]] <- merge(new_titles.occind1930[[1]],occ1930.codes[,c("occind1930","occ","ind","flag")],by="occind1930",all=TRUE)
+new_titles.occind1930[[2]] <- merge(new_titles.occind1930[[2]],occ1930.codes[,c("occind1930","occ","ind","flag")],by="occind1930",all=TRUE)
 
 write.xlsx(new_titles.occind1930[[1]],paste0(main_directory,"R - Processing data/output/Tables/new_titles.occind1930_within.xlsx"),row.names = TRUE)
 
@@ -988,9 +988,9 @@ rm(new_titles_agg)
 We can merge with either the new_titles vector that uses all titles (second element in the list) or the one using titles within occ (first element in the list)
 ```{r}
 # We only keep rows that have an occind code. The share of new titles will be computed using only persons that have a valid occind code
-new_titles_agg_all <- merge(new_titles_agg_all,new_titles.occind1930[[1]][,c("sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind","occind")],by=c("occind"),all.x=TRUE,all.y=FALSE)[!is.na(occind)]
-new_titles_agg_no_new_sec_all <- merge(new_titles_agg_no_new_sec_all,new_titles.occind1930[[1]][,c("sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind","occind")],by=c("occind"),all.x=TRUE,all.y=FALSE)[!is.na(occind)]
-new_titles_agg_no_new_sec_main <- merge(new_titles_agg_no_new_sec_main,new_titles.occind1930[[1]][,c("sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind","occind")],by=c("occind"),all.x=TRUE,all.y=FALSE)[!is.na(occind)]
+new_titles_agg_all <- merge(new_titles_agg_all,new_titles.occind1930[[1]][,c("sh_new_all","sh_new_method1","sh_new_method2","occind")],by=c("occind"),all.x=TRUE,all.y=FALSE)[!is.na(occind)]
+new_titles_agg_no_new_sec_all <- merge(new_titles_agg_no_new_sec_all,new_titles.occind1930[[1]][,c("sh_new_all","sh_new_method1","sh_new_method2","occind")],by=c("occind"),all.x=TRUE,all.y=FALSE)[!is.na(occind)]
+new_titles_agg_no_new_sec_main <- merge(new_titles_agg_no_new_sec_main,new_titles.occind1930[[1]][,c("sh_new_all","sh_new_method1","sh_new_method2","occind")],by=c("occind"),all.x=TRUE,all.y=FALSE)[!is.na(occind)]
 
 write_fst(new_titles_agg_all, paste0(main_directory,"R - Processing data/output/Rdata/new_titles_agg.fst"))
 write_fst(new_titles_agg_no_new_sec_all, paste0(main_directory,"R - Processing data/output/Rdata/new_titles_agg_no_new_sec_all.fst"))
@@ -1251,7 +1251,7 @@ Initial <-read_fst(paste0(main_directory,"R - Processing data/input/census_sampl
 census_sample_1930_agg_countynhg <- f_geographic_database(
               Initial[,!c("countynhg_1910","metarea_1940")][!is.na(countynhg)],
               countynhg,
-              new_titles_agg_all[!is.na(countynhg)][,lapply(.SD,weighted.mean,w=perwt),by=c("countynhg"),.SDcols=c("sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind")])
+              new_titles_agg_all[!is.na(countynhg)][,lapply(.SD,weighted.mean,w=perwt),by=c("countynhg"),.SDcols=c("sh_new_all","sh_new_method1","sh_new_method2")])
 # Division variable
 census_sample_1930_agg_countynhg <- merge(census_sample_1930_agg_countynhg,division_statefip,by="statefip",all.x=TRUE,all.y=FALSE)
 
@@ -1261,15 +1261,15 @@ write_fst(census_sample_1930_agg_countynhg, paste0(main_directory,"R - Processin
 census_sample_1930_agg_countynhg_1910 <- f_geographic_database(
             Initial[,!c("countynhg","metarea_1940")][!is.na(countynhg_1910)],
             countynhg_1910,
-            new_titles_agg_all[!is.na(countynhg_1910)][,lapply(.SD,weighted.mean,w=perwt),by=c("countynhg_1910"),.SDcols=c("sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind")])
+            new_titles_agg_all[!is.na(countynhg_1910)][,lapply(.SD,weighted.mean,w=perwt),by=c("countynhg_1910"),.SDcols=c("sh_new_all","sh_new_method1","sh_new_method2")])
 census_sample_1930_agg_countynhg_1910_no_new_sec_all <- f_geographic_database(
             Initial[!(ind1950 %in% c(376,377,466,556,606,667,668,816,856)),!c("countynhg","metarea_1940")][!is.na(countynhg_1910)],
             countynhg_1910,
-            new_titles_agg_no_new_sec_all[!is.na(countynhg_1910)][,lapply(.SD,weighted.mean,w=perwt),by=c("countynhg_1910"),.SDcols=c("sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind")])
+            new_titles_agg_no_new_sec_all[!is.na(countynhg_1910)][,lapply(.SD,weighted.mean,w=perwt),by=c("countynhg_1910"),.SDcols=c("sh_new_all","sh_new_method1","sh_new_method2")])
 census_sample_1930_agg_countynhg_1910_no_new_sec_main <- f_geographic_database(
             Initial[!(ind1950 %in% c(376,377,466,856)),!c("countynhg","metarea_1940")][!is.na(countynhg_1910)],
             countynhg_1910,
-            new_titles_agg_no_new_sec_main[!is.na(countynhg_1910)][,lapply(.SD,weighted.mean,w=perwt),by=c("countynhg_1910"),.SDcols=c("sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind")])
+            new_titles_agg_no_new_sec_main[!is.na(countynhg_1910)][,lapply(.SD,weighted.mean,w=perwt),by=c("countynhg_1910"),.SDcols=c("sh_new_all","sh_new_method1","sh_new_method2")])
 
 # Division variable
 census_sample_1930_agg_countynhg_1910 <- merge(census_sample_1930_agg_countynhg_1910,division_statefip,by="statefip",all.x=TRUE,all.y=FALSE)
@@ -1284,15 +1284,15 @@ write_fst(census_sample_1930_agg_countynhg_1910_no_new_sec_main, paste0(main_dir
 census_sample_1930_agg_metarea_1940 <- f_geographic_database(
           Initial[,!c("countynhg","countynhg_1910")][!is.na(metarea_1940)],
           metarea_1940,
-          new_titles_agg_all[!is.na(metarea_1940)][,lapply(.SD,weighted.mean,w=perwt),by=c("metarea_1940"),.SDcols=c("sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind")])
+          new_titles_agg_all[!is.na(metarea_1940)][,lapply(.SD,weighted.mean,w=perwt),by=c("metarea_1940"),.SDcols=c("sh_new_all","sh_new_method1","sh_new_method2")])
 census_sample_1930_agg_metarea_1940_no_new_sec_all <- f_geographic_database(
           Initial[!(ind1950 %in% c(376,377,466,556,606,667,668,816,856)), !c("countynhg","countynhg_1910")][!is.na(metarea_1940)],
           metarea_1940,
-          new_titles_agg_no_new_sec_all[!is.na(metarea_1940)][,lapply(.SD,weighted.mean,w=perwt),by=c("metarea_1940"),.SDcols=c("sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind")])
+          new_titles_agg_no_new_sec_all[!is.na(metarea_1940)][,lapply(.SD,weighted.mean,w=perwt),by=c("metarea_1940"),.SDcols=c("sh_new_all","sh_new_method1","sh_new_method2")])
 census_sample_1930_agg_metarea_1940_no_new_sec_main <- f_geographic_database(
           Initial[!(ind1950 %in% c(376,377,466,856)), !c("countynhg","countynhg_1910")][!is.na(metarea_1940)],
           metarea_1940,
-          new_titles_agg_no_new_sec_main[!is.na(metarea_1940)][,lapply(.SD,weighted.mean,w=perwt),by=c("metarea_1940"),.SDcols=c("sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind")])
+          new_titles_agg_no_new_sec_main[!is.na(metarea_1940)][,lapply(.SD,weighted.mean,w=perwt),by=c("metarea_1940"),.SDcols=c("sh_new_all","sh_new_method1","sh_new_method2")])
 
 # Division variable
 census_sample_1930_agg_metarea_1940 <- merge(census_sample_1930_agg_metarea_1940,division_statefip,by="statefip",all.x=TRUE,all.y=FALSE)
@@ -1505,7 +1505,7 @@ if (!exists("new_titles.occind1930")) {
   new_titles.occind1930[[2]] <- merge(new_titles.occind1930[[2]],occ1930.codes[,c("occind1930","occind1930_name","occ","ind","occind","flag")],by="occind1930",all=TRUE)
 }
 
-census_sample_1930_individual_data <- merge(census_sample_1930_individual_data,new_titles.occind1930[[1]][,c("occind","sh_base_tit","sh_red_tit")],by="occind",all.x=TRUE,all.y=FALSE)
+census_sample_1930_individual_data <- merge(census_sample_1930_individual_data,new_titles.occind1930[[1]][,c("occind","sh_new_all","sh_new_method1","sh_new_method2")],by="occind",all.x=TRUE,all.y=FALSE)
 
 ```
 
@@ -1631,7 +1631,7 @@ census_sample_1930_individual_data_x_countynhg_1910 <- merge(census_sample_1930_
 
 #### 1930
 ```{r}
-temp_1930 <- read_fst(paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1930_agg_countynhg_1910.fst"),as.data.table=TRUE)[,!c("sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind","statefip","sh_m_mig_us","sh_m_mig_ab","sh_f_mig_us","sh_f_mig_ab","sh_marst_1","sh_marst_2","sh_marst_3","sh_ownershp","sh_labforce_cl")][,new_sec_all:=sh_new_sector_ind1950_376+sh_new_sector_ind1950_377+sh_new_sector_ind1950_466 +sh_new_sector_ind1950_556+sh_new_sector_ind1950_606+sh_new_sector_ind1950_667+sh_new_sector_ind1950_668+sh_new_sector_ind1950_816 + sh_new_sector_ind1950_856]
+temp_1930 <- read_fst(paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1930_agg_countynhg_1910.fst"),as.data.table=TRUE)[,!c("sh_new_all","sh_new_method1","sh_new_method2","statefip","sh_m_mig_us","sh_m_mig_ab","sh_f_mig_us","sh_f_mig_ab","sh_marst_1","sh_marst_2","sh_marst_3","sh_ownershp","sh_labforce_cl")][,new_sec_all:=sh_new_sector_ind1950_376+sh_new_sector_ind1950_377+sh_new_sector_ind1950_466 +sh_new_sector_ind1950_556+sh_new_sector_ind1950_606+sh_new_sector_ind1950_667+sh_new_sector_ind1950_668+sh_new_sector_ind1950_816 + sh_new_sector_ind1950_856]
 setorder(temp_1930,-new_sec_all)
 temp_1930[,rank_new_sec:=1:.N][,new_sec_all:=NULL]
 
@@ -1715,6 +1715,7 @@ rm(census_sample_1930_individual_data_x_countynhg_1910,census_sample_1940_indivi
 
 ## 6.2. metarea_1940
 ****!!! To-DO: REVIEW, DO THE SAME AS WAS DONE TO countynhg_1910
+
 ## 6.2.1. Call individual level data
 ```{r}
 # 1930
@@ -1727,7 +1728,7 @@ census_sample_1940_individual_data_x_metarea_1940 <-read_fst(paste0(main_directo
 ## 6.2.2. Linking with metarea level variables
 ### 1920
 ```{r}
-temp_1920 <- read_fst(paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1920_agg_metarea_1940.fst"),as.data.table=TRUE)[,!c("statefip","sh_age_main_0","sh_age_main_1","sh_age_main_2","sh_age_main_3","sh_age_main_4","sh_age_main_5","sh_age_main_6","sh_age_main_7","sh_m_mig_us","sh_m_mig_ab","sh_f_mig_us","sh_f_mig_ab","sh_marst_1","sh_marst_2","sh_marst_3","sh_ownershp","sh_labforce_cl","sh_base","sh_base_tit","sh_base_titind","sh_red","sh_red_tit","sh_red_titind")][,new_sec_all:=sh_new_sector_ind1950_376+sh_new_sector_ind1950_377+sh_new_sector_ind1950_466 +sh_new_sector_ind1950_556+sh_new_sector_ind1950_606+sh_new_sector_ind1950_667+sh_new_sector_ind1950_668+sh_new_sector_ind1950_816]
+temp_1920 <- read_fst(paste0(main_directory,"R - Processing data/output/Rdata/census_sample_1920_agg_metarea_1940.fst"),as.data.table=TRUE)[,!c("statefip","sh_age_main_0","sh_age_main_1","sh_age_main_2","sh_age_main_3","sh_age_main_4","sh_age_main_5","sh_age_main_6","sh_age_main_7","sh_m_mig_us","sh_m_mig_ab","sh_f_mig_us","sh_f_mig_ab","sh_marst_1","sh_marst_2","sh_marst_3","sh_ownershp","sh_labforce_cl","sh_new_al","sh_new_method1","sh_new_method2")][,new_sec_all:=sh_new_sector_ind1950_376+sh_new_sector_ind1950_377+sh_new_sector_ind1950_466 +sh_new_sector_ind1950_556+sh_new_sector_ind1950_606+sh_new_sector_ind1950_667+sh_new_sector_ind1950_668+sh_new_sector_ind1950_816]
 setorder(temp_1920,-new_sec_all)
 temp_1920[,rank_new_sec:=1:.N][,new_sec_all:=NULL]
 
